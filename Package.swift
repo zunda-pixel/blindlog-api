@@ -14,13 +14,13 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/zunda-pixel/vapor.git", branch: "fix-some-error")
+    .package(url: "https://github.com/zunda-pixel/ValkeyVapor.git", branch: "main"),
   ],
   targets: [
     .executableTarget(
       name: "Server",
       dependencies: [
-        .product(name: "Vapor", package: "vapor")
+        .product(name: "ValkeyVapor", package: "ValkeyVapor"),
       ]
     ),
     .testTarget(
