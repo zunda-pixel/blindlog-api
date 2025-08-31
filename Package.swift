@@ -5,22 +5,22 @@ import PackageDescription
 let package = Package(
   name: "BlindLogServer",
   platforms: [
-    .macOS(.v26),
+    .macOS(.v26)
   ],
   products: [
     .executable(
       name: "Server",
       targets: ["Server"]
-    ),
+    )
   ],
   dependencies: [
-    .package(url: "https://github.com/vapor/vapor.git", branch: "vapor-5"),
+    .package(url: "https://github.com/vapor/vapor.git", from: "4.115.1")
   ],
   targets: [
     .executableTarget(
       name: "Server",
       dependencies: [
-        .product(name: "Vapor", package: "vapor"),
+        .product(name: "Vapor", package: "vapor")
       ]
     ),
     .testTarget(
