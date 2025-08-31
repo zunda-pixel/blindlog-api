@@ -14,7 +14,7 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/vapor/vapor.git", from: "4.115.1")
+    .package(url: "https://github.com/zunda-pixel/vapor.git", branch: "fix-some-error")
   ],
   targets: [
     .executableTarget(
