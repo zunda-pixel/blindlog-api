@@ -14,24 +14,18 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/zunda-pixel/vapor.git", branch: "fix-some-error")
+    .package(url: "https://github.com/vapor/vapor.git", from: "4.115.1")
   ],
   targets: [
     .executableTarget(
       name: "Server",
       dependencies: [
         .product(name: "Vapor", package: "vapor")
-      ],
-      swiftSettings: [
-        .swiftLanguageMode(.v5)
       ]
     ),
     .testTarget(
       name: "ServerTests",
-      dependencies: ["Server"],
-      swiftSettings: [
-        .swiftLanguageMode(.v5)
-      ]
+      dependencies: ["Server"]
     ),
   ]
 )
