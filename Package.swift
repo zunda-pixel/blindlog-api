@@ -21,11 +21,17 @@ let package = Package(
       name: "Server",
       dependencies: [
         .product(name: "Vapor", package: "vapor")
+      ],
+      swiftSettings: [
+        .swiftLanguageMode(.v5)
       ]
     ),
     .testTarget(
       name: "ServerTests",
-      dependencies: ["Server"]
+      dependencies: ["Server"],
+      swiftSettings: [
+        .swiftLanguageMode(.v5)
+      ]
     ),
   ]
 )
