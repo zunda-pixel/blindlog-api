@@ -1,5 +1,5 @@
 {
-  "originHash" : "e8626f18984f306b6e0550193fcb8219f8065a2bb6237e66422aadd9407e98b6",
+  "originHash" : "dd2b0429f2b1c914c12079bb356779edc7cf4ebd972c797144bd744f87d85d6a",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -103,10 +103,10 @@
     {
       "identity" : "swift-crypto",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-crypto.git",
+      "location" : "https://github.com/zunda-pixel/swift-crypto.git",
       "state" : {
-        "revision" : "d1c6b70f7c5f19fb0b8750cb8dcdf2ea6e2d8c34",
-        "version" : "3.15.0"
+        "branch" : "support-swift-6",
+        "revision" : "527b6cab0ab76e5b593dcaacaeec0e1056c7dbe0"
       }
     },
     {
@@ -238,10 +238,10 @@
     {
       "identity" : "vapor",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/vapor.git",
+      "location" : "https://github.com/zunda-pixel/vapor.git",
       "state" : {
-        "branch" : "vapor-5",
-        "revision" : "d33d0ad989c4f42fd40d1c8117ed0c91e262af2c"
+        "branch" : "fix-some-error",
+        "revision" : "2df1dfd8007a14e0133ec01ad804cf35adaca995"
       }
     },
     {
