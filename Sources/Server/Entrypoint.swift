@@ -1,9 +1,9 @@
 import Logging
 import NIOCore
 import NIOPosix
+import Valkey
 import ValkeyVapor
 import Vapor
-import Valkey
 
 @main
 enum Entrypoint {
@@ -12,13 +12,14 @@ enum Entrypoint {
     try LoggingSystem.bootstrap(from: &env)
 
     let app = try await Application(env)
-    
-    let valkeyClient: ValkeyClient = switch app.environment {
-    case .production:
-      ValkeyClient(.hostname(Environment.get("VALKEY_HOST")!), logger: app.logger)
-    default:
-      ValkeyClient(.hostname("localhost"), logger: app.logger)
-    }
+
+    let valkeyClient: ValkeyClient =
+      switch app.environment {
+      case .production:
+        ValkeyClient(.hostname(Environment.get("VALKEY_HOST")!), logger: app.logger)
+      default:
+        ValkeyClient(.hostname("localhost"), logger: app.logger)
+      }
     app.valkey.configuration = ValkeyCache.Configuration(client: valkeyClient)
 
     do {
