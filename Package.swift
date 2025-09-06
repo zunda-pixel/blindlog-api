@@ -14,7 +14,8 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/zunda-pixel/ValkeyVapor.git", branch: "main")
+    .package(url: "https://github.com/zunda-pixel/ValkeyVapor.git", branch: "main"),
+    .package(url: "https://github.com/zunda-pixel/Vapor.git", branch: "fix-some-error")
   ],
   targets: [
     .executableTarget(
@@ -25,7 +26,10 @@ let package = Package(
     ),
     .testTarget(
       name: "ServerTests",
-      dependencies: ["Server"]
+      dependencies: [
+        .target(name: "Server"),
+        .product(name: "VaporTesting", package: "Vapor")
+      ]
     ),
   ]
 )

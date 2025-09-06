@@ -1,4 +1,7 @@
 import Vapor
+import Valkey
+import ValkeyVapor
+import Foundation
 
 // configures your application
 public func configure(_ app: Application) async throws {
@@ -6,5 +9,15 @@ public func configure(_ app: Application) async throws {
   // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
   // register routes
-  try routes(app)
+
+  let valkeyClient: ValkeyClient =
+    switch app.environment {
+    case .production:
+      ValkeyClient(.hostname(Environment.get("VALKEY_HOST")!), logger: app.logger)
+    default:
+      ValkeyClient(.hostname("localhost"), logger: app.logger)
+    }
+  app.valkey.configuration = ValkeyCache.Configuration(client: valkeyClient)
+  
+  try routes(app)  
 }

@@ -6,19 +6,19 @@ import Vapor
 
 struct UserController: RouteCollection {
   func boot(routes: any Vapor.RoutesBuilder) throws {
-    let todos = routes.grouped("users")
+    let users = routes.grouped("users")
 
-    todos.post(use: create)
+    users.post(use: create)
 
-    todos.group(":ids") { todo in
-      todo.get(use: show)
-      todo.delete(use: delete)
+    users.group(":ids") { users in
+      users.get(use: show)
+      users.delete(use: delete)
     }
   }
 
   func create(req: Request) async throws -> [User] {
     do {
-      let newUsers: [NewUser] = try await req.content.decode([NewUser].self)
+      let newUsers: [NewUser] = try await req.content.decode([NewUser].self, using: JSONDecoder())
 
       // 1. Add to Users to DB
       let addedUsers = try await addUsersToDB(users: newUsers)
@@ -39,8 +39,8 @@ struct UserController: RouteCollection {
     }
   }
 
-  func ids(req: Request) throws -> [UUID]? {
-    return req.parameters.get("ids")?
+  func ids(req: Request) throws -> [UUID] {
+    return try req.query.get(String.self, at: "ids")
       .split(separator: ",")
       .compactMap({
         UUID(uuidString: String($0))
@@ -48,10 +48,10 @@ struct UserController: RouteCollection {
   }
 
   func show(req: Request) async throws -> [User] {
-    guard let ids = try ids(req: req), !ids.isEmpty else {
-      throw Abort(.badRequest)
-    }
+    let ids = try ids(req: req)
 
+    guard !ids.isEmpty else { throw Abort(.noContent) }
+    
     do {
       // 1. Get Users from Cache and Update Expiration if exits
       let cacheUsers = try await getUsersFromCacheAndUpdateExpiration(
@@ -83,9 +83,7 @@ struct UserController: RouteCollection {
   }
 
   func delete(req: Request) async throws -> HTTPStatus {
-    guard let ids = try ids(req: req), !ids.isEmpty else {
-      throw Abort(.badRequest)
-    }
+    let ids = try ids(req: req)
 
     do {
       try await deleteUsersFromDB(ids: ids)
@@ -146,6 +144,7 @@ struct UserController: RouteCollection {
     users: [User]
   ) async throws {
     let encoder = JSONEncoder()
+    
     try await client.withConnection { connection in
       try await connection.multi()
       for user in users {
@@ -155,7 +154,7 @@ struct UserController: RouteCollection {
           expiration: .seconds(60 * 10)  // 10 minutes
         )
       }
-      await connection.execute()
+      try await connection.exec()
     }
   }
 
