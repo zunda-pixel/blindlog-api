@@ -44,7 +44,7 @@ struct UserControllerTests {
           } afterResponse: { response in
             #expect(response.status == .ok)
             let dbUsers = try await response.content.decode([User].self)
-            #expect(newUsers == dbUsers)
+            #expect(Set(newUsers) == Set(dbUsers))
           }
           // 3. Get Users from Cache
           try await app.testing().test(

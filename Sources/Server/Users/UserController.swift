@@ -21,7 +21,10 @@ struct UserController: RouteCollection {
       let newUsers: [NewUser] = try await req.content.decode([NewUser].self, using: JSONDecoder())
 
       // 1. Add to Users to DB
-      let addedUsers = try await addUsersToDB(users: newUsers)
+      let addedUsers = try await addUsersToDB(
+        request: req,
+        newUsers: newUsers
+      )
 
       // 2. Delete Users from Cache
       try await deleteUsersFromCache(
@@ -62,7 +65,7 @@ struct UserController: RouteCollection {
       // 2. Get Users from DB that is not in Cache
       let leftUserIDs = Set(ids).subtracting(Set(cacheUsers.map(\.id)))
       let dbUsers: [User] = try await getUsersFromDB(
-        client: req.application.valkey.client,
+        request: req,
         ids: Array(leftUserIDs)
       )
 
@@ -86,7 +89,10 @@ struct UserController: RouteCollection {
     let ids = try ids(req: req)
 
     do {
-      try await deleteUsersFromDB(ids: ids)
+      try await deleteUsersFromDB(
+        request: req,
+        ids: ids
+      )
       try await deleteUsersFromCache(
         client: req.application.valkey.client,
         ids: ids
@@ -170,24 +176,37 @@ struct UserController: RouteCollection {
   //MARK: DB
 
   func getUsersFromDB(
-    client: ValkeyClient,
+    request: Request,
     ids: [User.ID]
   ) async throws -> [User] {
-    #warning("Not implemented")
-    fatalError()
+    let users = ids.compactMap { id in
+      request.application.storage[UsersStorageKey.self]?.users.withLock { $0[id] }
+    }
+    return users
   }
 
   func addUsersToDB(
-    users: [NewUser]
+    request: Request,
+    newUsers: [NewUser]
   ) async throws -> [User] {
-    #warning("Not implemented")
-    fatalError()
+    let users: [User] = newUsers.map { user in
+      let user = User(id: UUID(), name: user.name, birthDay: user.birthDay)
+      return user
+    }
+    
+    for user in users {
+      request.application.storage[UsersStorageKey.self]?.users.withLock { $0[user.id] = user }
+    }
+
+    return users
   }
 
   func deleteUsersFromDB(
+    request: Request,
     ids: [User.ID]
   ) async throws {
-    #warning("Not implemented")
-    fatalError()
+    for id in ids {
+      request.application.storage[UsersStorageKey.self]?.users.withLock { $0[id] = nil }
+    }
   }
 }

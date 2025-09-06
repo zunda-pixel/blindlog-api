@@ -19,5 +19,18 @@ public func configure(_ app: Application) async throws {
     }
   app.valkey.configuration = ValkeyCache.Configuration(client: valkeyClient)
   
-  try routes(app)  
+  app.storage[UsersStorageKey.self] = UsersStorage()
+  
+  try routes(app)
+}
+
+
+enum UsersStorageKey: StorageKey, Sendable {
+  typealias Value = UsersStorage
+}
+
+import Synchronization
+
+public final class UsersStorage: Sendable {
+  let users: Mutex<[User.ID: User]> = .init([:])
 }
