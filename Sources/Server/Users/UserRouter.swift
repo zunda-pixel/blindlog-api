@@ -1,12 +1,13 @@
 import Foundation
 import Hummingbird
 import NIOFoundationCompat
-import Valkey
-import PostgresNIO
 import PostgresKit
+import PostgresNIO
+import Valkey
 
 struct UserRouter<Context: RequestContext> {
   var cache: ValkeyClient
+  var logger: Logger = Logger(label: "UserRouter")
   var database: PostgresClient
 
   func build() -> RouteCollection<Context> {
@@ -50,11 +51,12 @@ struct UserRouter<Context: RequestContext> {
       )
       return addedUsers
     } catch {
-      //      req.application.logger.error(
-      //        """
-      //        Failed to save users
-      //        Error: \(error)
-      //        """)
+      logger.error(
+        """
+        Failed to save users
+        Error: \(error)
+        """
+      )
       throw HTTPError(.internalServerError)
     }
   }
@@ -95,11 +97,12 @@ struct UserRouter<Context: RequestContext> {
       )
       return cacheUsers + dbUsers
     } catch {
-      //      req.application.logger.error(
-      //        """
-      //        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-      //        Error: \(error)
-      //        """)
+      logger.error(
+        """
+        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+        Error: \(error)
+        """
+      )
       throw HTTPError(.internalServerError)
     }
   }
@@ -119,11 +122,12 @@ struct UserRouter<Context: RequestContext> {
       )
       return .ok
     } catch {
-      //      req.application.logger.error(
-      //        """
-      //        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-      //        Error: \(error)
-      //        """)
+      logger.error(
+        """
+        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+        Error: \(error)
+        """
+      )
       throw HTTPError(.internalServerError)
     }
   }
@@ -195,9 +199,9 @@ struct UserRouter<Context: RequestContext> {
     ids: [User.ID]
   ) async throws -> [User] {
     let query: PostgresQuery = "SELECT id, name FROM users where id = ANY(\(ids))"
-    
+
     let rows = try await database.query(query).collect()
-    
+
     let decoder = SQLRowDecoder()
     let users: [User] = try rows.map { row in
       return try row.sql().decode(model: User.self, with: decoder)
@@ -213,11 +217,11 @@ struct UserRouter<Context: RequestContext> {
       let user = User(id: UUID(), name: user.name)
       return user
     }
-    
+
     try await database.withTransaction(logger: Logger(label: "Database INSERT")) { connection in
       for user in users {
         let query: PostgresQuery = "INSERT INTO users (id, name) VALUES (\(user.id), \(user.name))"
-        
+
         try await connection.query(query, logger: Logger(label: "Nested Database INSERT"))
       }
     }
@@ -230,7 +234,7 @@ struct UserRouter<Context: RequestContext> {
     ids: [User.ID]
   ) async throws {
     let query: PostgresQuery = "DELETE FROM users WHERE id = ANY(\(ids))"
-    
+
     try await database.query(query)
   }
 }

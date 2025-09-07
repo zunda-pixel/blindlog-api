@@ -1,27 +1,29 @@
 name: CI
 
-on: pull_request
-
-env:
-  VALKEY_HOSTNAME: valkey
+on:
+  pull_request:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04-arm
-    container: swiftlang/swift:nightly-6.2-noble
+    runs-on: ubuntu-latest
+    container: swift:latest
     steps:
       - uses: actions/checkout@v4
       - run: swift format lint -r -p -s .
   test:
     runs-on: ubuntu-latest
-    container: swift:latest
-    services:
-      valkey:
-        image: valkey/valkey:latest
-        ports:
-          - 6379:6379
-        options: --entrypoint valkey-server
+    env:
+      VALKEY_HOSTNAME: valkey
+      POSTGRES_HOSTNAME: postgres
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_database
     steps:
-      - uses: actions/checkout@v4
-      - run: swift build --build-tests
-      - run: swift test --skip-build --parallel
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Start DB & Cache (wait for health)
+        run: docker compose up -d --wait postgres valkey
+      - name: Run tests (Swift in Docker)
+        run: docker compose run --rm swift bash -lc "swift test --parallel"
+      - name: Shutdown
+        run: docker compose down -v

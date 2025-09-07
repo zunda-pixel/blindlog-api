@@ -5,7 +5,7 @@ import Testing
 
 @testable import Server
 
-@Suite
+@Suite(.serialized)
 struct UserControllerTests {
   @Test
   func createUsers() async throws {
@@ -76,7 +76,7 @@ struct UserControllerTests {
         let cachedUsers = try JSONDecoder().decode([User].self, from: response.body)
         #expect(Set(newUsers) == Set(cachedUsers))
       }
-      
+
       // 4. Delete Users from Database
       try await client.execute(
         uri: "/users?ids=\(idsQuery)",

@@ -2,9 +2,9 @@ import Foundation
 import Hummingbird
 import HummingbirdPostgres
 import Logging
-import Valkey
-import PostgresNIO
 import PostgresMigrations
+import PostgresNIO
+import Valkey
 
 func buildApplication() async throws -> some ApplicationProtocol {
   let environment = Environment()
@@ -13,7 +13,7 @@ func buildApplication() async throws -> some ApplicationProtocol {
     .hostname(environment.get("VALKEY_HOSTNAME")!),
     logger: Logger(label: "Valkey")
   )
-  
+
   let config = PostgresClient.Configuration(
     host: environment.get("POSTGRES_HOSTNAME")!,
     username: environment.get("POSTGRES_USER")!,
@@ -21,14 +21,14 @@ func buildApplication() async throws -> some ApplicationProtocol {
     database: environment.get("POSTGRES_DB")!,
     tls: .disable
   )
-  
+
   let databaseClient = PostgresClient(
     configuration: config,
     backgroundLogger: Logger(label: "PosgresClient")
   )
-  
+
   let migrations = DatabaseMigrations()
-  
+
   let database = await PostgresPersistDriver(
     client: databaseClient,
     migrations: migrations,
@@ -51,7 +51,7 @@ func buildApplication() async throws -> some ApplicationProtocol {
     eventLoopGroupProvider: .shared(.singletonMultiThreadedEventLoopGroup),
     logger: Logger(label: "Server")
   )
-  
+
   app.beforeServerStarts {
     try await migrations.apply(
       client: databaseClient,
@@ -60,6 +60,6 @@ func buildApplication() async throws -> some ApplicationProtocol {
       dryRun: false
     )
   }
-  
+
   return app
 }
