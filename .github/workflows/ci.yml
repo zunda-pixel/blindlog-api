@@ -16,9 +16,9 @@ jobs:
     services:
       valkey:
         image: valkey/valkey:latest
-        command: ["valkey-server", "--save", "", "--appendonly", "no"]
 
     steps:
       - uses: actions/checkout@v4
+      - run: valkey-server --save "" --appendonly no
       - run: swift build --build-tests
       - run: swift test --skip-build --parallel
