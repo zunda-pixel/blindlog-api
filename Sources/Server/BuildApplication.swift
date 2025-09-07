@@ -12,7 +12,7 @@ func buildApplication() throws -> some ApplicationProtocol {
 
   let router = Router()
   router.addRoutes(
-    UserRouting(cache: cache, database: database).build(),
+    UserRouter(cache: cache, database: database).build(),
     atPath: "users"
   )
 
