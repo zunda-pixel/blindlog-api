@@ -1,10 +1,11 @@
+import Foundation
 import Hummingbird
 import Logging
 import Valkey
 
 func buildApplication() throws -> some ApplicationProtocol {
   let cache = ValkeyClient(
-    .hostname("localhost"),
+    .hostname(ProcessInfo.processInfo.environment["VALKEY_HOSTNAME"] ?? "localhost"),
     logger: Logger(label: "Valkey")
   )
 
