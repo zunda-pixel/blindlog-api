@@ -9,7 +9,7 @@ import Testing
 struct UserControllerTests {
   @Test
   func createUsers() async throws {
-    let app = try buildApplication()
+    let app = try await buildApplication()
 
     try await app.test(.router) { client in
       let users: [NewUser] = [
@@ -35,7 +35,7 @@ struct UserControllerTests {
 
   @Test
   func createAndGetUsers() async throws {
-    let app = try buildApplication()
+    let app = try await buildApplication()
 
     try await app.test(.router) { client in
       let users: [NewUser] = [
@@ -45,7 +45,7 @@ struct UserControllerTests {
 
       let body = try JSONEncoder().encode(users)
 
-      // 1. Add Users to DB
+      // 1. Add Users to Database
       let newUsers: [User] = try await client.execute(
         uri: "/users",
         method: .post,
@@ -57,7 +57,7 @@ struct UserControllerTests {
 
       let idsQuery = newUsers.map(\.id.uuidString).joined(separator: ",")
 
-      // 2. Get Users from DB and add to Cache
+      // 2. Get Users from Database and add to Cache
       try await client.execute(
         uri: "/users?ids=\(idsQuery)",
         method: .get
@@ -75,6 +75,14 @@ struct UserControllerTests {
         #expect(response.status == .ok)
         let cachedUsers = try JSONDecoder().decode([User].self, from: response.body)
         #expect(Set(newUsers) == Set(cachedUsers))
+      }
+      
+      // 4. Delete Users from Database
+      try await client.execute(
+        uri: "/users?ids=\(idsQuery)",
+        method: .delete,
+      ) { response in
+        #expect(response.status == .ok)
       }
     }
   }
