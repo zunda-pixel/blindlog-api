@@ -8,7 +8,7 @@ import Valkey
 @main
 struct Entrypoint: AsyncParsableCommand {
   func run() async throws {
-    let app = try buildApplication()
+    let app = try await buildApplication()
     do {
       try await app.runService()
     } catch {

@@ -1,33 +1,30 @@
 import Foundation
 import Hummingbird
 import NIOFoundationCompat
+import PostgresKit
+import PostgresNIO
 import Valkey
 
 struct UserRouter<Context: RequestContext> {
   var cache: ValkeyClient
-  var database: DatabaseService
+  var logger: Logger = Logger(label: "UserRouter")
+  var database: PostgresClient
 
   func build() -> RouteCollection<Context> {
     return RouteCollection(context: Context.self)
       .get { request, context in
         try await show(
-          cache: cache,
-          database: database,
           request: request
         )
       }
       .post { request, context in
         try await create(
-          cache: cache,
-          database: database,
           request: request,
           context: context
         )
       }
       .delete { request, context in
         try await delete(
-          cache: cache,
-          database: database,
           request: request
         )
       }
@@ -36,8 +33,6 @@ struct UserRouter<Context: RequestContext> {
   //MARK: Routing
 
   func create(
-    cache: ValkeyClient,
-    database: DatabaseService,
     request: Request,
     context: some RequestContext
   ) async throws -> [User] {
@@ -45,7 +40,7 @@ struct UserRouter<Context: RequestContext> {
       let newUsers = try await request.decode(as: [NewUser].self, context: context)
 
       // 1. Add to Users to DB
-      let addedUsers = try await addUsersToDB(
+      let addedUsers = try await addUsersToDatabase(
         request: request,
         newUsers: newUsers
       )
@@ -56,12 +51,12 @@ struct UserRouter<Context: RequestContext> {
       )
       return addedUsers
     } catch {
-      //      req.application.logger.error(
-      //        """
-      //        Failed to save users
-      //        Error: \(error)
-      //        """)
-      print(error)
+      logger.error(
+        """
+        Failed to save users
+        Error: \(error)
+        """
+      )
       throw HTTPError(.internalServerError)
     }
   }
@@ -77,8 +72,6 @@ struct UserRouter<Context: RequestContext> {
   }
 
   func show(
-    cache: ValkeyClient,
-    database: DatabaseService,
     request: Request
   ) async throws -> [User] {
     guard let ids = ids(request: request) else { throw HTTPError(.badRequest) }
@@ -93,7 +86,7 @@ struct UserRouter<Context: RequestContext> {
 
       // 2. Get Users from DB that is not in Cache
       let leftUserIDs = Set(ids).subtracting(Set(cacheUsers.map(\.id)))
-      let dbUsers: [User] = try await getUsersFromDB(
+      let dbUsers: [User] = try await getUsersFromDatabase(
         request: request,
         ids: Array(leftUserIDs)
       )
@@ -104,24 +97,23 @@ struct UserRouter<Context: RequestContext> {
       )
       return cacheUsers + dbUsers
     } catch {
-      //      req.application.logger.error(
-      //        """
-      //        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-      //        Error: \(error)
-      //        """)
+      logger.error(
+        """
+        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+        Error: \(error)
+        """
+      )
       throw HTTPError(.internalServerError)
     }
   }
 
   func delete(
-    cache: ValkeyClient,
-    database: DatabaseService,
     request: Request
   ) async throws -> HTTPResponse.Status {
     guard let ids = ids(request: request) else { throw HTTPError(.badRequest) }
 
     do {
-      try await deleteUsersFromDB(
+      try await deleteUsersFromDatabase(
         request: request,
         ids: ids
       )
@@ -130,11 +122,12 @@ struct UserRouter<Context: RequestContext> {
       )
       return .ok
     } catch {
-      //      req.application.logger.error(
-      //        """
-      //        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-      //        Error: \(error)
-      //        """)
+      logger.error(
+        """
+        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+        Error: \(error)
+        """
+      )
       throw HTTPError(.internalServerError)
     }
   }
@@ -199,33 +192,49 @@ struct UserRouter<Context: RequestContext> {
     try await cache.del(keys: ids.map { ValkeyKey("user:\($0.uuidString)") })
   }
 
-  //MARK: DB
+  //MARK: Database
 
-  func getUsersFromDB(
+  func getUsersFromDatabase(
     request: Request,
     ids: [User.ID]
   ) async throws -> [User] {
-    return database.users.withLock { $0.filter { ids.contains($0.id) } }
+    let query: PostgresQuery = "SELECT id, name FROM users where id = ANY(\(ids))"
+
+    let rows = try await database.query(query).collect()
+
+    let decoder = SQLRowDecoder()
+    let users: [User] = try rows.map { row in
+      return try row.sql().decode(model: User.self, with: decoder)
+    }
+    return users
   }
 
-  func addUsersToDB(
+  func addUsersToDatabase(
     request: Request,
     newUsers: [NewUser]
   ) async throws -> [User] {
     let users: [User] = newUsers.map { user in
-      let user = User(id: UUID(), name: user.name, birthDay: user.birthDay)
+      let user = User(id: UUID(), name: user.name)
       return user
     }
 
-    database.users.withLock { $0.append(contentsOf: users) }
+    try await database.withTransaction(logger: Logger(label: "Database INSERT")) { connection in
+      for user in users {
+        let query: PostgresQuery = "INSERT INTO users (id, name) VALUES (\(user.id), \(user.name))"
+
+        try await connection.query(query, logger: Logger(label: "Nested Database INSERT"))
+      }
+    }
 
     return users
   }
 
-  func deleteUsersFromDB(
+  func deleteUsersFromDatabase(
     request: Request,
     ids: [User.ID]
   ) async throws {
-    database.users.withLock { $0.removeAll { ids.contains($0.id) } }
+    let query: PostgresQuery = "DELETE FROM users WHERE id = ANY(\(ids))"
+
+    try await database.query(query)
   }
 }
