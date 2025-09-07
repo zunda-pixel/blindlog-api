@@ -7,17 +7,18 @@ import PostgresNIO
 import PostgresMigrations
 
 func buildApplication() async throws -> some ApplicationProtocol {
+  let environment = Environment()
+
   let cache = ValkeyClient(
-    .hostname(ProcessInfo.processInfo.environment["VALKEY_HOSTNAME"] ?? "localhost"),
+    .hostname(environment.get("VALKEY_HOSTNAME")!),
     logger: Logger(label: "Valkey")
   )
   
   let config = PostgresClient.Configuration(
-    host: "localhost",
-    port: 5432,
-    username: "test_user",
-    password: "test_password",
-    database: "test_database",
+    host: environment.get("POSTGRES_HOSTNAME")!,
+    username: environment.get("POSTGRES_USER")!,
+    password: environment.get("POSTGRES_PASSWORD")!,
+    database: environment.get("POSTGRES_DB")!,
     tls: .disable
   )
   
