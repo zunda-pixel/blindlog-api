@@ -14,21 +14,25 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/zunda-pixel/ValkeyVapor.git", branch: "main"),
-    .package(url: "https://github.com/zunda-pixel/Vapor.git", branch: "fix-some-error")
+    .package(url: "https://github.com/hummingbird-project/hummingbird", from: "2.0.0"),
+    .package(url: "https://github.com/hummingbird-project/hummingbird-fluent", from: "2.0.0"),
+    .package(url: "https://github.com/valkey-io/valkey-swift", from: "0.1.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.1"),
   ],
   targets: [
     .executableTarget(
       name: "Server",
       dependencies: [
-        .product(name: "ValkeyVapor", package: "ValkeyVapor")
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "HummingbirdFluent", package: "hummingbird-fluent"),
+        .product(name: "Valkey", package: "valkey-swift"),
       ]
     ),
     .testTarget(
       name: "ServerTests",
       dependencies: [
         .target(name: "Server"),
-        .product(name: "VaporTesting", package: "Vapor")
+        .product(name: "HummingbirdTesting", package: "hummingbird"),
       ]
     ),
   ]

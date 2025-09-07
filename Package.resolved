@@ -1,5 +1,5 @@
 {
-  "originHash" : "6435ded734c80e4e3f0b3450695244e31fce1159b25070269abed65348c8fafe",
+  "originHash" : "7618cfd0a525d3929c1649097c8670b979e7a49da536a11ed4610f1825a72941",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -11,39 +11,39 @@
       }
     },
     {
-      "identity" : "async-kit",
+      "identity" : "fluent-kit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/async-kit.git",
+      "location" : "https://github.com/vapor/fluent-kit.git",
       "state" : {
-        "revision" : "6f3615ccf2ac3c2ae0c8087d527546e9544a43dd",
-        "version" : "1.21.0"
+        "revision" : "8baacd7e8f7ebf68886c496b43bbe6cdcc5b57e0",
+        "version" : "1.52.2"
       }
     },
     {
-      "identity" : "console-kit",
+      "identity" : "hummingbird",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/console-kit.git",
+      "location" : "https://github.com/hummingbird-project/hummingbird.git",
       "state" : {
-        "revision" : "742f624a998cba2a9e653d9b1e91ad3f3a5dff6b",
-        "version" : "4.15.2"
+        "revision" : "3ae359b1bb1e72378ed43b59fdcd4d44cac5d7a4",
+        "version" : "2.16.0"
       }
     },
     {
-      "identity" : "multipart-kit",
+      "identity" : "hummingbird-fluent",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/multipart-kit.git",
+      "location" : "https://github.com/hummingbird-project/hummingbird-fluent",
       "state" : {
-        "revision" : "481a44661dae96a609fc30f6ddad8d6f35c51947",
-        "version" : "5.0.0-alpha.5"
+        "revision" : "45459ea5b541c6a96b87d1be848e384593b7dde3",
+        "version" : "2.0.0"
       }
     },
     {
-      "identity" : "routing-kit",
+      "identity" : "sql-kit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/routing-kit.git",
+      "location" : "https://github.com/vapor/sql-kit.git",
       "state" : {
-        "revision" : "93f7222c8e195cbad39fafb5a0e4cc85a8def7ea",
-        "version" : "4.9.2"
+        "revision" : "1a9ab0523fb742d9629558cede64290165c4285b",
+        "version" : "3.33.2"
       }
     },
     {
@@ -53,6 +53,15 @@
       "state" : {
         "revision" : "87e50f483c54e6efd60e885f7f5aa946cee68023",
         "version" : "1.2.1"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "309a47b2b1d9b5e991f36961c983ecec72275be3",
+        "version" : "1.6.1"
       }
     },
     {
@@ -105,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "branch" : "wwdc-25",
-        "revision" : "d9f364189995019337857e11fdbea66d11d238cf"
+        "revision" : "d1c6b70f7c5f19fb0b8750cb8dcdf2ea6e2d8c34",
+        "version" : "3.15.0"
       }
     },
     {
@@ -114,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-distributed-tracing.git",
       "state" : {
-        "revision" : "b78796709d243d5438b36e74ce3c5ec2d2ece4d8",
-        "version" : "1.2.1"
+        "revision" : "149fa4cc7d54c513288108142e7af9ceaf8def8f",
+        "version" : "1.2.2"
       }
     },
     {
@@ -186,8 +195,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio-ssl.git",
       "state" : {
-        "revision" : "385f5bd783ffbfff46b246a7db7be8e4f04c53bd",
-        "version" : "2.33.0"
+        "revision" : "737e550e607d82bf15bdfddf158ec61652ce836f",
+        "version" : "2.34.0"
       }
     },
     {
@@ -238,37 +247,10 @@
     {
       "identity" : "valkey-swift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/valkey-io/valkey-swift.git",
+      "location" : "https://github.com/valkey-io/valkey-swift",
       "state" : {
         "revision" : "74c27519adc2d142e762de0b06a534bcb5177d33",
         "version" : "0.1.0"
-      }
-    },
-    {
-      "identity" : "valkeyvapor",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zunda-pixel/ValkeyVapor.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "7ecae0b1a61fa906483efe57044a07fefcc60821"
-      }
-    },
-    {
-      "identity" : "vapor",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zunda-pixel/vapor.git",
-      "state" : {
-        "branch" : "fix-some-error",
-        "revision" : "3ba33fa57046799201a56445e1e2967ed9bcb924"
-      }
-    },
-    {
-      "identity" : "websocket-kit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/websocket-kit.git",
-      "state" : {
-        "revision" : "8666c92dbbb3c8eefc8008c9c8dcf50bfd302167",
-        "version" : "2.16.1"
       }
     }
   ],

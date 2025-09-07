@@ -1,12 +1,11 @@
 import Foundation
-import Vapor
 
-struct NewUser: Codable, Hashable, Content {
+struct NewUser: Codable, Hashable {
   var name: String
   var birthDay: Date?
 }
 
-struct User: Codable, Identifiable, Hashable, Content {
+struct User: Codable, Identifiable, Hashable {
   var id: UUID
   var name: String
   var birthDay: Date?

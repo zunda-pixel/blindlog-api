@@ -1,120 +1,162 @@
 import Foundation
-import NIOCore
+import Hummingbird
 import Valkey
-import ValkeyVapor
-import Vapor
 
-struct UserController: RouteCollection {
-  func boot(routes: any Vapor.RoutesBuilder) throws {
-    let users = routes.grouped("users")
+enum UserRouting {
+  static func build(
+    cache: ValkeyClient,
+    database: DatabaseService
+  ) -> Router<BasicRequestContext> {
+    let router = Router()
 
-    users.post(use: create)
-
-    users.group(":ids") { users in
-      users.get(use: show)
-      users.delete(use: delete)
+    router.get("users") { request, context in
+      try await show(
+        cache: cache,
+        database: database,
+        request: request
+      )
     }
+
+    router.post("users") { request, context in
+      try await create(
+        cache: cache,
+        database: database,
+        request: request,
+        context: context
+      )
+    }
+
+    router.delete("users") { request, context in
+      try await delete(
+        cache: cache,
+        database: database,
+        request: request
+      )
+    }
+
+    return router
   }
 
-  func create(req: Request) async throws -> [User] {
+  //MARK: Routing
+
+  static func create(
+    cache: ValkeyClient,
+    database: DatabaseService,
+    request: Request,
+    context: some RequestContext
+  ) async throws -> [User] {
     do {
-      let newUsers: [NewUser] = try await req.content.decode([NewUser].self, using: JSONDecoder())
+      let newUsers = try await request.decode(as: [NewUser].self, context: context)
 
       // 1. Add to Users to DB
       let addedUsers = try await addUsersToDB(
-        request: req,
+        database: database,
+        request: request,
         newUsers: newUsers
       )
 
       // 2. Delete Users from Cache
       try await deleteUsersFromCache(
-        client: req.application.valkey.client,
+        cache: cache,
         ids: addedUsers.map(\.id)
       )
       return addedUsers
     } catch {
-      req.application.logger.error(
-        """
-        Failed to save users
-        Error: \(error)
-        """)
-      throw Abort(.internalServerError)
+      //      req.application.logger.error(
+      //        """
+      //        Failed to save users
+      //        Error: \(error)
+      //        """)
+      print(error)
+      throw HTTPError(.internalServerError)
     }
   }
 
-  func ids(req: Request) throws -> [UUID] {
-    return try req.query.get(String.self, at: "ids")
+  static func ids(request: Request) -> [UUID]? {
+    guard let idsQuery = request.uri.queryParameters["ids"] else { return nil }
+
+    return String(idsQuery)
       .split(separator: ",")
       .compactMap({
         UUID(uuidString: String($0))
       })
   }
 
-  func show(req: Request) async throws -> [User] {
-    let ids = try ids(req: req)
+  static func show(
+    cache: ValkeyClient,
+    database: DatabaseService,
+    request: Request
+  ) async throws -> [User] {
+    guard let ids = ids(request: request) else { throw HTTPError(.badRequest) }
 
-    guard !ids.isEmpty else { throw Abort(.noContent) }
-    
+    guard !ids.isEmpty else { throw HTTPError(.noContent) }
+
     do {
       // 1. Get Users from Cache and Update Expiration if exits
       let cacheUsers = try await getUsersFromCacheAndUpdateExpiration(
-        client: req.application.valkey.client,
+        cache: cache,
         ids: ids
       )
 
       // 2. Get Users from DB that is not in Cache
       let leftUserIDs = Set(ids).subtracting(Set(cacheUsers.map(\.id)))
       let dbUsers: [User] = try await getUsersFromDB(
-        request: req,
+        database: database,
+        request: request,
         ids: Array(leftUserIDs)
       )
 
       // 3. Set New Users Dat to Cache
       try await addUsersToCache(
-        client: req.application.valkey.client,
+        cache: cache,
         users: dbUsers
       )
       return cacheUsers + dbUsers
     } catch {
-      req.application.logger.error(
-        """
-        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-        Error: \(error)
-        """)
-      throw Abort(.internalServerError)
+      //      req.application.logger.error(
+      //        """
+      //        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+      //        Error: \(error)
+      //        """)
+      throw HTTPError(.internalServerError)
     }
   }
 
-  func delete(req: Request) async throws -> HTTPStatus {
-    let ids = try ids(req: req)
+  static func delete(
+    cache: ValkeyClient,
+    database: DatabaseService,
+    request: Request
+  ) async throws -> HTTPResponse.Status {
+    guard let ids = ids(request: request) else { throw HTTPError(.badRequest) }
 
     do {
       try await deleteUsersFromDB(
-        request: req,
+        database: database,
+        request: request,
         ids: ids
       )
       try await deleteUsersFromCache(
-        client: req.application.valkey.client,
+        cache: cache,
         ids: ids
       )
-      return HTTPStatus.noContent
+      return .ok
     } catch {
-      req.application.logger.error(
-        """
-        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-        Error: \(error)
-        """)
-      throw Abort(.internalServerError)
+      //      req.application.logger.error(
+      //        """
+      //        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+      //        Error: \(error)
+      //        """)
+      throw HTTPError(.internalServerError)
     }
   }
 
   //MARK: Cache
 
-  func getUsersFromCacheAndUpdateExpiration(
-    client: ValkeyClient,
+  static func getUsersFromCacheAndUpdateExpiration(
+    cache: ValkeyClient,
     ids: [User.ID]
   ) async throws -> [User] {
-    return try await client.withConnection { connection in
+    return try await cache.withConnection { connection in
       return try await withThrowingTaskGroup(of: Optional<User>.self) { group in
         let decoder = JSONDecoder()
 
@@ -145,13 +187,13 @@ struct UserController: RouteCollection {
     }
   }
 
-  func addUsersToCache(
-    client: ValkeyClient,
+  static func addUsersToCache(
+    cache: ValkeyClient,
     users: [User]
   ) async throws {
     let encoder = JSONEncoder()
-    
-    try await client.withConnection { connection in
+
+    try await cache.withConnection { connection in
       try await connection.multi()
       for user in users {
         try await connection.set(
@@ -164,28 +206,25 @@ struct UserController: RouteCollection {
     }
   }
 
-  func deleteUsersFromCache(
-    client: ValkeyClient,
+  static func deleteUsersFromCache(
+    cache: ValkeyClient,
     ids: [User.ID]
   ) async throws {
-    try await client.del(
-      keys: ids.map { ValkeyKey($0.uuidString) }
-    )
+    try await cache.del(keys: ids.map { ValkeyKey("user:\($0.uuidString)") })
   }
 
   //MARK: DB
 
-  func getUsersFromDB(
+  static func getUsersFromDB(
+    database: DatabaseService,
     request: Request,
     ids: [User.ID]
   ) async throws -> [User] {
-    let users = ids.compactMap { id in
-      request.application.storage[UsersStorageKey.self]?.users.withLock { $0[id] }
-    }
-    return users
+    return database.users.withLock { $0.filter { ids.contains($0.id) } }
   }
 
-  func addUsersToDB(
+  static func addUsersToDB(
+    database: DatabaseService,
     request: Request,
     newUsers: [NewUser]
   ) async throws -> [User] {
@@ -193,20 +232,17 @@ struct UserController: RouteCollection {
       let user = User(id: UUID(), name: user.name, birthDay: user.birthDay)
       return user
     }
-    
-    for user in users {
-      request.application.storage[UsersStorageKey.self]?.users.withLock { $0[user.id] = user }
-    }
+
+    database.users.withLock { $0.append(contentsOf: users) }
 
     return users
   }
 
-  func deleteUsersFromDB(
+  static func deleteUsersFromDB(
+    database: DatabaseService,
     request: Request,
     ids: [User.ID]
   ) async throws {
-    for id in ids {
-      request.application.storage[UsersStorageKey.self]?.users.withLock { $0[id] = nil }
-    }
+    database.users.withLock { $0.removeAll { ids.contains($0.id) } }
   }
 }
