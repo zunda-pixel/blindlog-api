@@ -10,9 +10,10 @@ func buildApplication() throws -> some ApplicationProtocol {
 
   let database = DatabaseService()
 
-  let router = UserRouting.build(
-    cache: cache,
-    database: database
+  let router = Router()
+  router.addRoutes(
+    UserRouting(cache: cache, database: database).build(),
+    atPath: "users"
   )
 
   let logger = Logger(label: "Server")
@@ -20,9 +21,9 @@ func buildApplication() throws -> some ApplicationProtocol {
   return Application(
     router: router,
     services: [
-      cache,
-      database,
+      cache
     ],
+    eventLoopGroupProvider: .shared(.singletonMultiThreadedEventLoopGroup),
     logger: logger
   )
 }

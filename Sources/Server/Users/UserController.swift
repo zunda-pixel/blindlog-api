@@ -2,44 +2,39 @@ import Foundation
 import Hummingbird
 import Valkey
 
-enum UserRouting {
-  static func build(
-    cache: ValkeyClient,
-    database: DatabaseService
-  ) -> Router<BasicRequestContext> {
-    let router = Router()
+struct UserRouting<Context: RequestContext> {
+  var cache: ValkeyClient
+  var database: DatabaseService
 
-    router.get("users") { request, context in
-      try await show(
-        cache: cache,
-        database: database,
-        request: request
-      )
-    }
-
-    router.post("users") { request, context in
-      try await create(
-        cache: cache,
-        database: database,
-        request: request,
-        context: context
-      )
-    }
-
-    router.delete("users") { request, context in
-      try await delete(
-        cache: cache,
-        database: database,
-        request: request
-      )
-    }
-
-    return router
+  func build() -> RouteCollection<Context> {
+    return RouteCollection(context: Context.self)
+      .get { request, context in
+        try await show(
+          cache: cache,
+          database: database,
+          request: request
+        )
+      }
+      .post { request, context in
+        try await create(
+          cache: cache,
+          database: database,
+          request: request,
+          context: context
+        )
+      }
+      .delete { request, context in
+        try await delete(
+          cache: cache,
+          database: database,
+          request: request
+        )
+      }
   }
 
   //MARK: Routing
 
-  static func create(
+  func create(
     cache: ValkeyClient,
     database: DatabaseService,
     request: Request,
@@ -50,14 +45,12 @@ enum UserRouting {
 
       // 1. Add to Users to DB
       let addedUsers = try await addUsersToDB(
-        database: database,
         request: request,
         newUsers: newUsers
       )
 
       // 2. Delete Users from Cache
       try await deleteUsersFromCache(
-        cache: cache,
         ids: addedUsers.map(\.id)
       )
       return addedUsers
@@ -72,7 +65,7 @@ enum UserRouting {
     }
   }
 
-  static func ids(request: Request) -> [UUID]? {
+  func ids(request: Request) -> [UUID]? {
     guard let idsQuery = request.uri.queryParameters["ids"] else { return nil }
 
     return String(idsQuery)
@@ -82,7 +75,7 @@ enum UserRouting {
       })
   }
 
-  static func show(
+  func show(
     cache: ValkeyClient,
     database: DatabaseService,
     request: Request
@@ -94,21 +87,18 @@ enum UserRouting {
     do {
       // 1. Get Users from Cache and Update Expiration if exits
       let cacheUsers = try await getUsersFromCacheAndUpdateExpiration(
-        cache: cache,
         ids: ids
       )
 
       // 2. Get Users from DB that is not in Cache
       let leftUserIDs = Set(ids).subtracting(Set(cacheUsers.map(\.id)))
       let dbUsers: [User] = try await getUsersFromDB(
-        database: database,
         request: request,
         ids: Array(leftUserIDs)
       )
 
       // 3. Set New Users Dat to Cache
       try await addUsersToCache(
-        cache: cache,
         users: dbUsers
       )
       return cacheUsers + dbUsers
@@ -122,7 +112,7 @@ enum UserRouting {
     }
   }
 
-  static func delete(
+  func delete(
     cache: ValkeyClient,
     database: DatabaseService,
     request: Request
@@ -131,12 +121,10 @@ enum UserRouting {
 
     do {
       try await deleteUsersFromDB(
-        database: database,
         request: request,
         ids: ids
       )
       try await deleteUsersFromCache(
-        cache: cache,
         ids: ids
       )
       return .ok
@@ -152,8 +140,7 @@ enum UserRouting {
 
   //MARK: Cache
 
-  static func getUsersFromCacheAndUpdateExpiration(
-    cache: ValkeyClient,
+  func getUsersFromCacheAndUpdateExpiration(
     ids: [User.ID]
   ) async throws -> [User] {
     return try await cache.withConnection { connection in
@@ -187,8 +174,7 @@ enum UserRouting {
     }
   }
 
-  static func addUsersToCache(
-    cache: ValkeyClient,
+  func addUsersToCache(
     users: [User]
   ) async throws {
     let encoder = JSONEncoder()
@@ -206,8 +192,7 @@ enum UserRouting {
     }
   }
 
-  static func deleteUsersFromCache(
-    cache: ValkeyClient,
+  func deleteUsersFromCache(
     ids: [User.ID]
   ) async throws {
     try await cache.del(keys: ids.map { ValkeyKey("user:\($0.uuidString)") })
@@ -215,16 +200,14 @@ enum UserRouting {
 
   //MARK: DB
 
-  static func getUsersFromDB(
-    database: DatabaseService,
+  func getUsersFromDB(
     request: Request,
     ids: [User.ID]
   ) async throws -> [User] {
     return database.users.withLock { $0.filter { ids.contains($0.id) } }
   }
 
-  static func addUsersToDB(
-    database: DatabaseService,
+  func addUsersToDB(
     request: Request,
     newUsers: [NewUser]
   ) async throws -> [User] {
@@ -238,8 +221,7 @@ enum UserRouting {
     return users
   }
 
-  static func deleteUsersFromDB(
-    database: DatabaseService,
+  func deleteUsersFromDB(
     request: Request,
     ids: [User.ID]
   ) async throws {

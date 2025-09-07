@@ -8,6 +8,32 @@ import Testing
 @Suite
 struct UserControllerTests {
   @Test
+  func createUsers() async throws {
+    let app = try buildApplication()
+
+    try await app.test(.router) { client in
+      let users: [NewUser] = [
+        .init(name: "John Doe"),
+        .init(name: "Mary Jane"),
+      ]
+
+      let body = try JSONEncoder().encode(users)
+
+      // 1. Add Users to DB
+      let response = try await client.execute(
+        uri: "/users",
+        method: .post,
+        headers: [:],
+        body: ByteBuffer(data: body)
+      )
+
+      #expect(response.status == .ok)
+      let addedUsers = try JSONDecoder().decode([User].self, from: response.body)
+      print(addedUsers)
+    }
+  }
+
+  @Test
   func createAndGetUsers() async throws {
     let app = try buildApplication()
 
