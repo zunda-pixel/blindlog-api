@@ -1,5 +1,5 @@
 {
-  "originHash" : "2982bcf39c245ecd0fa3f9fc18bcd1190f9d664ba810863e41ea0229f6ac603a",
+  "originHash" : "a653ec7d2043a23709354a3bf04147817bae309d491948ce977fb45e16a76299",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -11,30 +11,57 @@
       }
     },
     {
-      "identity" : "fluent-kit",
+      "identity" : "async-kit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/fluent-kit.git",
+      "location" : "https://github.com/vapor/async-kit.git",
       "state" : {
-        "revision" : "8baacd7e8f7ebf68886c496b43bbe6cdcc5b57e0",
-        "version" : "1.52.2"
+        "revision" : "6f3615ccf2ac3c2ae0c8087d527546e9544a43dd",
+        "version" : "1.21.0"
       }
     },
     {
       "identity" : "hummingbird",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/hummingbird-project/hummingbird.git",
+      "location" : "https://github.com/hummingbird-project/hummingbird",
       "state" : {
         "revision" : "3ae359b1bb1e72378ed43b59fdcd4d44cac5d7a4",
         "version" : "2.16.0"
       }
     },
     {
-      "identity" : "hummingbird-fluent",
+      "identity" : "hummingbird-postgres",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/hummingbird-project/hummingbird-fluent",
+      "location" : "https://github.com/hummingbird-project/hummingbird-postgres",
       "state" : {
-        "revision" : "45459ea5b541c6a96b87d1be848e384593b7dde3",
-        "version" : "2.0.0"
+        "revision" : "3778aa8b4f729b180062e143524cd8ebc4dfd1ce",
+        "version" : "1.0.0-rc.1"
+      }
+    },
+    {
+      "identity" : "postgres-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor/postgres-kit",
+      "state" : {
+        "revision" : "d2fd3172c2e318bd292a4c1297e4c65a418cf6f3",
+        "version" : "2.14.1"
+      }
+    },
+    {
+      "identity" : "postgres-migrations",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hummingbird-project/postgres-migrations",
+      "state" : {
+        "revision" : "2c2dee76b220641fc2c5347c6e81c7650f5aa3d9",
+        "version" : "1.0.0-rc.1"
+      }
+    },
+    {
+      "identity" : "postgres-nio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor/postgres-nio",
+      "state" : {
+        "revision" : "8ee6118c03501196be183b0938d2ec4478c18954",
+        "version" : "1.27.0"
       }
     },
     {
@@ -139,7 +166,7 @@
     {
       "identity" : "swift-http-types",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-http-types",
+      "location" : "https://github.com/apple/swift-http-types.git",
       "state" : {
         "revision" : "a0a57e949a8903563aba4615869310c0ebf14c03",
         "version" : "1.4.0"
