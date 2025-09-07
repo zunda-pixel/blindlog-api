@@ -12,11 +12,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container: swift:latest
-
     services:
       valkey:
         image: valkey/valkey:latest
-        entrypoint: valkey-server --save "" --appendonly no
     steps:
       - uses: actions/checkout@v4
       - run: swift build --build-tests
