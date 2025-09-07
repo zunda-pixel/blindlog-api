@@ -3,16 +3,22 @@ name: CI
 on: pull_request
 
 jobs:
-  test:
-    runs-on: ubuntu-24.04-arm
-    container: swiftlang/swift:nightly-6.2-noble
-    steps:
-    - uses: actions/checkout@v4
-    - run: swift build --build-tests
-    - run: swift test --skip-build --parallel
   lint:
     runs-on: ubuntu-24.04-arm
     container: swiftlang/swift:nightly-6.2-noble
     steps:
       - uses: actions/checkout@v4
       - run: swift format lint -r -p -s .
+  test:
+    runs-on: ubuntu-latest
+    container: swift:latest
+
+    services:
+      valkey:
+        image: valkey/valkey:latest
+        command: ["valkey-server", "--save", "", "--appendonly", "no"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build --build-tests
+      - run: swift test --skip-build --parallel
