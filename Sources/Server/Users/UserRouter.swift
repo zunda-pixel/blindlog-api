@@ -1,8 +1,9 @@
 import Foundation
 import Hummingbird
+import NIOFoundationCompat
 import Valkey
 
-struct UserRouting<Context: RequestContext> {
+struct UserRouter<Context: RequestContext> {
   var cache: ValkeyClient
   var database: DatabaseService
 
