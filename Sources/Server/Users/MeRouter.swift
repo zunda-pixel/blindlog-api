@@ -156,15 +156,22 @@ struct MeRouter<Context: RequestContext> {
     newUser: NewUser
   ) async throws -> User {
     return try await database.withConnection { connection in
-      let query: PostgresQuery = "INSERT INTO users (id, name) VALUES (uuidv7(), \(newUser.name)) RETURNING *"
+      let query: PostgresQuery = """
+          INSERT INTO users (id, name)
+          VALUES (uuidv7(), \(newUser.name))
+          RETURNING *
+        """
       let result = try await connection.query(query, logger: Logger(label: "Database INSERT"))
-      let user = try await result.collect().first?.sql().decode(model: User.self, with: SQLRowDecoder())
-      
+      let user = try await result.collect().first?.sql().decode(
+        model: User.self,
+        with: SQLRowDecoder()
+      )
+
       guard let user else {
         try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
         throw HTTPError(.internalServerError)
       }
-      
+
       return user
     }
   }
