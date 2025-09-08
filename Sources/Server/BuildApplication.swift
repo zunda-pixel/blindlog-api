@@ -40,6 +40,10 @@ func buildApplication() async throws -> some ApplicationProtocol {
     UsersRouter(cache: cache, database: databaseClient).build(),
     atPath: "users"
   )
+  router.addRoutes(
+    MeRouter(cache: cache, database: databaseClient).build(),
+    atPath: "me"
+  )
 
   var app = Application(
     router: router,

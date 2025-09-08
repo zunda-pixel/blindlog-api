@@ -23,11 +23,6 @@ struct UsersRouter<Context: RequestContext> {
           context: context
         )
       }
-      .delete { request, context in
-        try await delete(
-          request: request
-        )
-      }
   }
 
   //MARK: Routing
@@ -100,31 +95,6 @@ struct UsersRouter<Context: RequestContext> {
       logger.error(
         """
         Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-        Error: \(error)
-        """
-      )
-      throw HTTPError(.internalServerError)
-    }
-  }
-
-  func delete(
-    request: Request
-  ) async throws -> HTTPResponse.Status {
-    guard let ids = ids(request: request) else { throw HTTPError(.badRequest) }
-
-    do {
-      try await deleteUsersFromDatabase(
-        request: request,
-        ids: ids
-      )
-      try await deleteUsersFromCache(
-        ids: ids
-      )
-      return .ok
-    } catch {
-      logger.error(
-        """
-        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
         Error: \(error)
         """
       )
@@ -227,14 +197,5 @@ struct UsersRouter<Context: RequestContext> {
     }
 
     return users
-  }
-
-  func deleteUsersFromDatabase(
-    request: Request,
-    ids: [User.ID]
-  ) async throws {
-    let query: PostgresQuery = "DELETE FROM users WHERE id = ANY(\(ids))"
-
-    try await database.query(query)
   }
 }
