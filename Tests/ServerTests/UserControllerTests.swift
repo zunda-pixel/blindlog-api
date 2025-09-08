@@ -5,7 +5,7 @@ import Testing
 
 @testable import Server
 
-@Suite
+@Suite(.serialized)
 struct UserControllerTests {
   @Test(arguments: ["test@example.com"])
   func createUser(email: String) async throws {
