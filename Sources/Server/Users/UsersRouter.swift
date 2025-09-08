@@ -5,9 +5,9 @@ import PostgresKit
 import PostgresNIO
 import Valkey
 
-struct UserRouter<Context: RequestContext> {
+struct UsersRouter<Context: RequestContext> {
   var cache: ValkeyClient
-  var logger: Logger = Logger(label: "UserRouter")
+  var logger: Logger = Logger(label: "UsersRouter")
   var database: PostgresClient
 
   func build() -> RouteCollection<Context> {
@@ -17,49 +17,9 @@ struct UserRouter<Context: RequestContext> {
           request: request
         )
       }
-      .post { request, context in
-        try await create(
-          request: request,
-          context: context
-        )
-      }
-      .delete { request, context in
-        try await delete(
-          request: request
-        )
-      }
   }
 
   //MARK: Routing
-
-  func create(
-    request: Request,
-    context: some RequestContext
-  ) async throws -> [User] {
-    do {
-      let newUsers = try await request.decode(as: [NewUser].self, context: context)
-
-      // 1. Add to Users to DB
-      let addedUsers = try await addUsersToDatabase(
-        request: request,
-        newUsers: newUsers
-      )
-
-      // 2. Delete Users from Cache
-      try await deleteUsersFromCache(
-        ids: addedUsers.map(\.id)
-      )
-      return addedUsers
-    } catch {
-      logger.error(
-        """
-        Failed to save users
-        Error: \(error)
-        """
-      )
-      throw HTTPError(.internalServerError)
-    }
-  }
 
   func ids(request: Request) -> [UUID]? {
     guard let idsQuery = request.uri.queryParameters["ids"] else { return nil }
@@ -100,32 +60,7 @@ struct UserRouter<Context: RequestContext> {
       logger.error(
         """
         Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-        Error: \(error)
-        """
-      )
-      throw HTTPError(.internalServerError)
-    }
-  }
-
-  func delete(
-    request: Request
-  ) async throws -> HTTPResponse.Status {
-    guard let ids = ids(request: request) else { throw HTTPError(.badRequest) }
-
-    do {
-      try await deleteUsersFromDatabase(
-        request: request,
-        ids: ids
-      )
-      try await deleteUsersFromCache(
-        ids: ids
-      )
-      return .ok
-    } catch {
-      logger.error(
-        """
-        Failed to delete users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-        Error: \(error)
+        Error: \(String(reflecting: error))
         """
       )
       throw HTTPError(.internalServerError)
@@ -186,20 +121,18 @@ struct UserRouter<Context: RequestContext> {
     }
   }
 
-  func deleteUsersFromCache(
-    ids: [User.ID]
-  ) async throws {
-    try await cache.del(keys: ids.map { ValkeyKey("user:\($0.uuidString)") })
-  }
-
   //MARK: Database
 
   func getUsersFromDatabase(
     request: Request,
     ids: [User.ID]
   ) async throws -> [User] {
-    let query: PostgresQuery = "SELECT id, name FROM users where id = ANY(\(ids))"
-
+    let query: PostgresQuery = """
+        SELECT id, email
+        FROM users
+        RIGHT JOIN user_email on users.id = user_email.user_id
+        WHERE users.id = ANY(\(ids))
+      """
     let rows = try await database.query(query).collect()
 
     let decoder = SQLRowDecoder()
@@ -207,34 +140,5 @@ struct UserRouter<Context: RequestContext> {
       return try row.sql().decode(model: User.self, with: decoder)
     }
     return users
-  }
-
-  func addUsersToDatabase(
-    request: Request,
-    newUsers: [NewUser]
-  ) async throws -> [User] {
-    let users: [User] = newUsers.map { user in
-      let user = User(id: UUID(), name: user.name)
-      return user
-    }
-
-    try await database.withTransaction(logger: Logger(label: "Database INSERT")) { connection in
-      for user in users {
-        let query: PostgresQuery = "INSERT INTO users (id, name) VALUES (\(user.id), \(user.name))"
-
-        try await connection.query(query, logger: Logger(label: "Nested Database INSERT"))
-      }
-    }
-
-    return users
-  }
-
-  func deleteUsersFromDatabase(
-    request: Request,
-    ids: [User.ID]
-  ) async throws {
-    let query: PostgresQuery = "DELETE FROM users WHERE id = ANY(\(ids))"
-
-    try await database.query(query)
   }
 }

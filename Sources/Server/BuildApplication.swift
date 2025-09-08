@@ -37,8 +37,15 @@ func buildApplication() async throws -> some ApplicationProtocol {
 
   let router = Router()
   router.addRoutes(
-    UserRouter(cache: cache, database: databaseClient).build(),
+    UsersRouter(cache: cache, database: databaseClient).build(),
     atPath: "users"
+  )
+  router.addRoutes(
+    MeRouter(cache: cache, database: databaseClient).build(),
+    atPath: "me"
+  )
+  router.addRoutes(
+    SignupRouter(cache: cache, database: databaseClient).build(),
   )
 
   var app = Application(

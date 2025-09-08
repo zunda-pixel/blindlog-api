@@ -7,52 +7,59 @@ import Testing
 
 @Suite(.serialized)
 struct UserControllerTests {
-  @Test
-  func createUsers() async throws {
+  @Test(arguments: ["test@example.com"])
+  func createUser(email: String) async throws {
     let app = try await buildApplication()
 
     try await app.test(.router) { client in
-      let users: [NewUser] = [
-        .init(name: "John Doe"),
-        .init(name: "Mary Jane"),
-      ]
+      // 1. Add User to DB
+      let signupResponse = try await client.execute(
+        uri: "/signup?email=\(email)",
+        method: .post
+      )
+      #expect(signupResponse.status == .ok)
+      let addedUser = try JSONDecoder().decode(User.self, from: signupResponse.body)
+      #expect(addedUser.email == email)
 
-      let body = try JSONEncoder().encode(users)
-
-      // 1. Add Users to DB
-      let response = try await client.execute(
-        uri: "/users",
-        method: .post,
-        headers: [:],
-        body: ByteBuffer(data: body)
+      // 2. Get User to DB
+      let getResponse = try await client.execute(
+        uri: "/me?id=\(addedUser.id)",
+        method: .get
       )
 
-      #expect(response.status == .ok)
-      let addedUsers = try JSONDecoder().decode([User].self, from: response.body)
-      print(addedUsers)
+      #expect(getResponse.status == .ok)
+      let getUser = try JSONDecoder().decode(User.self, from: getResponse.body)
+      #expect(addedUser == getUser)
     }
   }
 
-  @Test
-  func createAndGetUsers() async throws {
+  @Test(arguments: [["john-doe@example.com", "mary-ane@example.com"]])
+  func createAndGetUsers(emails: [String]) async throws {
     let app = try await buildApplication()
 
     try await app.test(.router) { client in
-      let users: [NewUser] = [
-        .init(name: "John Doe"),
-        .init(name: "Mary Jane"),
-      ]
-
-      let body = try JSONEncoder().encode(users)
-
       // 1. Add Users to Database
-      let newUsers: [User] = try await client.execute(
-        uri: "/users",
-        method: .post,
-        body: ByteBuffer(data: body)
-      ) { response in
-        #expect(response.status == .ok)
-        return try JSONDecoder().decode([User].self, from: response.body)
+      let newUsers = try await withThrowingTaskGroup { group in
+        for email in emails {
+          group.addTask {
+            let newUser: User = try await client.execute(
+              uri: "/signup?email=\(email)",
+              method: .post
+            ) { response in
+              #expect(response.status == .ok)
+              return try JSONDecoder().decode(User.self, from: response.body)
+            }
+            return newUser
+          }
+        }
+
+        var users: [User] = []
+
+        for try await user in group {
+          users.append(user)
+        }
+
+        return users
       }
 
       let idsQuery = newUsers.map(\.id.uuidString).joined(separator: ",")
@@ -75,14 +82,6 @@ struct UserControllerTests {
         #expect(response.status == .ok)
         let cachedUsers = try JSONDecoder().decode([User].self, from: response.body)
         #expect(Set(newUsers) == Set(cachedUsers))
-      }
-
-      // 4. Delete Users from Database
-      try await client.execute(
-        uri: "/users?ids=\(idsQuery)",
-        method: .delete,
-      ) { response in
-        #expect(response.status == .ok)
       }
     }
   }
