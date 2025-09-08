@@ -60,7 +60,7 @@ struct UsersRouter<Context: RequestContext> {
       logger.error(
         """
         Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-        Error: \(error)
+        Error: \(String(reflecting: error))
         """
       )
       throw HTTPError(.internalServerError)
@@ -127,8 +127,12 @@ struct UsersRouter<Context: RequestContext> {
     request: Request,
     ids: [User.ID]
   ) async throws -> [User] {
-    let query: PostgresQuery = "SELECT id, name FROM users where id = ANY(\(ids))"
-
+    let query: PostgresQuery = """
+      SELECT id, email
+      FROM users
+      RIGHT JOIN user_email on users.id = user_email.user_id
+      WHERE users.id = ANY(\(ids))
+    """
     let rows = try await database.query(query).collect()
 
     let decoder = SQLRowDecoder()

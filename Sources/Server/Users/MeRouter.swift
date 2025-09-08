@@ -17,45 +17,9 @@ struct MeRouter<Context: RequestContext> {
           request: request
         )
       }
-      .post { request, context in
-        try await create(
-          request: request,
-          context: context
-        )
-      }
   }
 
   //MARK: Routing
-
-  func create(
-    request: Request,
-    context: some RequestContext
-  ) async throws -> User {
-    do {
-      let newUser = try await request.decode(as: NewUser.self, context: context)
-
-      // 1. Add to User to DB
-      let addedUser = try await addUserToDatabase(
-        request: request,
-        newUser: newUser
-      )
-
-      // 2. Delete User from Cache
-      try await deleteUserFromCache(
-        id: addedUser.id
-      )
-      return addedUser
-    } catch {
-      logger.error(
-        """
-        Failed to save user
-        Error: \(error)
-        """
-      )
-      throw HTTPError(.internalServerError)
-    }
-  }
-
   func id(request: Request) -> UUID? {
     guard let idsQuery = request.uri.queryParameters["id"] else { return nil }
 
@@ -94,7 +58,7 @@ struct MeRouter<Context: RequestContext> {
       logger.error(
         """
         Failed to fetch user: \(id))
-        Error: \(error)
+        Error: \(String(reflecting: error))
         """
       )
       throw HTTPError(.internalServerError)
@@ -128,58 +92,25 @@ struct MeRouter<Context: RequestContext> {
     )
   }
 
-  func deleteUserFromCache(
-    id: User.ID
-  ) async throws {
-    try await cache.del(keys: [ValkeyKey("user:\(id.uuidString)")])
-  }
-
   //MARK: Database
 
   func getUserFromDatabase(
     request: Request,
     id: User.ID
   ) async throws -> User? {
-    let query: PostgresQuery = "SELECT id, name FROM users where id = ANY(\(id)) LIMIT 1"
-
+    let query: PostgresQuery = """
+      SELECT id, email
+      FROM users
+      RIGHT JOIN user_email on users.id = user_email.user_id
+      WHERE users.id = \(id)
+      LIMIT 1
+    """
     let rows = try await database.query(query).collect()
 
     if let row = rows.first {
       return try row.sql().decode(model: User.self, with: SQLRowDecoder())
     } else {
       return nil
-    }
-  }
-
-  func addUserToDatabase(
-    request: Request,
-    newUser: NewUser
-  ) async throws -> User {
-    return try await database.withConnection { connection in
-      let query: PostgresQuery = """
-          INSERT INTO users (id, name)
-          VALUES (uuidv7(), \(newUser.name))
-          RETURNING *
-        """
-      let result = try await connection.query(query, logger: Logger(label: "Database INSERT"))
-      do {
-        let user = try await result.collect().first?.sql().decode(
-          model: User.self,
-          with: SQLRowDecoder()
-        )
-        
-        guard let user else {
-          self.logger.error("Failed to insert user")
-          try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
-          throw HTTPError(.internalServerError)
-        }
-        
-        return user
-      } catch {
-        self.logger.error("Failed to insert user")
-        try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
-        throw HTTPError(.internalServerError)
-      }
     }
   }
 }

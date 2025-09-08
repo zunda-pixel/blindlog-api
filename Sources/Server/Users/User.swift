@@ -8,7 +8,7 @@ struct NewUser: Codable, Hashable {
 
 struct User: Codable, Identifiable, Hashable, ResponseGenerator {
   var id: UUID
-  var name: String
+  var email: String?
 
   func response(
     from request: HummingbirdCore.Request,
