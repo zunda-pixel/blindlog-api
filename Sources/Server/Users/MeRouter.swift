@@ -162,17 +162,24 @@ struct MeRouter<Context: RequestContext> {
           RETURNING *
         """
       let result = try await connection.query(query, logger: Logger(label: "Database INSERT"))
-      let user = try await result.collect().first?.sql().decode(
-        model: User.self,
-        with: SQLRowDecoder()
-      )
-
-      guard let user else {
+      do {
+        let user = try await result.collect().first?.sql().decode(
+          model: User.self,
+          with: SQLRowDecoder()
+        )
+        
+        guard let user else {
+          self.logger.error("Failed to insert user")
+          try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
+          throw HTTPError(.internalServerError)
+        }
+        
+        return user
+      } catch {
+        self.logger.error("Failed to insert user")
         try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
         throw HTTPError(.internalServerError)
       }
-
-      return user
     }
   }
 }
