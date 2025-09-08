@@ -17,44 +17,9 @@ struct UsersRouter<Context: RequestContext> {
           request: request
         )
       }
-      .post { request, context in
-        try await create(
-          request: request,
-          context: context
-        )
-      }
   }
 
   //MARK: Routing
-
-  func create(
-    request: Request,
-    context: some RequestContext
-  ) async throws -> [User] {
-    do {
-      let newUsers = try await request.decode(as: [NewUser].self, context: context)
-
-      // 1. Add to Users to DB
-      let addedUsers = try await addUsersToDatabase(
-        request: request,
-        newUsers: newUsers
-      )
-
-      // 2. Delete Users from Cache
-      try await deleteUsersFromCache(
-        ids: addedUsers.map(\.id)
-      )
-      return addedUsers
-    } catch {
-      logger.error(
-        """
-        Failed to save users
-        Error: \(error)
-        """
-      )
-      throw HTTPError(.internalServerError)
-    }
-  }
 
   func ids(request: Request) -> [UUID]? {
     guard let idsQuery = request.uri.queryParameters["ids"] else { return nil }
@@ -156,12 +121,6 @@ struct UsersRouter<Context: RequestContext> {
     }
   }
 
-  func deleteUsersFromCache(
-    ids: [User.ID]
-  ) async throws {
-    try await cache.del(keys: ids.map { ValkeyKey("user:\($0.uuidString)") })
-  }
-
   //MARK: Database
 
   func getUsersFromDatabase(
@@ -176,26 +135,6 @@ struct UsersRouter<Context: RequestContext> {
     let users: [User] = try rows.map { row in
       return try row.sql().decode(model: User.self, with: decoder)
     }
-    return users
-  }
-
-  func addUsersToDatabase(
-    request: Request,
-    newUsers: [NewUser]
-  ) async throws -> [User] {
-    let users: [User] = newUsers.map { user in
-      let user = User(id: UUID(), name: user.name)
-      return user
-    }
-
-    try await database.withTransaction(logger: Logger(label: "Database INSERT")) { connection in
-      for user in users {
-        let query: PostgresQuery = "INSERT INTO users (id, name) VALUES (\(user.id), \(user.name))"
-
-        try await connection.query(query, logger: Logger(label: "Nested Database INSERT"))
-      }
-    }
-
     return users
   }
 }
