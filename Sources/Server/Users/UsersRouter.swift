@@ -5,9 +5,9 @@ import PostgresKit
 import PostgresNIO
 import Valkey
 
-struct UserRouter<Context: RequestContext> {
+struct UsersRouter<Context: RequestContext> {
   var cache: ValkeyClient
-  var logger: Logger = Logger(label: "UserRouter")
+  var logger: Logger = Logger(label: "UsersRouter")
   var database: PostgresClient
 
   func build() -> RouteCollection<Context> {
