@@ -39,10 +39,10 @@ struct SignupRouter<Context: RequestContext> {
       try await deleteUserFromCache(
         id: addedUser.id
       )
-      
+
       // 3. Send email to user
       #warning("Not Implement")
-      
+
       return addedUser
     } catch {
       logger.error(
@@ -81,13 +81,13 @@ struct SignupRouter<Context: RequestContext> {
           model: User.self,
           with: SQLRowDecoder()
         )
-        
+
         guard var user else {
           self.logger.error("Failed to insert user. Not found user")
           try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
           throw HTTPError(.internalServerError)
         }
-        
+
         // 2. Insert into user_email
         try await connection.query(
           """
@@ -96,14 +96,15 @@ struct SignupRouter<Context: RequestContext> {
           """,
           logger: Logger(label: "Database INSERT")
         )
-        
+
         user.email = email
         return user
       } catch {
-        self.logger.error("""
-          Failed to insert user
-          Error: \(String(reflecting: error))
-        """)
+        self.logger.error(
+          """
+            Failed to insert user
+            Error: \(String(reflecting: error))
+          """)
         try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
         throw HTTPError(.internalServerError)
       }

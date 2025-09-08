@@ -99,12 +99,12 @@ struct MeRouter<Context: RequestContext> {
     id: User.ID
   ) async throws -> User? {
     let query: PostgresQuery = """
-      SELECT id, email
-      FROM users
-      RIGHT JOIN user_email on users.id = user_email.user_id
-      WHERE users.id = \(id)
-      LIMIT 1
-    """
+        SELECT id, email
+        FROM users
+        RIGHT JOIN user_email on users.id = user_email.user_id
+        WHERE users.id = \(id)
+        LIMIT 1
+      """
     let rows = try await database.query(query).collect()
 
     if let row = rows.first {

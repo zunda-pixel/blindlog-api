@@ -20,7 +20,7 @@ struct UserControllerTests {
       #expect(signupResponse.status == .ok)
       let addedUser = try JSONDecoder().decode(User.self, from: signupResponse.body)
       #expect(addedUser.email == email)
-      
+
       // 2. Get User to DB
       let getResponse = try await client.execute(
         uri: "/me?id=\(addedUser.id)",
@@ -33,7 +33,7 @@ struct UserControllerTests {
     }
   }
 
-  @Test(arguments: [["john-doe@example.com", "mary-ane@example.com",]])
+  @Test(arguments: [["john-doe@example.com", "mary-ane@example.com"]])
   func createAndGetUsers(emails: [String]) async throws {
     let app = try await buildApplication()
 

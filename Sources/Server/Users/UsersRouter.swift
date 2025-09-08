@@ -128,11 +128,11 @@ struct UsersRouter<Context: RequestContext> {
     ids: [User.ID]
   ) async throws -> [User] {
     let query: PostgresQuery = """
-      SELECT id, email
-      FROM users
-      RIGHT JOIN user_email on users.id = user_email.user_id
-      WHERE users.id = ANY(\(ids))
-    """
+        SELECT id, email
+        FROM users
+        RIGHT JOIN user_email on users.id = user_email.user_id
+        WHERE users.id = ANY(\(ids))
+      """
     let rows = try await database.query(query).collect()
 
     let decoder = SQLRowDecoder()
