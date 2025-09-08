@@ -7,7 +7,7 @@ import Valkey
 
 struct MeRouter<Context: RequestContext> {
   var cache: ValkeyClient
-  var logger: Logger = Logger(label: "UserRouter")
+  var logger: Logger = Logger(label: "MeRouter")
   var database: PostgresClient
 
   func build() -> RouteCollection<Context> {
@@ -155,13 +155,18 @@ struct MeRouter<Context: RequestContext> {
     request: Request,
     newUser: NewUser
   ) async throws -> User {
-    let user: User = User(id: UUID(), name: newUser.name)
-
-    let query: PostgresQuery = "INSERT INTO users (id, name) VALUES (\(user.id), \(user.name))"
-
-    try await database.query(query, logger: Logger(label: "Nested Database INSERT"))
-
-    return user
+    return try await database.withConnection { connection in
+      let query: PostgresQuery = "INSERT INTO users (id, name) VALUES (uuidv7(), \(newUser.name)) RETURNING *"
+      let result = try await connection.query(query, logger: Logger(label: "Database INSERT"))
+      let user = try await result.collect().first?.sql().decode(model: User.self, with: SQLRowDecoder())
+      
+      guard let user else {
+        try await connection.query("ROLLBACK", logger: Logger(label: "Database ROLLBACK"))
+        throw HTTPError(.internalServerError)
+      }
+      
+      return user
+    }
   }
 
   func deleteUserFromDatabase(
