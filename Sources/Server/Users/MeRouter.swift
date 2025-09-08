@@ -34,13 +34,13 @@ struct MeRouter<Context: RequestContext> {
     do {
       let newUser = try await request.decode(as: NewUser.self, context: context)
 
-      // 1. Add to Users to DB
+      // 1. Add to User to DB
       let addedUser = try await addUserToDatabase(
         request: request,
         newUser: newUser
       )
 
-      // 2. Delete Users from Cache
+      // 2. Delete User from Cache
       try await deleteUserFromCache(
         id: addedUser.id
       )
@@ -68,7 +68,7 @@ struct MeRouter<Context: RequestContext> {
     guard let id = id(request: request) else { throw HTTPError(.badRequest) }
 
     do {
-      // 1. Get Users from Cache and Update Expiration if exits
+      // 1. Get User from Cache and Update Expiration if exits
       let cacheUser = try await getUserFromCacheAndUpdateExpiration(
         id: id
       )
@@ -77,7 +77,7 @@ struct MeRouter<Context: RequestContext> {
         return cacheUser
       }
 
-      // 2. Get Users from DB that is not in Cache
+      // 2. Get User from DB that is not in Cache
       let dbUser: User? = try await getUserFromDatabase(
         request: request,
         id: id
@@ -85,7 +85,7 @@ struct MeRouter<Context: RequestContext> {
 
       guard let dbUser else { throw HTTPError(.notFound) }
 
-      // 3. Set New Users Dat to Cache
+      // 3. Set New User to Cache
       try await addUserToCache(
         user: dbUser
       )
@@ -174,14 +174,5 @@ struct MeRouter<Context: RequestContext> {
 
       return user
     }
-  }
-
-  func deleteUserFromDatabase(
-    request: Request,
-    id: User.ID
-  ) async throws {
-    let query: PostgresQuery = "DELETE FROM users WHERE id = ANY(\(id))"
-
-    try await database.query(query)
   }
 }
