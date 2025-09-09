@@ -13,6 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
+      APPLE_APP_ID: XXXXXXXX.com.apple.memo
       VALKEY_HOSTNAME: valkey
       POSTGRES_HOSTNAME: postgres
       POSTGRES_USER: test_user
