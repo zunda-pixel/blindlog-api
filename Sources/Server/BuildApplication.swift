@@ -48,6 +48,10 @@ func buildApplication() async throws -> some ApplicationProtocol {
     SignupRouter(cache: cache, database: databaseClient).build(),
   )
 
+  router.addRoutes(AppleAppSiteAssosiationRouter(
+    appIds: [environment.get("APPLE_APP_ID")!]).build()
+  )
+  
   var app = Application(
     router: router,
     services: [
