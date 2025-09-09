@@ -22,6 +22,7 @@ services:
     volumes:
       - .:/workspace
     environment:
+      APPLE_APP_ID: ${APPLE_APP_ID}
       VALKEY_HOSTNAME: ${VALKEY_HOSTNAME}
       POSTGRES_HOSTNAME: ${POSTGRES_HOSTNAME}
       POSTGRES_USER: ${POSTGRES_USER:-test_user}
