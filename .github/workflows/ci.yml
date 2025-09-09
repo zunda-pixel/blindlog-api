@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: swift format lint -r -p -s .
   test:
     runs-on: ubuntu-latest
@@ -20,7 +20,7 @@ jobs:
       POSTGRES_DB: test_database
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Start DB & Cache (wait for health)
         run: docker compose up -d --wait postgres valkey
       - name: Run tests (Swift in Docker)
