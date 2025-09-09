@@ -11,7 +11,7 @@ struct WebCredential: Codable, ResponseGenerator {
       context: context
     )
   }
-  
+
   let apps: [String]
 }
 
