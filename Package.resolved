@@ -1,5 +1,5 @@
 {
-  "originHash" : "026d5c0a8cce485274e44a4e86babcce67613ee2834c1ffee772e509fa613ee7",
+  "originHash" : "4aa369ef9db31524aa2b5a459a9d70d29b96c551402b019c06d11e910f814905",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -276,8 +276,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/valkey-io/valkey-swift.git",
       "state" : {
-        "revision" : "74c27519adc2d142e762de0b06a534bcb5177d33",
-        "version" : "0.1.0"
+        "revision" : "cab15638af77eccedc3bc84c7151fe45c500cf46",
+        "version" : "0.2.0"
       }
     }
   ],
