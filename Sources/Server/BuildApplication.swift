@@ -7,7 +7,7 @@ import PostgresNIO
 import Valkey
 
 func buildApplication(
-  entryPoint: Entrypoint
+  _ arguments: some AppArguments
 ) async throws -> some ApplicationProtocol {
   let environment = Environment()
 
@@ -59,7 +59,7 @@ func buildApplication(
   var app = Application(
     router: router,
     configuration: .init(
-      address: .hostname(entryPoint.hostname, port: entryPoint.port)
+      address: .hostname(arguments.hostname, port: arguments.port)
     ),
     services: [
       cache,

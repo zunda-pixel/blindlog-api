@@ -9,7 +9,8 @@ import Testing
 struct AppleAppSiteAssosiationRouterTests {
   @Test
   func wellKnownAppleAppSiteAssociation() async throws {
-    let app = try await buildApplication()
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
 
     try await app.test(.router) { client in
       let response = try await client.execute(
