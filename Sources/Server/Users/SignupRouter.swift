@@ -40,9 +40,6 @@ struct SignupRouter<Context: RequestContext> {
         id: addedUser.id
       )
 
-      // 3. Send email to user
-      #warning("Not Implement")
-
       return addedUser
     } catch {
       logger.error(

@@ -6,11 +6,24 @@ import PostgresMigrations
 import PostgresNIO
 import Valkey
 
-func buildApplication() async throws -> some ApplicationProtocol {
+func buildApplication(
+  _ arguments: some AppArguments
+) async throws -> some ApplicationProtocol {
   let environment = Environment()
+
+  let valkeyAuthentication: ValkeyClientConfiguration.Authentication?
+  if let username = environment.get("VALKEY_USERNAME"),
+    let password = environment.get("VALKEY_PASSWORD")
+  {
+    valkeyAuthentication = ValkeyClientConfiguration.Authentication(
+      username: username, password: password)
+  } else {
+    valkeyAuthentication = nil
+  }
 
   let cache = ValkeyClient(
     .hostname(environment.get("VALKEY_HOSTNAME")!),
+    configuration: .init(authentication: valkeyAuthentication),
     logger: Logger(label: "Valkey")
   )
 
@@ -48,8 +61,17 @@ func buildApplication() async throws -> some ApplicationProtocol {
     SignupRouter(cache: cache, database: databaseClient).build(),
   )
 
+  router.addRoutes(
+    AppleAppSiteAssosiationRouter(
+      appIds: [environment.get("APPLE_APP_ID")!]
+    ).build()
+  )
+
   var app = Application(
     router: router,
+    configuration: .init(
+      address: .hostname(arguments.hostname, port: arguments.port)
+    ),
     services: [
       cache,
       databaseClient,
