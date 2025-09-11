@@ -11,8 +11,19 @@ func buildApplication(
 ) async throws -> some ApplicationProtocol {
   let environment = Environment()
 
+  let valkeyAuthentication: ValkeyClientConfiguration.Authentication?
+  if let username = environment.get("VALKEY_USERNAME"),
+    let password = environment.get("VALKEY_PASSWORD")
+  {
+    valkeyAuthentication = ValkeyClientConfiguration.Authentication(
+      username: username, password: password)
+  } else {
+    valkeyAuthentication = nil
+  }
+
   let cache = ValkeyClient(
     .hostname(environment.get("VALKEY_HOSTNAME")!),
+    configuration: .init(authentication: valkeyAuthentication),
     logger: Logger(label: "Valkey")
   )
 
