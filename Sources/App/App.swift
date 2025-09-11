@@ -6,7 +6,7 @@ import NIOPosix
 import Valkey
 
 @main
-struct Entrypoint: AsyncParsableCommand, AppArguments {
+struct App: AsyncParsableCommand, AppArguments {
   @Option(name: .shortAndLong)
   var hostname: String = "127.0.0.1"
 

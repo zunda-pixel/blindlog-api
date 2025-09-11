@@ -3,7 +3,7 @@ import HummingbirdTesting
 import NIOCore
 import Testing
 
-@testable import Server
+@testable import App
 
 struct TestArguments: AppArguments {
   var hostname: String = "127.0.0.1"
@@ -11,7 +11,7 @@ struct TestArguments: AppArguments {
 }
 
 @Suite(.serialized)
-struct UserControllerTests {
+struct RouterTests {
   @Test
   func wellKnownAppleAppSiteAssociation() async throws {
     let arguments = TestArguments()

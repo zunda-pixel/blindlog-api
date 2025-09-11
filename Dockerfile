@@ -80,8 +80,7 @@ ENV SWIFT_BACKTRACE=enable=yes,sanitize=yes,threads=all,images=all,interactive=n
 USER hummingbird:hummingbird
 
 # Let Docker bind to port 8080
-EXPOSE 8080
+EXPOSE $PORT
 
 # Start the Hummingbird service when the image is run, default to listening on 8080 in production environment
-ENTRYPOINT ["./App"]
-CMD ["--hostname", "0.0.0.0", "--port", "8080"]
+CMD ./App serve --env production --hostname 0.0.0.0 --port $PORT
