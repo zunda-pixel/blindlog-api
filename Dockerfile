@@ -83,4 +83,4 @@ USER hummingbird:hummingbird
 EXPOSE $PORT
 
 # Start the Hummingbird service when the image is run, default to listening on 8080 in production environment
-CMD ./App serve --env production --hostname 0.0.0.0 --port $PORT
+CMD ./App --hostname 0.0.0.0 --port $PORT
