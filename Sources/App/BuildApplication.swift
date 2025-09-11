@@ -77,7 +77,6 @@ func buildApplication(
       databaseClient,
       database,
     ],
-    eventLoopGroupProvider: .shared(.singletonMultiThreadedEventLoopGroup),
     logger: Logger(label: "Server")
   )
 
