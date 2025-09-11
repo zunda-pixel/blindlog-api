@@ -6,7 +6,9 @@ import PostgresMigrations
 import PostgresNIO
 import Valkey
 
-func buildApplication() async throws -> some ApplicationProtocol {
+func buildApplication(
+  entryPoint: Entrypoint
+) async throws -> some ApplicationProtocol {
   let environment = Environment()
 
   let cache = ValkeyClient(
@@ -56,6 +58,9 @@ func buildApplication() async throws -> some ApplicationProtocol {
 
   var app = Application(
     router: router,
+    configuration: .init(
+      address: .hostname(entryPoint.hostname, port: entryPoint.port)
+    ),
     services: [
       cache,
       databaseClient,
