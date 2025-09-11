@@ -5,8 +5,28 @@ import Testing
 
 @testable import Server
 
+struct TestArguments: AppArguments {
+  var hostname: String = "127.0.0.1"
+  var port: Int = 8080
+}
+
 @Suite(.serialized)
 struct UserControllerTests {
+  @Test
+  func wellKnownAppleAppSiteAssociation() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+
+    try await app.test(.router) { client in
+      let response = try await client.execute(
+        uri: "/.well-known/apple-app-site-association",
+        method: .get
+      )
+
+      #expect(response.headers[.contentType] == "application/json; charset=utf-8")
+    }
+  }
+
   @Test(arguments: ["test@example.com"])
   func createUser(email: String) async throws {
     let arguments = TestArguments()
