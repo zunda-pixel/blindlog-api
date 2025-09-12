@@ -27,27 +27,27 @@ func buildApplication(
     logger: Logger(label: "Valkey")
   )
 
-//  let config = PostgresClient.Configuration(
-//    host: environment.get("POSTGRES_HOSTNAME")!,
-//    username: environment.get("POSTGRES_USER")!,
-//    password: environment.get("POSTGRES_PASSWORD")!,
-//    database: environment.get("POSTGRES_DB")!,
-//    tls: .disable
-//  )
-//
-//  let databaseClient = PostgresClient(
-//    configuration: config,
-//    backgroundLogger: Logger(label: "PosgresClient")
-//  )
-//
-//  let migrations = DatabaseMigrations()
-//
-//  let database = await PostgresPersistDriver(
-//    client: databaseClient,
-//    migrations: migrations,
-//    logger: Logger(label: "Postgres")
-//  )
-//
+  let config = PostgresClient.Configuration(
+    host: environment.get("POSTGRES_HOSTNAME")!,
+    username: environment.get("POSTGRES_USER")!,
+    password: environment.get("POSTGRES_PASSWORD")!,
+    database: environment.get("POSTGRES_DB")!,
+    tls: .disable
+  )
+
+  let databaseClient = PostgresClient(
+    configuration: config,
+    backgroundLogger: Logger(label: "PosgresClient")
+  )
+
+  let migrations = DatabaseMigrations()
+
+  let database = await PostgresPersistDriver(
+    client: databaseClient,
+    migrations: migrations,
+    logger: Logger(label: "Postgres")
+  )
+
   let router = Router()
 //  router.addRoutes(
 //    UsersRouter(cache: cache, database: databaseClient).build(),
@@ -74,20 +74,20 @@ func buildApplication(
     ),
     services: [
       cache,
-//      databaseClient,
-//      database,
+      databaseClient,
+      database,
     ],
     logger: Logger(label: "Server")
   )
 
-//  app.beforeServerStarts {
-//    try await migrations.apply(
-//      client: databaseClient,
-//      groups: [.persist],
-//      logger: Logger(label: "Postgres Migrations"),
-//      dryRun: false
-//    )
-//  }
+  app.beforeServerStarts {
+    try await migrations.apply(
+      client: databaseClient,
+      groups: [.persist],
+      logger: Logger(label: "Postgres Migrations"),
+      dryRun: false
+    )
+  }
 
   return app
 }
