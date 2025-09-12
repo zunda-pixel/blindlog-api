@@ -40,13 +40,13 @@ func buildApplication(
     backgroundLogger: Logger(label: "PosgresClient")
   )
 
-  let migrations = DatabaseMigrations()
-
-  let database = await PostgresPersistDriver(
-    client: databaseClient,
-    migrations: migrations,
-    logger: Logger(label: "Postgres")
-  )
+//  let migrations = DatabaseMigrations()
+//
+//  let database = await PostgresPersistDriver(
+//    client: databaseClient,
+//    migrations: migrations,
+//    logger: Logger(label: "Postgres")
+//  )
 
   let router = Router()
   router.addRoutes(
@@ -75,19 +75,19 @@ func buildApplication(
     services: [
       cache,
       databaseClient,
-      database,
+//      database,
     ],
     logger: Logger(label: "Server")
   )
 
-  app.beforeServerStarts {
-    try await migrations.apply(
-      client: databaseClient,
-      groups: [.persist],
-      logger: Logger(label: "Postgres Migrations"),
-      dryRun: false
-    )
-  }
+//  app.beforeServerStarts {
+//    try await migrations.apply(
+//      client: databaseClient,
+//      groups: [.persist],
+//      logger: Logger(label: "Postgres Migrations"),
+//      dryRun: false
+//    )
+//  }
 
   return app
 }
