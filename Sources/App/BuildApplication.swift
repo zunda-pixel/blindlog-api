@@ -49,18 +49,18 @@ func buildApplication(
   )
 
   let router = Router()
-//  router.addRoutes(
-//    UsersRouter(cache: cache, database: databaseClient).build(),
-//    atPath: "users"
-//  )
-//  router.addRoutes(
-//    MeRouter(cache: cache, database: databaseClient).build(),
-//    atPath: "me"
-//  )
-//  router.addRoutes(
-//    SignupRouter(cache: cache, database: databaseClient).build(),
-//  )
-//
+  router.addRoutes(
+    UsersRouter(cache: cache, database: databaseClient).build(),
+    atPath: "users"
+  )
+  router.addRoutes(
+    MeRouter(cache: cache, database: databaseClient).build(),
+    atPath: "me"
+  )
+  router.addRoutes(
+    SignupRouter(cache: cache, database: databaseClient).build(),
+  )
+
   router.addRoutes(
     AppleAppSiteAssosiationRouter(
       appIds: [environment.get("APPLE_APP_ID")!]
