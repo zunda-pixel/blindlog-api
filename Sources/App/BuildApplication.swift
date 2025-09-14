@@ -23,18 +23,33 @@ func buildApplication(
     valkeyAuthentication = nil
   }
 
+  #if DEBUG
+  let valkeyTLS: ValkeyClientConfiguration.TLS = .disable
+  #else
+  let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(.clientDefault, tlsServerName: environment.get("VALKEY_HOSTNAME")!)
+  #endif
+  
   let cache = ValkeyClient(
     .hostname(environment.get("VALKEY_HOSTNAME")!),
-    configuration: .init(authentication: valkeyAuthentication),
+    configuration: .init(
+      authentication: valkeyAuthentication,
+      tls: valkeyTLS
+    ),
     logger: logger
   )
+  
+  #if DEBUG
+  let postgresTLS: PostgresClient.Configuration.TLS = .disable
+  #else
+  let postgresTLS: PostgresClient.Configuration.TLS = .require(.clientDefault)
+  #endif
 
   let config = PostgresClient.Configuration(
     host: environment.get("POSTGRES_HOSTNAME")!,
     username: environment.get("POSTGRES_USER")!,
     password: environment.get("POSTGRES_PASSWORD")!,
     database: environment.get("POSTGRES_DB")!,
-    tls: .disable
+    tls: postgresTLS
   )
 
   let databaseClient = PostgresClient(
@@ -42,13 +57,13 @@ func buildApplication(
     backgroundLogger: logger
   )
 
-  let migrations = DatabaseMigrations()
+//  let migrations = DatabaseMigrations()
 
-  let database = await PostgresPersistDriver(
-    client: databaseClient,
-    migrations: migrations,
-    logger: logger
-  )
+//  let database = await PostgresPersistDriver(
+//    client: databaseClient,
+//    migrations: migrations,
+//    logger: logger
+//  )
 
   let router = Router()
   router.addRoutes(
@@ -76,26 +91,26 @@ func buildApplication(
     ),
     services: [
       databaseClient,
-      database,
+//      database,
       cache,
     ],
     logger: Logger(label: "Server")
   )
 
-  app.beforeServerStarts { [app] in
-    app.logger.debug("Start Migration")
-    app.logger.debug("Waiting 0.5s for database to be ready")
-    try await Task.sleep(for: .seconds(0.5))
-    app.logger.debug("Finished waiting 0.5s for database to be ready")
-    
-    try await migrations.apply(
-      client: databaseClient,
-      groups: [.persist],
-      logger: Logger(label: "Postgres Migrations"),
-      dryRun: false
-    )
-    app.logger.debug("Finish Migration")
-  }
+//  app.beforeServerStarts { [app] in
+//    app.logger.debug("Start Migration")
+//    app.logger.debug("Waiting 0.5s for database to be ready")
+//    try await Task.sleep(for: .seconds(0.5))
+//    app.logger.debug("Finished waiting 0.5s for database to be ready")
+//    
+//    try await migrations.apply(
+//      client: databaseClient,
+//      groups: [.persist],
+//      logger: Logger(label: "Postgres Migrations"),
+//      dryRun: false
+//    )
+//    app.logger.debug("Finish Migration")
+//  }
 
   return app
 }
