@@ -1,0 +1,55 @@
+{
+  "configurations" : [
+    {
+      "id" : "3A374FAE-C3E2-4B30-A377-B25F7BF78BFE",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "environmentVariableEntries" : [
+      {
+        "key" : "VALKEY_HOSTNAME",
+        "value" : "localhost"
+      },
+      {
+        "key" : "APPLE_APP_ID",
+        "value" : "XXXX.com.apple.note"
+      },
+      {
+        "key" : "POSTGRES_USER",
+        "value" : "test_user"
+      },
+      {
+        "key" : "POSTGRES_PASSWORD",
+        "value" : "test_password"
+      },
+      {
+        "key" : "POSTGRES_DB",
+        "value" : "test_database"
+      },
+      {
+        "key" : "POSTGRES_HOSTNAME",
+        "value" : "localhost"
+      }
+    ],
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:",
+      "identifier" : "App",
+      "name" : "App"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "AppTests",
+        "name" : "AppTests"
+      }
+    }
+  ],
+  "version" : 1
+}
