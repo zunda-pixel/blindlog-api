@@ -79,8 +79,10 @@ func buildApplication(
   )
 
   router.addRoutes(
-    AppleAppSiteAssosiationRouter(
-      appIds: [try environment.require("APPLE_APP_ID")]
+    AppleAppSiteAssosiationRouter(appleAppSiteAssociation: .init(
+      webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
+      appclips: .init(apps: []),
+      applinks: .init(details: []))
     ).build()
   )
 
