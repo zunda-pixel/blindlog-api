@@ -57,13 +57,13 @@ func buildApplication(
     backgroundLogger: logger
   )
 
-//  let migrations = DatabaseMigrations()
+  let migrations = DatabaseMigrations()
 
-//  let database = await PostgresPersistDriver(
-//    client: databaseClient,
-//    migrations: migrations,
-//    logger: logger
-//  )
+  let database = await PostgresPersistDriver(
+    client: databaseClient,
+    migrations: migrations,
+    logger: logger
+  )
 
   let router = Router()
   router.addRoutes(
@@ -91,26 +91,20 @@ func buildApplication(
     ),
     services: [
       databaseClient,
-//      database,
+      database,
       cache,
     ],
     logger: Logger(label: "Server")
   )
 
-//  app.beforeServerStarts { [app] in
-//    app.logger.debug("Start Migration")
-//    app.logger.debug("Waiting 0.5s for database to be ready")
-//    try await Task.sleep(for: .seconds(0.5))
-//    app.logger.debug("Finished waiting 0.5s for database to be ready")
-//    
-//    try await migrations.apply(
-//      client: databaseClient,
-//      groups: [.persist],
-//      logger: Logger(label: "Postgres Migrations"),
-//      dryRun: false
-//    )
-//    app.logger.debug("Finish Migration")
-//  }
+  app.beforeServerStarts {
+    try await migrations.apply(
+      client: databaseClient,
+      groups: [.persist],
+      logger: Logger(label: "Postgres Migrations"),
+      dryRun: false
+    )
+  }
 
   return app
 }
