@@ -10,6 +10,8 @@ func buildApplication(
   _ arguments: some AppArguments
 ) async throws -> some ApplicationProtocol {
   let environment = Environment()
+  var logger = Logger(label: "App")
+  logger.logLevel = .debug
 
   let valkeyAuthentication: ValkeyClientConfiguration.Authentication?
   if let username = environment.get("VALKEY_USERNAME"),
@@ -24,7 +26,7 @@ func buildApplication(
   let cache = ValkeyClient(
     .hostname(environment.get("VALKEY_HOSTNAME")!),
     configuration: .init(authentication: valkeyAuthentication),
-    logger: Logger(label: "Valkey")
+    logger: logger
   )
 
   let config = PostgresClient.Configuration(
@@ -37,7 +39,7 @@ func buildApplication(
 
   let databaseClient = PostgresClient(
     configuration: config,
-    backgroundLogger: Logger(label: "PosgresClient")
+    backgroundLogger: logger
   )
 
   let migrations = DatabaseMigrations()
@@ -45,7 +47,7 @@ func buildApplication(
   let database = await PostgresPersistDriver(
     client: databaseClient,
     migrations: migrations,
-    logger: Logger(label: "Postgres")
+    logger: logger
   )
 
   let router = Router()
@@ -73,20 +75,26 @@ func buildApplication(
       address: .hostname(arguments.hostname, port: arguments.port)
     ),
     services: [
-      cache,
-//      databaseClient,
+      databaseClient,
       database,
+      cache,
     ],
     logger: Logger(label: "Server")
   )
 
-  app.beforeServerStarts {
+  app.beforeServerStarts { [app] in
+    app.logger.debug("Start Migration")
+    app.logger.debug("Waiting 0.5s for database to be ready")
+    try await Task.sleep(for: .seconds(0.5))
+    app.logger.debug("Finished waiting 0.5s for database to be ready")
+    
     try await migrations.apply(
       client: databaseClient,
       groups: [.persist],
       logger: Logger(label: "Postgres Migrations"),
       dryRun: false
     )
+    app.logger.debug("Finish Migration")
   }
 
   return app
