@@ -26,11 +26,11 @@ func buildApplication(
   #if DEBUG
   let valkeyTLS: ValkeyClientConfiguration.TLS = .disable
   #else
-  let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(.clientDefault, tlsServerName: environment.get("VALKEY_HOSTNAME")!)
+  let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(.clientDefault, tlsServerName: environment.require("VALKEY_HOSTNAME"))
   #endif
   
-  let cache = ValkeyClient(
-    .hostname(environment.get("VALKEY_HOSTNAME")!),
+  let cache = try ValkeyClient(
+    .hostname(environment.require("VALKEY_HOSTNAME")),
     configuration: .init(
       authentication: valkeyAuthentication,
       tls: valkeyTLS
@@ -44,11 +44,11 @@ func buildApplication(
   let postgresTLS: PostgresClient.Configuration.TLS = .require(.clientDefault)
   #endif
 
-  let config = PostgresClient.Configuration(
+  let config = try PostgresClient.Configuration(
     host: environment.get("POSTGRES_HOSTNAME")!,
-    username: environment.get("POSTGRES_USER")!,
-    password: environment.get("POSTGRES_PASSWORD")!,
-    database: environment.get("POSTGRES_DB")!,
+    username: environment.require("POSTGRES_USER"),
+    password: environment.require("POSTGRES_PASSWORD"),
+    database: environment.require("POSTGRES_DB"),
     tls: postgresTLS
   )
 
@@ -80,7 +80,7 @@ func buildApplication(
 
   router.addRoutes(
     AppleAppSiteAssosiationRouter(
-      appIds: [environment.get("APPLE_APP_ID")!]
+      appIds: [try environment.require("APPLE_APP_ID")]
     ).build()
   )
 
