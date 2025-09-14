@@ -68,7 +68,7 @@ struct SignupRouter<Context: RequestContext> {
         let result = try await connection.query(
           """
             INSERT INTO users (id)
-            VALUES (uuidv7())
+            VALUES (gen_random_uuid())
             RETURNING *
           """,
           logger: Logger(label: "Database INSERT")
