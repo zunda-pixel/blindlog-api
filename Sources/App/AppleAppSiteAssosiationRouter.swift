@@ -1,6 +1,12 @@
 import Hummingbird
 
-struct WebCredential: Codable, ResponseGenerator {
+struct AppleAppSiteAssociation: Codable, ResponseGenerator {
+  let webcredentials: Webcredentials
+  
+  struct Webcredentials: Codable {
+    var apps: [String]
+  }
+  
   func response(
     from request: HummingbirdCore.Request,
     context: some Hummingbird.RequestContext
@@ -11,8 +17,6 @@ struct WebCredential: Codable, ResponseGenerator {
       context: context
     )
   }
-
-  let apps: [String]
 }
 
 struct AppleAppSiteAssosiationRouter<Context: RequestContext> {
@@ -21,7 +25,7 @@ struct AppleAppSiteAssosiationRouter<Context: RequestContext> {
   func build() -> RouteCollection<Context> {
     return RouteCollection(context: Context.self)
       .get("/.well-known/apple-app-site-association") { request, context in
-        let credential = WebCredential(apps: appIds)
+        let credential = AppleAppSiteAssociation(webcredentials: .init(apps: appIds))
         return credential
       }
   }
