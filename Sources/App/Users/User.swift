@@ -8,6 +8,8 @@ struct NewUser: Codable, Hashable {
 
 struct User: Codable, Identifiable, Hashable, ResponseGenerator {
   var id: UUID
+  var token: String
+  var refreshToken: String
   var email: String?
 
   func response(

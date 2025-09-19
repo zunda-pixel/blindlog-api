@@ -27,25 +27,27 @@ struct RouterTests {
     }
   }
 
-  @Test(arguments: ["test@example.com"])
-  func createUser(email: String) async throws {
+  @Test
+  func createUser() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
 
     try await app.test(.router) { client in
       // 1. Add User to DB
       let signupResponse = try await client.execute(
-        uri: "/signup?email=\(email)",
+        uri: "/user",
         method: .post
       )
       #expect(signupResponse.status == .ok)
       let addedUser = try JSONDecoder().decode(User.self, from: signupResponse.body)
-      #expect(addedUser.email == email)
 
       // 2. Get User to DB
       let getResponse = try await client.execute(
-        uri: "/me?id=\(addedUser.id)",
-        method: .get
+        uri: "/me",
+        method: .get,
+        headers: [
+          .authorization: "Bearer \(addedUser.token)"
+        ]
       )
 
       #expect(getResponse.status == .ok)

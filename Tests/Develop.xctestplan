@@ -15,6 +15,10 @@
         "value" : "localhost"
       },
       {
+        "key" : "EdDSA_PRIVATE_KEY",
+        "value" : "T8s3Xh9Aulyq0UqIkggCgDyyXQKzPgIWH0w4Cb1O3Yg="
+      },
+      {
         "key" : "RELYING_PARTY_ORIGIN",
         "value" : "http:\/\/localhost:8080"
       },

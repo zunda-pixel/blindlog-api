@@ -1,5 +1,5 @@
 {
-  "originHash" : "707565b16797a2a207bda4e1976ce1be3ed1e7303665ffdfe6832ac4181d5aa6",
+  "originHash" : "0b3fa202033e5d6c12fd08f1448c922cdaeec4fdc22fdcf9dbda6a40ee2b661f",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -35,6 +35,24 @@
       "state" : {
         "revision" : "3778aa8b4f729b180062e143524cd8ebc4dfd1ce",
         "version" : "1.0.0-rc.1"
+      }
+    },
+    {
+      "identity" : "jwt-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor/jwt-kit.git",
+      "state" : {
+        "revision" : "2033b3e661238dda3d30e36a2d40987499d987de",
+        "version" : "5.2.0"
+      }
+    },
+    {
+      "identity" : "openapikit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mattpolzin/OpenAPIKit",
+      "state" : {
+        "revision" : "65d3bd28ad1f9497bfd4011fc2cac4acb49805b2",
+        "version" : "3.7.1"
       }
     },
     {
@@ -245,6 +263,33 @@
       }
     },
     {
+      "identity" : "swift-openapi-generator",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-openapi-generator",
+      "state" : {
+        "revision" : "d74223cc5595a8165181c4d9579243c932e5cd07",
+        "version" : "1.10.3"
+      }
+    },
+    {
+      "identity" : "swift-openapi-hummingbird",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-server/swift-openapi-hummingbird.git",
+      "state" : {
+        "revision" : "026b50b17e9afe74d4d82c883d9c37154a8b30bf",
+        "version" : "2.0.1"
+      }
+    },
+    {
+      "identity" : "swift-openapi-runtime",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-openapi-runtime.git",
+      "state" : {
+        "revision" : "7722cf8eac05c1f1b5b05895b04cfcc29576d9be",
+        "version" : "1.8.3"
+      }
+    },
+    {
       "identity" : "swift-service-context",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-service-context.git",
@@ -296,6 +341,15 @@
       "state" : {
         "revision" : "cab15638af77eccedc3bc84c7151fe45c500cf46",
         "version" : "0.2.0"
+      }
+    },
+    {
+      "identity" : "yams",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jpsim/Yams",
+      "state" : {
+        "revision" : "d41ba4e7164c0838c6d48351f7575f7f762151fe",
+        "version" : "6.1.0"
       }
     }
   ],

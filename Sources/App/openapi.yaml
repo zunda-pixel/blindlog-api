@@ -1,0 +1,48 @@
+openapi: '3.1.0'
+info:
+  title: Blindlog API server
+  version: 1.0.0
+servers:
+  - url: https://api.blindlog.me
+    description: Blindlog API server
+paths:
+  /user:
+    post:
+      operationId: createUser
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /me:
+    get:
+      operationId: getMe
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      description: A value with the User contents.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User id.
+        token:
+          type: string
+          description: User token.
+        refreshToken:
+          type: string
+          description: User refresh token.
+      required:
+        - id
+        - token
+        - refreshToken

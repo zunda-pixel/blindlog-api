@@ -24,6 +24,9 @@ let package = Package(
     .package(url: "https://github.com/vapor/postgres-kit.git", from: "2.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "0.2.0"),
     .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "add-init"),
+    .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
+    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
+    .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
   ],
   targets: [
     .executableTarget(
@@ -35,6 +38,11 @@ let package = Package(
         .product(name: "PostgresKit", package: "postgres-kit"),
         .product(name: "Valkey", package: "valkey-swift"),
         .product(name: "WebAuthn", package: "swift-webauthn"),
+        .product(name: "OpenAPIHummingbird", package: "swift-openapi-hummingbird"),
+        .product(name: "JWTKit", package: "jwt-kit"),
+      ],
+      plugins: [
+        .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
       ]
     ),
     .testTarget(
