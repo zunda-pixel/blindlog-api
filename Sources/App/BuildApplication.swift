@@ -5,6 +5,8 @@ import Logging
 import PostgresMigrations
 import PostgresNIO
 import Valkey
+import WebAuthn
+import Crypto
 
 func buildApplication(
   _ arguments: some AppArguments
@@ -83,6 +85,23 @@ func buildApplication(
       webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
       appclips: .init(apps: []),
       applinks: .init(details: []))
+    ).build()
+  )
+  
+  router.addRoutes(
+    PasskeyRouter(
+      cache: cache,
+      database: databaseClient,
+      webAuthn: WebAuthnManager(
+        configuration: .init(
+          relyingPartyID: try environment.require("RELYING_PARTY_ID"),
+          relyingPartyName: try environment.require("RELYING_PARTY_NAME"),
+          relyingPartyOrigin: try environment.require("RELYING_PARTY_ORIGIN")
+        ),
+        challengeGenerator: .init {
+          Array(Data(AES.GCM.Nonce()))
+        }
+      )
     ).build()
   )
 
