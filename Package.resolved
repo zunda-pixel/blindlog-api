@@ -1,5 +1,5 @@
 {
-  "originHash" : "4aa369ef9db31524aa2b5a459a9d70d29b96c551402b019c06d11e910f814905",
+  "originHash" : "707565b16797a2a207bda4e1976ce1be3ed1e7303665ffdfe6832ac4181d5aa6",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hummingbird-project/postgres-migrations",
       "state" : {
-        "revision" : "2c2dee76b220641fc2c5347c6e81c7650f5aa3d9",
-        "version" : "1.0.0-rc.1"
+        "revision" : "488dab41f56e0c55ff07f37695d52dfb6c2eccc0",
+        "version" : "1.0.0"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-certificates.git",
       "state" : {
-        "revision" : "20c451f1ad8e344e61ddbb34ef196653d4b73ea6",
-        "version" : "1.13.0"
+        "revision" : "4b092f15164144c24554e0a75e080a960c5190a6",
+        "version" : "1.14.0"
       }
     },
     {
@@ -267,8 +267,26 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-system.git",
       "state" : {
-        "revision" : "890830fff1a577dc83134890c7984020c5f6b43b",
-        "version" : "1.6.2"
+        "revision" : "395a77f0aa927f0ff73941d7ac35f2b46d47c9db",
+        "version" : "1.6.3"
+      }
+    },
+    {
+      "identity" : "swift-webauthn",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/zunda-pixel/swift-webauthn.git",
+      "state" : {
+        "branch" : "add-init",
+        "revision" : "581971e2ba6c5fa91a095d2dd5f2132333cac156"
+      }
+    },
+    {
+      "identity" : "swiftcbor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/unrelentingtech/SwiftCBOR.git",
+      "state" : {
+        "revision" : "04ccff117f6549121d5721ec84fdf0162122b90e",
+        "version" : "0.5.0"
       }
     },
     {
