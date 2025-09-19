@@ -117,6 +117,8 @@ func buildApplication(
     database: databaseClient,
     jwtKeyCollection: jwtKeyCollection
   )
+  router.add(middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection, database: databaseClient))
+  
   try api.registerHandlers(on: router)
   
   var app = Application(

@@ -1,5 +1,5 @@
 {
-  "originHash" : "0b3fa202033e5d6c12fd08f1448c922cdaeec4fdc22fdcf9dbda6a40ee2b661f",
+  "originHash" : "5bd467cea7a723d0ad9d1aafc59fbe362b59ee825dde4d61bbb8b07888dbabc6",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "3ae359b1bb1e72378ed43b59fdcd4d44cac5d7a4",
         "version" : "2.16.0"
+      }
+    },
+    {
+      "identity" : "hummingbird-auth",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hummingbird-project/hummingbird-auth.git",
+      "state" : {
+        "revision" : "8630a49acca3b38c50e29d61ab263cb7edf0b06d",
+        "version" : "2.0.2"
       }
     },
     {
@@ -170,6 +179,15 @@
       "state" : {
         "revision" : "6600888f4cb5bbf1bcac51000f60b2cbd224c91b",
         "version" : "1.3.0"
+      }
+    },
+    {
+      "identity" : "swift-extras-base64",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-extras/swift-extras-base64.git",
+      "state" : {
+        "revision" : "dc8121fdd2b444c97d6b0534e8ad4ddecbe0d5f4",
+        "version" : "1.0.0"
       }
     },
     {
