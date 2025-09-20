@@ -73,42 +73,7 @@ func buildApplication(
   )
 
   let router = Router()
-//  router.addRoutes(
-//    UsersRouter(cache: cache, database: databaseClient).build(),
-//    atPath: "users"
-//  )
-//  router.addRoutes(
-//    MeRouter(cache: cache, database: databaseClient).build(),
-//    atPath: "me"
-//  )
-//  router.addRoutes(
-//    SignupRouter(cache: cache, database: databaseClient).build(),
-//  )
-//
-//  router.addRoutes(
-//    AppleAppSiteAssosiationRouter(appleAppSiteAssociation: .init(
-//      webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
-//      appclips: .init(apps: []),
-//      applinks: .init(details: []))
-//    ).build()
-//  )
-//
-//  router.addRoutes(
-//    PasskeyRouter(
-//      cache: cache,
-//      database: databaseClient,
-//      webAuthn: WebAuthnManager(
-//        configuration: .init(
-//          relyingPartyID: try environment.require("RELYING_PARTY_ID"),
-//          relyingPartyName: try environment.require("RELYING_PARTY_NAME"),
-//          relyingPartyOrigin: try environment.require("RELYING_PARTY_ORIGIN")
-//        ),
-//        challengeGenerator: .init {
-//          Array(Data(AES.GCM.Nonce()))
-//        }
-//      )
-//    ).build()
-//  )
+
   let jwtKeyCollection = JWTKeyCollection()
   
   let privateKey = try EdDSA.PrivateKey(
