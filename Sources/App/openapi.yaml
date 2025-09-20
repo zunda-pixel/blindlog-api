@@ -26,6 +26,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+  /users:
+    get:
+      operationId: getUsers
+      parameters:
+        - name: ids
+          in: query
+          description: ID of user to return
+          required: true
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
 components:
   schemas:
     UserToken:

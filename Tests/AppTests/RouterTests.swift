@@ -55,28 +55,28 @@ struct RouterTests {
     }
   }
 
-  @Test(arguments: [["john-doe@example.com", "mary-ane@example.com"]])
-  func createAndGetUsers(emails: [String]) async throws {
+  @Test
+  func createAndGetUsers() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
 
     try await app.test(.router) { client in
       // 1. Add Users to Database
       let newUsers = try await withThrowingTaskGroup { group in
-        for email in emails {
+        for _ in 0..<10 {
           group.addTask {
-            let newUser: User = try await client.execute(
-              uri: "/signup?email=\(email)",
+            let newUser: UserToken = try await client.execute(
+              uri: "/user",
               method: .post
             ) { response in
               #expect(response.status == .ok)
-              return try JSONDecoder().decode(User.self, from: response.body)
+              return try JSONDecoder().decode(UserToken.self, from: response.body)
             }
             return newUser
           }
         }
 
-        var users: [User] = []
+        var users: [UserToken] = []
 
         for try await user in group {
           users.append(user)
@@ -94,7 +94,7 @@ struct RouterTests {
       ) { response in
         #expect(response.status == .ok)
         let dbUsers = try JSONDecoder().decode([User].self, from: response.body)
-        #expect(Set(newUsers) == Set(dbUsers))
+        #expect(Set(newUsers.map(\.id)) == Set(dbUsers.map(\.id)))
       }
 
       // 3. Get Users from Cache
@@ -104,7 +104,7 @@ struct RouterTests {
       ) { response in
         #expect(response.status == .ok)
         let cachedUsers = try JSONDecoder().decode([User].self, from: response.body)
-        #expect(Set(newUsers) == Set(cachedUsers))
+        #expect(Set(newUsers.map(\.id)) == Set(cachedUsers.map(\.id)))
       }
     }
   }
