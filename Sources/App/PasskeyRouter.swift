@@ -15,56 +15,12 @@ struct PasskeyRouter<Context: RequestContext> : Sendable {
   
   func build() -> RouteCollection<Context> {
     return RouteCollection(context: Context.self)
-      .get("challenge") { request, context in
-        try await generateChallenge(request: request)
-      }
       .post("addPasskey") { request, context in
         try await verifyPasskey(
           request: request,
           context: context
         )
       }
-  }
-
-  //MARK: Routing
-
-  func generateChallenge(
-    request: Request,
-  ) async throws -> String {
-    do {
-      guard let userIDString = request.uri.queryParameters["userID"],
-            let userID = UUID(uuidString: String(userIDString)) else { throw HTTPError(.badRequest) }
-      guard let email = request.uri.queryParameters["email"] else { throw HTTPError(.badRequest) }
-      
-      // 1. Generate Challenge
-      let options = webAuthn.beginRegistration(user: .init(
-        id: Array(Data(userID.uuidString.utf8)),
-        name: String(email),
-        displayName: String(email)
-      ))
-      
-      let expiredDate = Date.now.addingTimeInterval(TimeInterval(60 * 50))
-      
-      // 2. Save Challenge to DB with expired date
-      
-      let challengeString = Data(options.challenge).base64EncodedString()
-      try await database.query(
-        """
-          INSERT INTO user_challenge (user_id, challenge, expired_date)
-          VALUES(\(userID), \(challengeString), \(expiredDate))
-        """
-      )
-
-      return challengeString
-    } catch {
-      logger.error(
-        """
-        Failed to generate challenge
-        Error: \(String(reflecting: error))
-        """
-      )
-      throw HTTPError(.internalServerError)
-    }
   }
   
   func verifyPasskey(
