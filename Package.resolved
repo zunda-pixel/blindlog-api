@@ -1,5 +1,5 @@
 {
-  "originHash" : "5bd467cea7a723d0ad9d1aafc59fbe362b59ee825dde4d61bbb8b07888dbabc6",
+  "originHash" : "0e098d549dbdceed0ac08d2e051933f893a113c4e69056506929468799d08af2",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -222,8 +222,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-metrics.git",
       "state" : {
-        "revision" : "4c83e1cdf4ba538ef6e43a9bbd0bcc33a0ca46e3",
-        "version" : "2.7.0"
+        "revision" : "0743a9364382629da3bf5677b46a2c4b1ce5d2a6",
+        "version" : "2.7.1"
       }
     },
     {
