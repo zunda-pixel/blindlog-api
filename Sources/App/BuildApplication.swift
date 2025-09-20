@@ -115,7 +115,12 @@ func buildApplication(
   let api = API(
     cache: cache,
     database: databaseClient,
-    jwtKeyCollection: jwtKeyCollection
+    jwtKeyCollection: jwtKeyCollection,
+    appleAppSiteAssociation: .init(
+      webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
+      appclips: .init(apps: []),
+      applinks: .init(details: [])
+    )
   )
   router.add(middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection, database: databaseClient))
   
@@ -152,6 +157,7 @@ struct API: APIProtocol {
   var cache: ValkeyClient
   var database: PostgresClient
   var jwtKeyCollection: JWTKeyCollection
+  var appleAppSiteAssociation: AppleAppSiteAssociation
 }
 
 import PostgresKit
@@ -170,6 +176,20 @@ struct JWTPayloadData: JWTPayload, Equatable {
     case subject = "sub"
     case expiration = "exp"
     case userName = "name"
+  }
+}
+
+extension API {
+  func getAppleAppSiteAssociation(
+    _ input: Operations.getAppleAppSiteAssociation.Input
+  ) async throws -> Operations.getAppleAppSiteAssociation.Output {
+    return .ok(.init(body: .json(.init(
+      webcredentials: .init(apps: appleAppSiteAssociation.webcredentials.apps),
+      appclips: .init(apps: appleAppSiteAssociation.appclips.apps),
+      applinks: .init(details: appleAppSiteAssociation.applinks.details.map {
+        .init(appIdDs: $0.appIdDs, components: [])
+      })
+    ))))
   }
 }
 

@@ -6,6 +6,16 @@ servers:
   - url: https://api.blindlog.me
     description: Blindlog API server
 paths:
+  /.well-known/apple-app-site-association:
+    get:
+      operationId: getAppleAppSiteAssociation
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppleAppSiteAssociation'
   /user:
     post:
       operationId: createUser
@@ -79,3 +89,56 @@ components:
           description: User id.
       required:
         - id
+    AppleAppSiteAssociation:
+      type: object
+      description: A value with the User contents.
+      properties:
+        webcredentials:
+          $ref: '#/components/schemas/WebCredentials'
+          description: User id.
+        appclips:
+          $ref: '#/components/schemas/AppClips'
+          description: User id.
+        applinks:
+          $ref: '#/components/schemas/AppLinks'
+          description: User id.
+    WebCredentials:
+      type: object
+      description: A value with the User contents.
+      properties:
+        apps:
+          type: array
+          items:
+            type: string
+          description: App ID ex) xxxx.com.apple.note.
+    AppClips:
+      type: object
+      description: A value with the User contents.
+      properties:
+        apps:
+          type: array
+          items:
+            type: string
+          description: App ID ex) xxxx.com.apple.note.
+    AppLinks:
+      type: object
+      description: A value with the User contents.
+      properties:
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppLinkDetail'
+    AppLinkDetail:
+      type: object
+      description: A value with the User contents.
+      properties:
+        appIdDs:
+          type: array
+          items:
+            type: string
+            description: User id.
+        components:
+          type: array
+          items:
+            type: string
+            description: User id.
