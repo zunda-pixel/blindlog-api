@@ -15,7 +15,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserToken'
   /me:
     get:
       operationId: getMe
@@ -28,7 +28,7 @@ paths:
                 $ref: '#/components/schemas/User'
 components:
   schemas:
-    User:
+    UserToken:
       type: object
       description: A value with the User contents.
       properties:
@@ -46,3 +46,13 @@ components:
         - id
         - token
         - refreshToken
+    User:
+      type: object
+      description: A value with the User contents.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User id.
+      required:
+        - id

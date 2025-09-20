@@ -39,8 +39,7 @@ struct RouterTests {
         method: .post
       )
       #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(User.self, from: signupResponse.body)
-
+      let addedUser = try JSONDecoder().decode(UserToken.self, from: signupResponse.body)
       // 2. Get User to DB
       let getResponse = try await client.execute(
         uri: "/me",
@@ -52,7 +51,7 @@ struct RouterTests {
 
       #expect(getResponse.status == .ok)
       let getUser = try JSONDecoder().decode(User.self, from: getResponse.body)
-      #expect(addedUser == getUser)
+      #expect(addedUser.id == getUser.id)
     }
   }
 
