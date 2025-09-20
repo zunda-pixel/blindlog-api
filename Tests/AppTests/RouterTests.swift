@@ -108,4 +108,30 @@ struct RouterTests {
       }
     }
   }
+  
+  @Test
+  func refreshToken() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+
+    try await app.test(.router) { client in
+      // 1. Add User to DB
+      let signupResponse = try await client.execute(
+        uri: "/user",
+        method: .post
+      )
+      #expect(signupResponse.status == .ok)
+      let addedUser = try JSONDecoder().decode(UserToken.self, from: signupResponse.body)
+      // 2. Get User to DB
+      let refreshResponse = try await client.execute(
+        uri: "/refreshToken",
+        method: .post,
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": addedUser.refreshToken]))
+      )
+
+      #expect(refreshResponse.status == .ok)
+      let getUser = try JSONDecoder().decode(UserToken.self, from: refreshResponse.body)
+      #expect(addedUser.id == getUser.id)
+    }
+  }
 }

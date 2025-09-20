@@ -26,6 +26,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserToken'
+  /refreshToken:
+    post:
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                refreshToken:
+                  type: string
+                  description: User refresh token.
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserToken'
   /me:
     get:
       operationId: getMe
