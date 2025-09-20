@@ -43,7 +43,6 @@ struct MeRouter<Context: RequestContext> {
 
       // 2. Get User from DB that is not in Cache
       let dbUser: User? = try await getUserFromDatabase(
-        request: request,
         id: id
       )
 
@@ -95,7 +94,6 @@ struct MeRouter<Context: RequestContext> {
   //MARK: Database
 
   func getUserFromDatabase(
-    request: Request,
     id: User.ID
   ) async throws -> User? {
     let query: PostgresQuery = """
