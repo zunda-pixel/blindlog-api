@@ -17,7 +17,7 @@ extension API {
     ))))
   }
   
-  func getUser(id: UUID) async throws -> User {
+  fileprivate func getUser(id: UUID) async throws -> User {
     // 1. Get User from Cache and Update Expiration if exits
     let cacheUser = try await getUserFromCacheAndUpdateExpiration(
       id: id
@@ -41,7 +41,7 @@ extension API {
     return dbUser
   }
   
-  func addUserToCache(
+  fileprivate func addUserToCache(
     user: User
   ) async throws {
     try await cache.set(
@@ -51,7 +51,7 @@ extension API {
     )
   }
   
-  func getUserFromDatabase(
+  fileprivate func getUserFromDatabase(
     id: User.ID
   ) async throws -> User? {
     let query: PostgresQuery = """
@@ -69,7 +69,7 @@ extension API {
     }
   }
   
-  func getUserFromCacheAndUpdateExpiration(
+  fileprivate func getUserFromCacheAndUpdateExpiration(
     id: User.ID
   ) async throws -> User? {
     let userData = try await cache.getex(

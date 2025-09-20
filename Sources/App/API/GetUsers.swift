@@ -43,7 +43,7 @@ extension API {
     }
   }
   
-  func addUsersToCache(
+  fileprivate func addUsersToCache(
     users: [User]
   ) async throws {
     let encoder = JSONEncoder()
@@ -61,7 +61,7 @@ extension API {
     }
   }
   
-  func getUsersFromDatabase(
+  fileprivate func getUsersFromDatabase(
     ids: [User.ID]
   ) async throws -> [User] {
     let query: PostgresQuery = """
@@ -78,7 +78,7 @@ extension API {
     return users
   }
   
-  func getUsersFromCacheAndUpdateExpiration(
+  fileprivate func getUsersFromCacheAndUpdateExpiration(
     ids: [User.ID]
   ) async throws -> [User] {
     return try await cache.withConnection { connection in

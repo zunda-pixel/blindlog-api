@@ -31,7 +31,7 @@ extension API {
     ))))
   }
   
-  func addUserToDatabase() async throws -> User {
+  fileprivate func addUserToDatabase() async throws -> User {
     return try await database.withConnection { connection in
       do {
         // 1. Insert into users
