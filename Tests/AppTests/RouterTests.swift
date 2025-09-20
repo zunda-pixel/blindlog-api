@@ -134,4 +134,32 @@ struct RouterTests {
       #expect(addedUser.id == getUser.id)
     }
   }
+  
+  @Test
+  func challenge() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+
+    try await app.test(.router) { client in
+      // 1. Add User to DB
+      let signupResponse = try await client.execute(
+        uri: "/user",
+        method: .post
+      )
+      #expect(signupResponse.status == .ok)
+      let addedUser = try JSONDecoder().decode(UserToken.self, from: signupResponse.body)
+      // 2. Get User to DB
+      let challengeResponse = try await client.execute(
+        uri: "/challenge",
+        method: .post,
+        headers: [
+          .authorization: "Bearer \(addedUser.token)"
+        ]
+      )
+
+      #expect(challengeResponse.status == .ok)
+      let challenge = String(buffer: challengeResponse.body)
+      print(challenge)
+    }
+  }
 }

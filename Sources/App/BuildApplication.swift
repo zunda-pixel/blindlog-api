@@ -121,6 +121,16 @@ func buildApplication(
     cache: cache,
     database: databaseClient,
     jwtKeyCollection: jwtKeyCollection,
+    webAuthn: WebAuthnManager(
+      configuration: .init(
+        relyingPartyID: try environment.require("RELYING_PARTY_ID"),
+        relyingPartyName: try environment.require("RELYING_PARTY_NAME"),
+        relyingPartyOrigin: try environment.require("RELYING_PARTY_ORIGIN")
+      ),
+      challengeGenerator: .init {
+        Array(Data(AES.GCM.Nonce()))
+      }
+    ),
     appleAppSiteAssociation: .init(
       webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
       appclips: .init(apps: []),

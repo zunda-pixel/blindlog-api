@@ -16,6 +16,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AppleAppSiteAssociation'
+  /challenge:
+    post:
+      operationId: generateChallenge
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
   /user:
     post:
       operationId: createUser
