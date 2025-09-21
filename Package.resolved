@@ -1,5 +1,5 @@
 {
-  "originHash" : "0e098d549dbdceed0ac08d2e051933f893a113c4e69056506929468799d08af2",
+  "originHash" : "ec5718a10684dd94c9bfb136e6b50278eeafaaca2052ef67335f632fec5d25e5",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -339,8 +339,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/zunda-pixel/swift-webauthn.git",
       "state" : {
-        "branch" : "add-init",
-        "revision" : "581971e2ba6c5fa91a095d2dd5f2132333cac156"
+        "branch" : "custom-ChallengeGenerator",
+        "revision" : "4c154606f1f73286b767af5a9bcb9a9bde0842c9"
       }
     },
     {
