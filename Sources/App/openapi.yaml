@@ -27,6 +27,26 @@ paths:
               schema:
                 type: string
                 format: binary
+  /passkey:
+    post:
+      operationId: addPasskey
+      parameters:
+        - name: challenge
+          in: query
+          description: ID of user to return
+          required: true
+          schema:
+            type: string
+            format: binary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPasskey'
+      responses:
+        '200':
+          description: A success response with a user.
   /user:
     post:
       operationId: createUser
@@ -123,38 +143,38 @@ components:
         - id
     AppleAppSiteAssociation:
       type: object
-      description: A value with the User contents.
+      description: Apple App Site Association document.
       properties:
         webcredentials:
           $ref: '#/components/schemas/WebCredentials'
-          description: User id.
+          description: Web credentials configuration.
         appclips:
           $ref: '#/components/schemas/AppClips'
-          description: User id.
+          description: App Clips configuration.
         applinks:
           $ref: '#/components/schemas/AppLinks'
-          description: User id.
+          description: Universal Links configuration.
     WebCredentials:
       type: object
-      description: A value with the User contents.
+      description: Web credentials configuration.
       properties:
         apps:
           type: array
           items:
             type: string
-          description: App ID ex) xxxx.com.apple.note.
+          description: App IDs (e.g., TEAMID.com.example.app).
     AppClips:
       type: object
-      description: A value with the User contents.
+      description: App Clips configuration.
       properties:
         apps:
           type: array
           items:
             type: string
-          description: App ID ex) xxxx.com.apple.note.
+          description: App Clip bundle IDs.
     AppLinks:
       type: object
-      description: A value with the User contents.
+      description: Universal Links configuration.
       properties:
         details:
           type: array
@@ -162,15 +182,50 @@ components:
             $ref: '#/components/schemas/AppLinkDetail'
     AppLinkDetail:
       type: object
-      description: A value with the User contents.
+      description: Universal Link detail entry.
       properties:
         appIdDs:
           type: array
           items:
             type: string
-            description: User id.
+            description: App IDs.
         components:
           type: array
           items:
             type: string
-            description: User id.
+            description: Path components.
+    AddPasskey:
+      type: object
+      description: Passkey registration payload.
+      properties:
+        id:
+          type: string
+          description: User id.
+        rawID:
+          type: string
+          description: Raw ID.
+        type:
+          type: string
+          description: Credential type.
+        attestationResponse:
+          $ref: '#/components/schemas/AuthenticatorAttestation'
+      required:
+        - id
+        - rawID
+        - type
+        - attestationResponse
+    AuthenticatorAttestation:
+      type: object
+      description: Authenticator attestation response.
+      properties:
+        clientDataJSON:
+          type: string
+          format: binary
+          description: Client Data JSON.
+        attestationObject:
+          type: string
+          format: binary
+          description: Attestation Object.
+      required:
+        - clientDataJSON
+        - attestationObject
