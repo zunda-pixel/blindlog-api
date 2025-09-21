@@ -1,6 +1,6 @@
 import Foundation
 import Hummingbird
-import PostgresNIO
+import PostgresKit
 import SQLKit
 import Valkey
 

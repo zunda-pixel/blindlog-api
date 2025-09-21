@@ -1,6 +1,6 @@
+import Foundation
 import Hummingbird
 import WebAuthn
-import Foundation
 
 extension API {
   func addPasskey(
@@ -52,7 +52,7 @@ extension API {
         VALUES(\(credential.id), \(Data(credential.publicKey).base64EncodedString()))
       """
     )
-    
+
     return .ok
   }
 }
