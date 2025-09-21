@@ -1,6 +1,6 @@
 import Foundation
-import PostgresNIO
 import Hummingbird
+import PostgresNIO
 import SQLKit
 import Valkey
 
@@ -8,7 +8,7 @@ extension API {
   func getUsers(
     _ input: Operations.getUsers.Input
   ) async throws -> Operations.getUsers.Output {
-    let ids:[UUID] = input.query.ids.compactMap { UUID(uuidString: $0) }
+    let ids: [UUID] = input.query.ids.compactMap { UUID(uuidString: $0) }
 
     do {
       // 1. Get Users from Cache and Update Expiration if exits
@@ -26,23 +26,26 @@ extension API {
       try await addUsersToCache(
         users: dbUsers
       )
-      
+
       let users = cacheUsers + dbUsers
-      
-      return .ok(.init(body: .json(users.map {
-        .init(id: $0.id.uuidString)
-      })))
+
+      return .ok(
+        .init(
+          body: .json(
+            users.map {
+              .init(id: $0.id.uuidString)
+            })))
     } catch {
-//      logger.error(
-//        """
-//        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-//        Error: \(String(reflecting: error))
-//        """
-//      )
+      //      logger.error(
+      //        """
+      //        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+      //        Error: \(String(reflecting: error))
+      //        """
+      //      )
       throw HTTPError(.internalServerError)
     }
   }
-  
+
   fileprivate func addUsersToCache(
     users: [User]
   ) async throws {
@@ -60,7 +63,7 @@ extension API {
       try await connection.exec()
     }
   }
-  
+
   fileprivate func getUsersFromDatabase(
     ids: [User.ID]
   ) async throws -> [User] {
@@ -77,7 +80,7 @@ extension API {
     }
     return users
   }
-  
+
   fileprivate func getUsersFromCacheAndUpdateExpiration(
     ids: [User.ID]
   ) async throws -> [User] {

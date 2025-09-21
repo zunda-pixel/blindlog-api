@@ -1,6 +1,6 @@
 import Foundation
-import PostgresNIO
 import Hummingbird
+import PostgresNIO
 import SQLKit
 import Valkey
 
@@ -9,14 +9,17 @@ extension API {
     guard let userID = BearerAuthenticateUser.current?.userID else {
       throw HTTPError(.unauthorized)
     }
-    
+
     let user = try await getUser(id: userID)
-    
-    return .ok(.init(body: .json(.init(
-      id: user.id.uuidString
-    ))))
+
+    return .ok(
+      .init(
+        body: .json(
+          .init(
+            id: user.id.uuidString
+          ))))
   }
-  
+
   fileprivate func getUser(id: UUID) async throws -> User {
     // 1. Get User from Cache and Update Expiration if exits
     let cacheUser = try await getUserFromCacheAndUpdateExpiration(
@@ -40,7 +43,7 @@ extension API {
     )
     return dbUser
   }
-  
+
   fileprivate func addUserToCache(
     user: User
   ) async throws {
@@ -50,7 +53,7 @@ extension API {
       expiration: .seconds(60 * 10)  // 10 minutes
     )
   }
-  
+
   fileprivate func getUserFromDatabase(
     id: User.ID
   ) async throws -> User? {
@@ -68,7 +71,7 @@ extension API {
       return nil
     }
   }
-  
+
   fileprivate func getUserFromCacheAndUpdateExpiration(
     id: User.ID
   ) async throws -> User? {

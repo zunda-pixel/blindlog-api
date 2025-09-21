@@ -1,6 +1,6 @@
-import Valkey
-import PostgresNIO
 import JWTKit
+import PostgresNIO
+import Valkey
 import WebAuthn
 
 struct API: APIProtocol {

@@ -1,14 +1,14 @@
+import Crypto
 import Foundation
 import Hummingbird
 import HummingbirdPostgres
+import JWTKit
 import Logging
+import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
 import Valkey
 import WebAuthn
-import Crypto
-import OpenAPIHummingbird
-import JWTKit
 
 func buildApplication(
   _ arguments: some AppArguments
@@ -28,14 +28,14 @@ func buildApplication(
   }
 
   #if DEBUG
-  let valkeyTLS: ValkeyClientConfiguration.TLS = .disable
+    let valkeyTLS: ValkeyClientConfiguration.TLS = .disable
   #else
-  let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(
-    .clientDefault,
-    tlsServerName: environment.require("VALKEY_HOSTNAME")
-  )
+    let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(
+      .clientDefault,
+      tlsServerName: environment.require("VALKEY_HOSTNAME")
+    )
   #endif
-  
+
   let cache = try ValkeyClient(
     .hostname(environment.require("VALKEY_HOSTNAME")),
     configuration: .init(
@@ -44,11 +44,11 @@ func buildApplication(
     ),
     logger: logger
   )
-  
+
   #if DEBUG
-  let postgresTLS: PostgresClient.Configuration.TLS = .disable
+    let postgresTLS: PostgresClient.Configuration.TLS = .disable
   #else
-  let postgresTLS: PostgresClient.Configuration.TLS = .require(.clientDefault)
+    let postgresTLS: PostgresClient.Configuration.TLS = .require(.clientDefault)
   #endif
 
   let config = try PostgresClient.Configuration(
@@ -75,12 +75,12 @@ func buildApplication(
   let router = Router()
 
   let jwtKeyCollection = JWTKeyCollection()
-  
+
   let privateKey = try EdDSA.PrivateKey(
     d: environment.require("EdDSA_PRIVATE_KEY"),
     curve: .ed25519
   )
-  
+
   await jwtKeyCollection.add(eddsa: privateKey)
   let api = API(
     cache: cache,
@@ -102,10 +102,12 @@ func buildApplication(
       applinks: .init(details: [])
     )
   )
-  router.add(middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection, database: databaseClient))
-  
+  router.add(
+    middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+  )
+
   try api.registerHandlers(on: router)
-  
+
   var app = Application(
     router: router,
     configuration: .init(

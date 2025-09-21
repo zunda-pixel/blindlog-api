@@ -8,7 +8,7 @@ struct JWTPayloadData: JWTPayload, Equatable {
   func verify(using algorithm: some JWTAlgorithm) async throws {
     try self.expiration.verifyNotExpired()
   }
-  
+
   enum CodingKeys: String, CodingKey {
     case subject = "sub"
     case expiration = "exp"

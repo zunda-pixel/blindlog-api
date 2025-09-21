@@ -1,19 +1,18 @@
 import Foundation
 import Hummingbird
 import HummingbirdAuth
-import PostgresNIO
 import JWTKit
+import PostgresNIO
 
 struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
   var jwtKeyCollection: JWTKeyCollection
-  var database: PostgresClient
-  
+
   func userID(
     _ request: Request,
     context: Context
   ) async throws -> UUID? {
     guard let jwtToken = request.headers.bearer?.token else { return nil }
-    
+
     // get payload and verify its contents
     let payload: JWTPayloadData
     do {
@@ -32,10 +31,10 @@ struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
       context.logger.debug("Token expired")
       throw HTTPError(.unauthorized)
     }
-    
+
     return userID
   }
-  
+
   func handle(
     _ request: Request,
     context: Context,
@@ -45,7 +44,7 @@ struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
     guard let userID else {
       return try await next(request, context)
     }
-    
+
     return try await BearerAuthenticateUser.$current.withValue(.init(userID: userID)) {
       try await next(request, context)
     }
