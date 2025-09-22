@@ -6,7 +6,10 @@ extension API {
     _ input: Operations.generateChallenge.Input
   ) async throws -> Operations.generateChallenge.Output {
     guard let userID = BearerAuthenticateUser.current?.userID else {
-      throw HTTPError(.badRequest)
+      let auth = webAuthn.beginAuthentication()
+      return .ok(.init(body: .json(
+        Data(auth.challenge).base64EncodedString()
+      )))
     }
 
     // 1. Generate Challenge
