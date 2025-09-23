@@ -7,8 +7,10 @@ extension API {
     _ input: Operations.generateChallenge.Input
   ) async throws -> Operations.generateChallenge.Output {
     // 1. Generate Challenge
+    let userID = BearerAuthenticateUser.current?.userID
+
     let challenge: [UInt8] =
-      if let userID = BearerAuthenticateUser.current?.userID {
+      if let userID {
         // SignUp
         webAuthn.beginRegistration(
           user: .init(
@@ -24,10 +26,11 @@ extension API {
 
     // 2. Save Challenge to DB with expired date
     let expiredDate = Date(timeIntervalSinceNow: 10 * 60)  // 10 minutes
+    let purpose: ChallengePurpose = userID == nil ? .authentication : .registration
     try await database.query(
       """
-        INSERT INTO challenges (challenge, expired_date)
-        VALUES(\(Data(challenge)), \(expiredDate))
+        INSERT INTO challenges (challenge, expired_date, user_id, purpose)
+        VALUES(\(Data(challenge)), \(expiredDate), \(userID), \(purpose))
       """
     )
 

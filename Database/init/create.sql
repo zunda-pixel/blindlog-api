@@ -6,6 +6,8 @@ CREATE TABLE public.users (
 CREATE TABLE public.challenges (
   challenge bytea NOT null,
   expired_date timestamptz not null,
+  user_id uuid references users(id),
+  purpose text NOT null,
   CONSTRAINT challenges_unique PRIMARY KEY (challenge)
 );
 

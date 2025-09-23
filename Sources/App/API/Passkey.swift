@@ -1,6 +1,13 @@
 import Foundation
 import Hummingbird
+import PostgresNIO
+import SQLKit
 import WebAuthn
+
+enum ChallengePurpose: String, PostgresCodable {
+  case registration
+  case authentication
+}
 
 extension API {
   func addPasskey(
@@ -17,21 +24,23 @@ extension API {
       from: bodyData
     )
 
-    // 2. Verify and Delete Challenge
+    // 2. Verify and delete challenge atomically.
     let row = try await database.query(
       """
         DELETE FROM challenges
         WHERE challenge = \(Data(input.query.challenge.data))
+          AND user_id = \(userID)
+          AND purpose = \(ChallengePurpose.registration)
           AND expired_date > CURRENT_TIMESTAMP
-        RETURNING 1;
+        RETURNING 1
       """
     ).collect().first
 
     guard row != nil else {
-      throw HTTPError(.unauthorized)
+      throw HTTPError(.badRequest)
     }
 
-    // 3.  Verify Client Credential Data and get public key
+    // 3. Verify client credential data and get public key
     let credential = try await webAuthn.finishRegistration(
       challenge: Array(input.query.challenge.data),
       credentialCreationData: registrationCredential,
@@ -46,11 +55,11 @@ extension API {
       }
     )
 
-    // 3. Save PublicKey to DB
+    // 4. Save public key to DB
     try await database.query(
       """
         INSERT INTO passkey_credentials (id, user_id, public_key, sign_count)
-        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int(credential.signCount)))
+        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int64(credential.signCount)))
       """
     )
 

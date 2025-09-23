@@ -7,7 +7,7 @@ import WebAuthn
 struct PasskeyCredential: Codable, PostgresDecodable {
   var user_id: UUID
   var public_key: Data
-  var sign_count: Int
+  var sign_count: Int64
 }
 
 extension API {
@@ -42,18 +42,20 @@ extension API {
       from: data
     )
 
-    // 2. Verify and Delete Challenge
+    // 2. Verify and delete challenge atomically.
     let row = try await database.query(
       """
         DELETE FROM challenges
         WHERE challenge = \(Data(bodyData.challenge.base64decoded()))
+          AND user_id = \(PostgresData.null.value)
+          AND purpose = \(ChallengePurpose.authentication)
           AND expired_date > CURRENT_TIMESTAMP
-        RETURNING 1;
+        RETURNING 1
       """
     ).collect().first
 
     guard row != nil else {
-      throw HTTPError(.unauthorized)
+      throw HTTPError(.badRequest)
     }
 
     // 3. Get Passkey from DB
@@ -77,7 +79,7 @@ extension API {
     try await database.query(
       """
       UPDATE passkey_credentials
-      SET sign_count = \(Int(verifiedAuthentication.newSignCount))
+      SET sign_count = GREATEST(sign_count, \(Int64(verifiedAuthentication.newSignCount)))
       WHERE id = \(verifiedAuthentication.credentialID.asString())
       """
     )
