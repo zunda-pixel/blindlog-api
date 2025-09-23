@@ -8,7 +8,7 @@ struct PasskeyCredential: Codable {
   var userID: UUID
   var publicKey: Data
   var signCount: Int64
-  
+
   enum CodingKeys: String, CodingKey {
     case userID = "user_id"
     case publicKey = "public_key"
