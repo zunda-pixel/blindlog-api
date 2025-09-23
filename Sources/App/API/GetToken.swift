@@ -7,7 +7,7 @@ import SQLKit
 struct PasskeyCredential: Codable, PostgresDecodable {
   var user_id: UUID
   var public_key: Data
-  var sign_count: Int32
+  var sign_count: Int
 }
 
 extension API {
@@ -48,11 +48,19 @@ extension API {
       throw HTTPError(.internalServerError)
     }
 
-    _ = try webAuthn.finishAuthentication(
+    let verifiedAuthentication = try webAuthn.finishAuthentication(
       credential: credential,
       expectedChallenge: bodyData.challenge.base64decoded(),
       credentialPublicKey: Array(passkeyCredential.public_key),
       credentialCurrentSignCount: UInt32(passkeyCredential.sign_count)
+    )
+    
+    try await database.query(
+      """
+      UPDATE passkey_credentials
+      SET sign_count = \(Int(verifiedAuthentication.newSignCount))
+      WHERE id = \(verifiedAuthentication.credentialID.asString())
+      """
     )
 
     let (token, refreshToken) = try await generateUserToken(

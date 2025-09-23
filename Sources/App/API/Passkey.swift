@@ -48,7 +48,7 @@ extension API {
     try await database.query(
       """
         INSERT INTO passkey_credentials (id, user_id, public_key, sign_count)
-        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int32(credential.signCount)))
+        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int(credential.signCount)))
       """
     )
 
