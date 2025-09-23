@@ -47,7 +47,7 @@ extension API {
       """
         DELETE FROM challenges
         WHERE challenge = \(Data(bodyData.challenge.base64decoded()))
-          AND user_id = \(PostgresData.null.value)
+          AND user_id IS NULL
           AND purpose = \(ChallengePurpose.authentication)
           AND expired_date > CURRENT_TIMESTAMP
         RETURNING 1
