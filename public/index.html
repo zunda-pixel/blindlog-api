@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BlindLog Controls</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      line-height: 1.5;
+    }
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+    section {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
+    }
+    h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.2rem;
+    }
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 0.6rem 1.4rem;
+      background: #2563eb;
+      color: #ffffff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: progress;
+    }
+    button:not(:disabled):hover {
+      background: #1d4ed8;
+    }
+    button:not(:disabled):active {
+      transform: scale(0.97);
+    }
+    .status {
+      min-height: 1.25rem;
+      margin-top: 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f172a; color: #e2e8f0; }
+      section { background: #1f2937; box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45); }
+      button { background: #38bdf8; color: #0f172a; }
+      button:not(:disabled):hover { background: #0ea5e9; }
+      pre { background: #020617; color: #cbd5f5; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>BlindLog Passkey Playground</h1>
+
+    <section>
+      <h2>ユーザー作成</h2>
+      <p>匿名ユーザーを作成して認証トークンを取得します。</p>
+      <button id="create-user" type="button">ユーザー作成</button>
+      <p id="create-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>Passkey追加</h2>
+      <p>既存のトークンでチャレンジを取得し、Passkey を登録します。</p>
+      <button id="add-passkey" type="button">Passkey追加</button>
+      <p id="passkey-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>ログイン</h2>
+      <p>Passkey を使って認証し、新しいトークンを取得します。</p>
+      <button id="login" type="button">ログイン</button>
+      <p id="login-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>ログアウト</h2>
+      <p>保持しているセッション情報を破棄します。</p>
+      <button id="logout" type="button">ログアウト</button>
+      <p id="logout-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>セッション情報</h2>
+      <pre id="session-output">セッションがありません。</pre>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const supportsWebAuthn = 'PublicKeyCredential' in window;
+      const state = { id: null, token: null, refreshToken: null };
+
+      const createBtn = document.getElementById('create-user');
+      const addPasskeyBtn = document.getElementById('add-passkey');
+      const loginBtn = document.getElementById('login');
+      const logoutBtn = document.getElementById('logout');
+
+      const createStatus = document.getElementById('create-status');
+      const passkeyStatus = document.getElementById('passkey-status');
+      const loginStatus = document.getElementById('login-status');
+      const logoutStatus = document.getElementById('logout-status');
+      const sessionOutput = document.getElementById('session-output');
+
+      function setStatus(element, message, isError = false) {
+        element.textContent = message;
+        element.style.color = isError ? '#dc2626' : '';
+      }
+
+      function updateSessionOutput() {
+        if (!state.id) {
+          sessionOutput.textContent = 'セッションがありません。';
+          return;
+        }
+        sessionOutput.textContent = JSON.stringify({
+          id: state.id,
+          token: state.token,
+          refreshToken: state.refreshToken,
+        }, null, 2);
+      }
+
+      function normalizeBase64(input) {
+        const base = input.replace(/-/g, '+').replace(/_/g, '/').replace(/\s+/g, '');
+        const mod = base.length % 4;
+        if (mod === 2) return base + '==';
+        if (mod === 3) return base + '=';
+        if (mod === 1) return base + '===';
+        return base;
+      }
+
+      function base64ToUint8Array(base64) {
+        const normalized = normalizeBase64(base64);
+        const binary = atob(normalized);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      function arrayBufferToBase64Url(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += 1) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      }
+
+      async function readChallengeResponse(response) {
+        const text = (await response.text()).trim();
+        try {
+          const parsed = JSON.parse(text);
+          if (typeof parsed === 'string') return parsed;
+          if (typeof parsed?.challenge === 'string') return parsed.challenge;
+          if (typeof parsed?.value === 'string') return parsed.value;
+          if (Array.isArray(parsed?.data)) {
+            return arrayBufferToBase64Url(Uint8Array.from(parsed.data).buffer);
+          }
+        } catch {
+          const unquoted = text.replace(/^"|"$/g, '');
+          if (unquoted) return unquoted;
+        }
+        throw new Error('Unexpected challenge response format.');
+      }
+
+      function buildRegistrationOptions(challenge, userId) {
+        return {
+          challenge: base64ToUint8Array(challenge),
+          rp: { name: document.title || 'BlindLog', id: window.location.hostname },
+          user: {
+            id: new TextEncoder().encode(userId),
+            name: userId,
+            displayName: userId,
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 },
+            { type: 'public-key', alg: -257 },
+          ],
+          authenticatorSelection: { userVerification: 'preferred' },
+          timeout: 60000,
+          attestation: 'none',
+        };
+      }
+
+      function buildAuthenticationOptions(challenge) {
+        return {
+          challenge: base64ToUint8Array(challenge),
+          rpId: window.location.hostname,
+          timeout: 60000,
+          userVerification: 'preferred',
+        };
+      }
+
+      function serializeRegistrationCredential(credential) {
+        const response = credential.response;
+        return {
+          id: credential.id,
+          rawId: arrayBufferToBase64Url(credential.rawId),
+          type: credential.type,
+          response: {
+            clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
+            attestationObject: arrayBufferToBase64Url(response.attestationObject),
+          },
+        };
+      }
+
+      function serializeAuthenticationCredential(credential) {
+        const response = credential.response;
+        const payload = {
+          id: credential.id,
+          rawId: arrayBufferToBase64Url(credential.rawId),
+          type: credential.type,
+          response: {
+            clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
+            authenticatorData: arrayBufferToBase64Url(response.authenticatorData),
+            signature: arrayBufferToBase64Url(response.signature),
+          },
+        };
+        if (response.userHandle) {
+          payload.response.userHandle = arrayBufferToBase64Url(response.userHandle);
+        }
+        if (credential.authenticatorAttachment) {
+          payload.authenticatorAttachment = credential.authenticatorAttachment;
+        }
+        return payload;
+      }
+
+      async function withButtonDisabled(button, fn) {
+        button.disabled = true;
+        try {
+          await fn();
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      async function handleCreateUser() {
+        setStatus(createStatus, 'ユーザー作成中...');
+        setStatus(passkeyStatus, '');
+        setStatus(loginStatus, '');
+        setStatus(logoutStatus, '');
+        try {
+          const response = await fetch('/user', { method: 'POST' });
+          if (!response.ok) throw new Error('ユーザー作成に失敗しました。');
+          const json = await response.json();
+          state.id = json.id;
+          state.token = json.token;
+          state.refreshToken = json.refreshToken;
+          setStatus(createStatus, 'ユーザーを作成しトークンを取得しました。');
+        } catch (error) {
+          console.error(error);
+          setStatus(createStatus, error.message || 'ユーザー作成に失敗しました。', true);
+        }
+        updateSessionOutput();
+      }
+
+      async function handleAddPasskey() {
+        if (!state.token) {
+          setStatus(passkeyStatus, '先にユーザーを作成またはログインしてください。', true);
+          return;
+        }
+        if (!supportsWebAuthn) {
+          setStatus(passkeyStatus, 'このブラウザーは WebAuthn をサポートしていません。', true);
+          return;
+        }
+        setStatus(passkeyStatus, 'チャレンジ取得中...');
+        setStatus(logoutStatus, '');
+        try {
+          const challengeResponse = await fetch('/challenge', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${state.token}` },
+          });
+          if (!challengeResponse.ok) throw new Error('チャレンジ取得に失敗しました。');
+          const challenge = await readChallengeResponse(challengeResponse);
+
+          const publicKey = buildRegistrationOptions(challenge, state.id);
+          const credential = await navigator.credentials.create({ publicKey });
+          if (!credential) throw new Error('認証器がキャンセルされました。');
+
+          const payload = serializeRegistrationCredential(credential);
+          const registerResponse = await fetch(`/passkey?challenge=${encodeURIComponent(challenge)}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${state.token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!registerResponse.ok) {
+            const detail = await registerResponse.text();
+            throw new Error(`Passkey登録に失敗しました: ${detail}`);
+          }
+          setStatus(passkeyStatus, 'Passkey を登録しました。');
+        } catch (error) {
+          console.error(error);
+          setStatus(passkeyStatus, error.message || 'Passkey登録に失敗しました。', true);
+        }
+      }
+
+      async function handleLogin() {
+        if (!supportsWebAuthn) {
+          setStatus(loginStatus, 'このブラウザーは WebAuthn をサポートしていません。', true);
+          return;
+        }
+        setStatus(loginStatus, 'チャレンジ取得中...');
+        setStatus(logoutStatus, '');
+        try {
+          const challengeResponse = await fetch('/challenge', { method: 'POST' });
+          if (!challengeResponse.ok) throw new Error('チャレンジ取得に失敗しました。');
+          const challenge = await readChallengeResponse(challengeResponse);
+
+          const publicKey = buildAuthenticationOptions(challenge);
+          const credential = await navigator.credentials.get({ publicKey });
+          if (!credential) throw new Error('認証器がキャンセルされました。');
+
+          const payload = serializeAuthenticationCredential(credential);
+          payload.challenge = challenge;
+
+          const tokenResponse = await fetch('/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!tokenResponse.ok) {
+            const detail = await tokenResponse.text();
+            throw new Error(`ログインに失敗しました: ${detail}`);
+          }
+          const tokens = await tokenResponse.json();
+          state.id = tokens.id;
+          state.token = tokens.token;
+          state.refreshToken = tokens.refreshToken;
+          setStatus(loginStatus, 'ログインしました。新しいトークンを取得しました。');
+        } catch (error) {
+          console.error(error);
+          setStatus(loginStatus, error.message || 'ログインに失敗しました。', true);
+        }
+        updateSessionOutput();
+      }
+
+      function handleLogout() {
+        state.id = null;
+        state.token = null;
+        state.refreshToken = null;
+        setStatus(logoutStatus, 'ログアウトしました。');
+        setStatus(createStatus, '');
+        setStatus(passkeyStatus, '');
+        setStatus(loginStatus, '');
+        updateSessionOutput();
+      }
+
+      createBtn.addEventListener('click', () => withButtonDisabled(createBtn, handleCreateUser));
+      addPasskeyBtn.addEventListener('click', () => withButtonDisabled(addPasskeyBtn, handleAddPasskey));
+      loginBtn.addEventListener('click', () => withButtonDisabled(loginBtn, handleLogin));
+      logoutBtn.addEventListener('click', handleLogout);
+
+      if (!supportsWebAuthn) {
+        addPasskeyBtn.disabled = true;
+        loginBtn.disabled = true;
+        setStatus(passkeyStatus, 'このブラウザーは WebAuthn をサポートしていません。', true);
+        setStatus(loginStatus, 'このブラウザーは WebAuthn をサポートしていません。', true);
+      }
+
+      updateSessionOutput();
+    })();
+  </script>
+</body>
+</html>
