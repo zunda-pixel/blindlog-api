@@ -1,18 +1,25 @@
 import Foundation
 import Hummingbird
+import PostgresNIO
 import WebAuthn
 
+struct PasskeyCredential: Codable, PostgresDecodable {
+  var userID: UUID
+  var publicKey: Data
+}
+
 extension API {
-  func getPublicKey(credentialID: String) async throws -> Data? {
+  fileprivate func getPasskeyCredential(credentialID: String) async throws -> PasskeyCredential? {
     let row = try await database.query(
       """
-
+        SELECT user_id, public_key FROM passkey_credentials
+        WHERE id = \(credentialID)
       """
     ).collect().first
 
-    let challnge = try row?.decode(String.self)
+    let credential = try row?.decode(PasskeyCredential.self)
 
-    return challnge.flatMap { Data(base64Encoded: $0) }
+    return credential
   }
 
   func createToken(
@@ -21,9 +28,6 @@ extension API {
     guard case .json(let bodyData) = input.body else {
       throw HTTPError(.badRequest)
     }
-
-    let challenge = Data(bodyData.challenge.data)
-
     let data = try JSONEncoder().encode(bodyData)
 
     let credential = try JSONDecoder().decode(
@@ -31,28 +35,32 @@ extension API {
       from: data
     )
 
-    let publicKey = try await getPublicKey(
+    let passkeyCredential = try await getPasskeyCredential(
       credentialID: credential.id.asString()
     )
 
-    guard let publicKey else {
+    guard let passkeyCredential else {
       throw HTTPError(.internalServerError)
     }
 
     _ = try webAuthn.finishAuthentication(
       credential: credential,
-      expectedChallenge: Array(challenge),
-      credentialPublicKey: Array(publicKey),
+      expectedChallenge: Array(bodyData.challenge.data),
+      credentialPublicKey: Array(passkeyCredential.publicKey),
       credentialCurrentSignCount: 123
+    )
+
+    let (token, refreshToken) = try await generateUserToken(
+      userID: passkeyCredential.userID
     )
 
     return .ok(
       .init(
         body: .json(
           .init(
-            id: "",
-            token: "",
-            refreshToken: ""
+            id: passkeyCredential.userID.uuidString,
+            token: token,
+            refreshToken: refreshToken
           )
         )
       )

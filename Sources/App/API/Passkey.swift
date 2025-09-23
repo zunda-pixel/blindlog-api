@@ -6,7 +6,7 @@ extension API {
   func addPasskey(
     _ input: Operations.addPasskey.Input
   ) async throws -> Operations.addPasskey.Output {
-    guard BearerAuthenticateUser.current?.userID != nil else {
+    guard let userID = BearerAuthenticateUser.current?.userID else {
       throw HTTPError(.unauthorized)
     }
     // 1. Verify Challenge is valid.
@@ -37,7 +37,7 @@ extension API {
         let row = try await database.query(
           """
             SELECT * FROM passkey_credential
-            WHERE id = \(registrationCredential.id.asString())
+            WHERE id = \(registrationCredential.id.asString()) AND userID = \(userID)
           """
         ).collect().first
         return row == nil
@@ -47,8 +47,8 @@ extension API {
     // 3. Save PublicKey to DB
     try await database.query(
       """
-        INSERT INTO passkey_public_credential (id, public_key)
-        VALUES(\(credential.id), \(Data(credential.publicKey)))
+        INSERT INTO passkey_public_credential (id, userID, public_key)
+        VALUES(\(credential.id), \(userID), \(Data(credential.publicKey)))
       """
     )
 

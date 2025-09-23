@@ -5,7 +5,7 @@ import SQLKit
 import Valkey
 
 extension API {
-  fileprivate func generateUserToken(
+  func generateUserToken(
     userID: UUID
   ) async throws -> (token: String, refreshToken: String) {
     let tokenPayload = JWTPayloadData(
