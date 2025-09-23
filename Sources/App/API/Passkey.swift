@@ -25,7 +25,7 @@ extension API {
     // Delete Challenge
     try await database.query(
       """
-      DELETE challenges
+      DELETE FROM challenges
       WHERE challenge = \(Data(input.query.challenge.data))
       """
     )
