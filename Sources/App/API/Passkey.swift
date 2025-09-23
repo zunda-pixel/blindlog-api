@@ -12,7 +12,7 @@ extension API {
     // 1. Verify Challenge is valid.
     let row = try await database.query(
       """
-        SELECT * FROM challenges
+        SELECT 1 FROM challenges
         WHERE challenge = \(Data(input.query.challenge.data))
           AND expired_date > CURRENT_TIMESTAMP
       """
@@ -33,11 +33,11 @@ extension API {
     let credential = try await webAuthn.finishRegistration(
       challenge: Array(input.query.challenge.data),
       credentialCreationData: registrationCredential,
-      confirmCredentialIDNotRegisteredYet: { id in
+      confirmCredentialIDNotRegisteredYet: { credentialID in
         let row = try await database.query(
           """
-            SELECT * FROM passkey_credentials
-            WHERE id = \(registrationCredential.id.asString()) AND user_id = \(userID)
+            SELECT 1 FROM passkey_credentials
+            WHERE id = \(credentialID)
           """
         ).collect().first
         return row == nil
