@@ -1,8 +1,8 @@
 import Foundation
 import Hummingbird
 import PostgresNIO
-import WebAuthn
 import SQLKit
+import WebAuthn
 
 struct PasskeyCredential: Codable, PostgresDecodable {
   var user_id: UUID
@@ -13,17 +13,17 @@ struct PasskeyCredential: Codable, PostgresDecodable {
 extension API {
   fileprivate func getPasskeyCredential(credentialID: String) async throws -> PasskeyCredential? {
     let row = try await database.query(
-    """
-      SELECT user_id, public_key, sign_count FROM passkey_credentials
-      WHERE id = \(credentialID)
-    """
+      """
+        SELECT user_id, public_key, sign_count FROM passkey_credentials
+        WHERE id = \(credentialID)
+      """
     ).collect().first
-    
+
     let credential = try row?.sql().decode(
       model: PasskeyCredential.self,
       with: SQLRowDecoder()
     )
-    
+
     return credential
   }
 
@@ -54,7 +54,7 @@ extension API {
       credentialPublicKey: Array(passkeyCredential.public_key),
       credentialCurrentSignCount: UInt32(passkeyCredential.sign_count)
     )
-    
+
     // Delete Challenge
     try await database.query(
       """
@@ -62,7 +62,7 @@ extension API {
       WHERE challenge = \(Data(bodyData.challenge.base64decoded()))
       """
     )
-    
+
     // Update Sign count
     try await database.query(
       """

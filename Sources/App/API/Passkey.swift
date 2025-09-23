@@ -21,7 +21,7 @@ extension API {
     guard row != nil else {
       throw HTTPError(.badRequest)
     }
-    
+
     // Delete Challenge
     try await database.query(
       """
