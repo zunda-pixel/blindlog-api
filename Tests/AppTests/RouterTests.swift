@@ -163,7 +163,7 @@ struct RouterTests {
     }
   }
 
-  @Test
+  @Test(.disabled("This test can only be run manually by providing the correct passkey"))
   func addPasskey() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
@@ -188,7 +188,6 @@ struct RouterTests {
       #expect(challengeResponse.status == .ok)
       let challenge = try #require(Data(base64Encoded: String(buffer: challengeResponse.body)))
 
-      #warning("Add Sample Data")
       let body = Components.Schemas.AddPasskey(
         id: .init(),
         rawId: .init(),
