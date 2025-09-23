@@ -25,7 +25,10 @@ let package = Package(
     .package(url: "https://github.com/vapor/postgres-kit.git", from: "2.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "0.2.0"),
     // https://github.com/swift-server/swift-webauthn/pull/107
-    .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "custom-ChallengeGenerator"),
+    .package(
+      url: "https://github.com/zunda-pixel/swift-webauthn.git",
+      branch: "custom-ChallengeGenerator"
+    ),
     .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
