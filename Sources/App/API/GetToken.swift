@@ -16,9 +16,9 @@ extension API {
     return challnge.flatMap { Data(base64Encoded: $0) }
   }
   
-  func getToken(
-    _ input: Operations.getToken.Input
-  ) async throws -> Operations.getToken.Output {
+  func createToken(
+    _ input: Operations.createToken.Input
+  ) async throws -> Operations.createToken.Output {
     guard case .json(let bodyData) = input.body else {
       throw HTTPError(.badRequest)
     }

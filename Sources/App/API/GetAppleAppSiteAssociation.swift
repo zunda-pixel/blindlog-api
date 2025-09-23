@@ -10,7 +10,7 @@ extension API {
             appclips: .init(apps: appleAppSiteAssociation.appclips.apps),
             applinks: .init(
               details: appleAppSiteAssociation.applinks.details.map {
-                .init(appIdDs: $0.appIdDs, components: [])
+                .init(appIDs: $0.appIdDs, components: [])
               })
           ))))
   }

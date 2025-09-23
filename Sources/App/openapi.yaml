@@ -26,7 +26,7 @@ paths:
             application/json:
               schema:
                 type: string
-                format: binary
+                format: byte
   /passkey:
     post:
       operationId: addPasskey
@@ -58,8 +58,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserToken'
   /token:
-    get:
-      operationId: getToken
+    post:
+      operationId: createToken
       requestBody:
         required: true
         content:
@@ -87,6 +87,7 @@ paths:
         content:
           application/json:
             schema:
+              type: object
               properties:
                 refreshToken:
                   type: string
@@ -206,16 +207,16 @@ components:
       type: object
       description: Universal Link detail entry.
       properties:
-        appIdDs:
+        appIDs:
           type: array
+          description: App IDs.
           items:
             type: string
-            description: App IDs.
         components:
           type: array
+          description: Path components.
           items:
             type: string
-            description: Path components.
     AddPasskey:
       type: object
       description: Passkey registration payload.
@@ -242,11 +243,11 @@ components:
       properties:
         clientDataJSON:
           type: string
-          format: binary
+          format: byte
           description: Client Data JSON.
         attestationObject:
           type: string
-          format: binary
+          format: byte
           description: Attestation Object.
       required:
         - clientDataJSON
