@@ -55,6 +55,15 @@ extension API {
       credentialCurrentSignCount: UInt32(passkeyCredential.sign_count)
     )
     
+    // Delete Challenge
+    try await database.query(
+      """
+      DELETE challenges
+      WHERE challenge = \(Data(bodyData.challenge.base64decoded()))
+      """
+    )
+    
+    // Update Sign count
     try await database.query(
       """
       UPDATE passkey_credentials

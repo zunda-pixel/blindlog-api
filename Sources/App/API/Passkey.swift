@@ -21,6 +21,14 @@ extension API {
     guard row != nil else {
       throw HTTPError(.badRequest)
     }
+    
+    // Delete Challenge
+    try await database.query(
+      """
+      DELETE challenges
+      WHERE challenge = \(Data(input.query.challenge.data))
+      """
+    )
 
     // 2. Verify Client Credential Data and get public key
     guard case .json(let body) = input.body else { throw HTTPError(.badRequest) }
