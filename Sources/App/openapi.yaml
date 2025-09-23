@@ -33,11 +33,11 @@ paths:
       parameters:
         - name: challenge
           in: query
-          description: ID of user to return
+          description: Base64URL-encoded challenge returned by `/challenge`.
           required: true
           schema:
             type: string
-            format: binary
+            format: byte
       requestBody:
         required: true
         content:
