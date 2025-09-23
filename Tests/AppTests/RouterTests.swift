@@ -136,7 +136,7 @@ struct RouterTests {
   }
 
   @Test
-  func challenge() async throws {
+  func challengeForRegistration() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
 
@@ -159,6 +159,23 @@ struct RouterTests {
 
       #expect(challengeResponse.status == .ok)
       let challenge = Data(buffer: challengeResponse.body)
+      print(challenge)
+    }
+  }
+  
+  @Test
+  func challengeForAuthorization() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+
+    try await app.test(.router) { client in
+      let response = try await client.execute(
+        uri: "/challenge",
+        method: .post
+      )
+
+      #expect(response.status == .ok)
+      let challenge = Data(buffer: response.body)
       print(challenge)
     }
   }
