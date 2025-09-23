@@ -36,8 +36,8 @@ extension API {
       confirmCredentialIDNotRegisteredYet: { id in
         let row = try await database.query(
           """
-            SELECT * FROM passkey_credential
-            WHERE id = \(registrationCredential.id.asString()) AND userID = \(userID)
+            SELECT * FROM passkey_credentials
+            WHERE id = \(registrationCredential.id.asString()) AND user_id = \(userID)
           """
         ).collect().first
         return row == nil
@@ -47,8 +47,8 @@ extension API {
     // 3. Save PublicKey to DB
     try await database.query(
       """
-        INSERT INTO passkey_public_credential (id, userID, public_key)
-        VALUES(\(credential.id), \(userID), \(Data(credential.publicKey)))
+        INSERT INTO passkey_credentials (id, user_id, public_key)
+        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)))
       """
     )
 

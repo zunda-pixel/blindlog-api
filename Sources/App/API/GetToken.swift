@@ -2,23 +2,27 @@ import Foundation
 import Hummingbird
 import PostgresNIO
 import WebAuthn
+import SQLKit
 
 struct PasskeyCredential: Codable, PostgresDecodable {
-  var userID: UUID
-  var publicKey: Data
+  var user_id: UUID
+  var public_key: Data
 }
 
 extension API {
   fileprivate func getPasskeyCredential(credentialID: String) async throws -> PasskeyCredential? {
     let row = try await database.query(
-      """
-        SELECT user_id, public_key FROM passkey_credentials
-        WHERE id = \(credentialID)
-      """
+    """
+      SELECT user_id, public_key FROM passkey_credentials
+      WHERE id = \(credentialID)
+    """
     ).collect().first
-
-    let credential = try row?.decode(PasskeyCredential.self)
-
+    
+    let credential = try row?.sql().decode(
+      model: PasskeyCredential.self,
+      with: SQLRowDecoder()
+    )
+    
     return credential
   }
 
@@ -45,20 +49,20 @@ extension API {
 
     _ = try webAuthn.finishAuthentication(
       credential: credential,
-      expectedChallenge: Array(bodyData.challenge.data),
-      credentialPublicKey: Array(passkeyCredential.publicKey),
-      credentialCurrentSignCount: 123
+      expectedChallenge: bodyData.challenge.base64decoded(),
+      credentialPublicKey: Array(passkeyCredential.public_key),
+      credentialCurrentSignCount: 0
     )
 
     let (token, refreshToken) = try await generateUserToken(
-      userID: passkeyCredential.userID
+      userID: passkeyCredential.user_id
     )
 
     return .ok(
       .init(
         body: .json(
           .init(
-            id: passkeyCredential.userID.uuidString,
+            id: passkeyCredential.user_id.uuidString,
             token: token,
             refreshToken: refreshToken
           )
