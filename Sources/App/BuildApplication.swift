@@ -102,6 +102,11 @@ func buildApplication(
       applinks: .init(details: [])
     )
   )
+
+  router.add(middleware: LogRequestsMiddleware(.debug))
+  #if DEBUG
+    router.add(middleware: FileMiddleware(searchForIndexHtml: true))
+  #endif
   router.add(
     middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
   )

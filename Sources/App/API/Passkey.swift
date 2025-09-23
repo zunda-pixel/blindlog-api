@@ -1,6 +1,13 @@
 import Foundation
 import Hummingbird
+import PostgresNIO
+import SQLKit
 import WebAuthn
+
+enum ChallengePurpose: String, PostgresCodable {
+  case registration
+  case authentication
+}
 
 extension API {
   func addPasskey(
@@ -9,20 +16,7 @@ extension API {
     guard let userID = BearerAuthenticateUser.current?.userID else {
       throw HTTPError(.unauthorized)
     }
-    // 1. Verify Challenge is valid.
-    let row = try await database.query(
-      """
-        SELECT * FROM challenges
-        WHERE challenge = \(Data(input.query.challenge.data))
-          AND expired_date > CURRENT_TIMESTAMP
-      """
-    ).collect().first
-
-    guard row != nil else {
-      throw HTTPError(.badRequest)
-    }
-
-    // 2. Verify Client Credential Data and get public key
+    // 1. Parse request payload
     guard case .json(let body) = input.body else { throw HTTPError(.badRequest) }
     let bodyData = try JSONEncoder().encode(body)
     let registrationCredential = try JSONDecoder().decode(
@@ -30,25 +24,42 @@ extension API {
       from: bodyData
     )
 
+    // 2. Verify and delete challenge atomically
+    let row = try await database.query(
+      """
+        DELETE FROM challenges
+        WHERE challenge = \(Data(input.query.challenge.data))
+          AND user_id = \(userID)
+          AND purpose = \(ChallengePurpose.registration)
+          AND expired_date > CURRENT_TIMESTAMP
+        RETURNING 1
+      """
+    ).collect().first
+
+    guard row != nil else {
+      throw HTTPError(.badRequest)
+    }
+
+    // 3. Validate WebAuthn registration data
     let credential = try await webAuthn.finishRegistration(
       challenge: Array(input.query.challenge.data),
       credentialCreationData: registrationCredential,
-      confirmCredentialIDNotRegisteredYet: { id in
+      confirmCredentialIDNotRegisteredYet: { credentialID in
         let row = try await database.query(
           """
-            SELECT * FROM passkey_credential
-            WHERE id = \(registrationCredential.id.asString()) AND userID = \(userID)
+            SELECT 1 FROM passkey_credentials
+            WHERE id = \(credentialID)
           """
         ).collect().first
         return row == nil
       }
     )
 
-    // 3. Save PublicKey to DB
+    // 4. Persist credential metadata
     try await database.query(
       """
-        INSERT INTO passkey_public_credential (id, userID, public_key)
-        VALUES(\(credential.id), \(userID), \(Data(credential.publicKey)))
+        INSERT INTO passkey_credentials (id, user_id, public_key, sign_count)
+        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int64(credential.signCount)))
       """
     )
 
