@@ -6,15 +6,14 @@ extension API {
   func addPasskey(
     _ input: Operations.addPasskey.Input
   ) async throws -> Operations.addPasskey.Output {
-    guard let userID = BearerAuthenticateUser.current?.userID else {
+    guard BearerAuthenticateUser.current?.userID != nil else {
       throw HTTPError(.unauthorized)
     }
     // 1. Verify Challenge is valid.
     let row = try await database.query(
       """
-        SELECT * FROM user_challenge
-        WHERE user_id = \(userID)
-          AND challenge = \(input.query.challenge)
+        SELECT * FROM challenges
+        WHERE challenge = \(Data(input.query.challenge.data).base64EncodedString())
           AND expired_date > CURRENT_TIMESTAMP
       """
     ).collect().first
@@ -26,13 +25,13 @@ extension API {
     // 2. Verify Client Credential Data and get public key
     guard case .json(let body) = input.body else { throw HTTPError(.badRequest) }
     let bodyData = try JSONEncoder().encode(body)
-    let registrationCredential: RegistrationCredential = try JSONDecoder().decode(
+    let registrationCredential = try JSONDecoder().decode(
       RegistrationCredential.self,
       from: bodyData
     )
 
     let credential = try await webAuthn.finishRegistration(
-      challenge: Array(Data(base64Encoded: input.query.challenge)!),
+      challenge: Array(input.query.challenge.data),
       credentialCreationData: registrationCredential,
       confirmCredentialIDNotRegisteredYet: { id in
         let row = try await database.query(

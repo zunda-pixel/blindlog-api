@@ -23,9 +23,7 @@ extension API {
       throw HTTPError(.badRequest)
     }
     
-    guard let challenge = Data(base64Encoded: bodyData.challenge) else {
-      throw HTTPError(.badRequest)
-    }
+    let challenge = Data(bodyData.challenge.data)
     
     let data = try JSONEncoder().encode(bodyData)
     

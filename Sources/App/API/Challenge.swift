@@ -1,39 +1,39 @@
 import Foundation
 import Hummingbird
+import WebAuthn
 
 extension API {
   func generateChallenge(
     _ input: Operations.generateChallenge.Input
   ) async throws -> Operations.generateChallenge.Output {
-    guard let userID = BearerAuthenticateUser.current?.userID else {
-      let auth = webAuthn.beginAuthentication()
-      return .ok(.init(body: .json(
-        Data(auth.challenge).base64EncodedString()
-      )))
-    }
-
     // 1. Generate Challenge
-    let options = webAuthn.beginRegistration(
-      user: .init(
-        id: Array(Data(userID.uuidString.utf8)),
-        name: userID.uuidString,
-        displayName: userID.uuidString
-      )
-    )
+    let challenge: [UInt8] = if let userID = BearerAuthenticateUser.current?.userID {
+      // SignUp
+      webAuthn.beginRegistration(
+        user: .init(
+          id: Array(Data(userID.uuidString.utf8)),
+          name: userID.uuidString,
+          displayName: userID.uuidString
+        )
+      ).challenge
+    } else {
+      // SingIn
+      webAuthn.beginAuthentication().challenge
+    }
 
     let expiredDate = Date(timeIntervalSinceNow: 10 * 60)  // 10 minutes
 
     // 2. Save Challenge to DB with expired date
 
-    let challengeString = Data(options.challenge).base64EncodedString()
+    let challengeString = Data(challenge).base64EncodedString()
 
     try await database.query(
       """
-        INSERT INTO user_challenge (user_id, challenge, expired_date)
-        VALUES(\(userID), \(challengeString), \(expiredDate))
+        INSERT INTO user_challenge challenge, expired_date)
+        VALUES(\(challengeString), \(expiredDate))
       """
     )
 
-    return .ok(.init(body: .json(challengeString)))
+    return .ok(.init(body: .json(.init(challenge))))
   }
 }
