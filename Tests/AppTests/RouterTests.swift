@@ -192,9 +192,9 @@ struct RouterTests {
         id: .init(),
         rawId: .init(),
         _type: .init(),
-        attestationResponse: .init(
-          clientDataJSON: .init(Array(Data())),
-          attestationObject: .init(Array(Data())),
+        response: .init(
+          clientDataJSON: "",
+          attestationObject: "",
         )
       )
 
