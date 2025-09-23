@@ -47,8 +47,8 @@ extension API {
     // 3. Save PublicKey to DB
     try await database.query(
       """
-        INSERT INTO passkey_credentials (id, user_id, public_key)
-        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)))
+        INSERT INTO passkey_credentials (id, user_id, public_key, sign_count)
+        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int32(credential.signCount)))
       """
     )
 

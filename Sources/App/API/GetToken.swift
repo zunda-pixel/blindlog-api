@@ -7,13 +7,14 @@ import SQLKit
 struct PasskeyCredential: Codable, PostgresDecodable {
   var user_id: UUID
   var public_key: Data
+  var sign_count: Int32
 }
 
 extension API {
   fileprivate func getPasskeyCredential(credentialID: String) async throws -> PasskeyCredential? {
     let row = try await database.query(
     """
-      SELECT user_id, public_key FROM passkey_credentials
+      SELECT user_id, public_key, sign_count FROM passkey_credentials
       WHERE id = \(credentialID)
     """
     ).collect().first
@@ -51,7 +52,7 @@ extension API {
       credential: credential,
       expectedChallenge: bodyData.challenge.base64decoded(),
       credentialPublicKey: Array(passkeyCredential.public_key),
-      credentialCurrentSignCount: 0
+      credentialCurrentSignCount: UInt32(passkeyCredential.sign_count)
     )
 
     let (token, refreshToken) = try await generateUserToken(
