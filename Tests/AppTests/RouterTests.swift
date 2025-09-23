@@ -162,4 +162,55 @@ struct RouterTests {
       print(challenge)
     }
   }
+    
+  @Test
+  func addPasskey() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+
+    try await app.test(.router) { client in
+      // 1. Add User to DB
+      let signupResponse = try await client.execute(
+        uri: "/user",
+        method: .post
+      )
+      #expect(signupResponse.status == .ok)
+      let addedUser = try JSONDecoder().decode(UserToken.self, from: signupResponse.body)
+      // 2. Get User to DB
+      let challengeResponse = try await client.execute(
+        uri: "/challenge",
+        method: .post,
+        headers: [
+          .authorization: "Bearer \(addedUser.token)"
+        ]
+      )
+      
+      #expect(challengeResponse.status == .ok)
+      let challenge = try #require(Data(base64Encoded: String(buffer: challengeResponse.body)))
+
+      #warning("Add Sample Data")
+      let body = Components.Schemas.AddPasskey(
+        id: .init(),
+        rawId: .init(),
+        _type: .init(),
+        attestationResponse: .init(
+          clientDataJSON: .init(Array(Data())),
+          attestationObject: .init(Array(Data())),
+        )
+      )
+      
+      let bodyData = try JSONEncoder().encode(body)
+      
+      let addPasskeyResponse = try await client.execute(
+        uri: "/passkey?challenge=\(challenge.base64EncodedString())",
+        method: .post,
+        headers: [
+          .authorization: "Bearer \(addedUser.token)"
+        ],
+        body: ByteBuffer(data: bodyData)
+      )
+
+      #expect(challengeResponse.status == .ok)
+    }
+  }
 }
