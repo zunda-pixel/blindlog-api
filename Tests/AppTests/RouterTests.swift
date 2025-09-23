@@ -162,7 +162,7 @@ struct RouterTests {
       print(challenge)
     }
   }
-  
+
   @Test
   func challengeForAuthorization() async throws {
     let arguments = TestArguments()
