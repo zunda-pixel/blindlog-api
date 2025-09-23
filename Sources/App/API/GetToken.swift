@@ -36,7 +36,7 @@ extension API {
   func createToken(
     _ input: Operations.createToken.Input
   ) async throws -> Operations.createToken.Output {
-    // 1. Decode Data
+    // 1. Parse request payload
     guard case .json(let bodyData) = input.body else {
       throw HTTPError(.badRequest)
     }
@@ -48,7 +48,7 @@ extension API {
       from: data
     )
 
-    // 2. Verify and delete challenge atomically.
+    // 2. Verify and delete challenge atomically
     let row = try await database.query(
       """
         DELETE FROM challenges
@@ -64,7 +64,7 @@ extension API {
       throw HTTPError(.badRequest)
     }
 
-    // 3. Get Passkey from DB
+    // 3. Load stored credential
     let passkeyCredential = try await getPasskeyCredential(
       credentialID: credential.id.asString()
     )
@@ -73,7 +73,7 @@ extension API {
       throw HTTPError(.internalServerError)
     }
 
-    // 4. Verify Public Key
+    // 4. Verify assertion with WebAuthn
     let verifiedAuthentication = try webAuthn.finishAuthentication(
       credential: credential,
       expectedChallenge: bodyData.challenge.base64decoded(),
@@ -81,7 +81,7 @@ extension API {
       credentialCurrentSignCount: UInt32(passkeyCredential.signCount)
     )
 
-    // 5. Update Sign count
+    // 5. Update stored sign counter
     try await database.query(
       """
       UPDATE passkey_credentials
@@ -90,7 +90,7 @@ extension API {
       """
     )
 
-    // 6. Generate User Token
+    // 6. Issue application tokens
     let (token, refreshToken) = try await generateUserToken(
       userID: passkeyCredential.userID
     )

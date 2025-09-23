@@ -16,7 +16,7 @@ extension API {
     guard let userID = BearerAuthenticateUser.current?.userID else {
       throw HTTPError(.unauthorized)
     }
-    // 1. Decode Data
+    // 1. Parse request payload
     guard case .json(let body) = input.body else { throw HTTPError(.badRequest) }
     let bodyData = try JSONEncoder().encode(body)
     let registrationCredential = try JSONDecoder().decode(
@@ -24,7 +24,7 @@ extension API {
       from: bodyData
     )
 
-    // 2. Verify and delete challenge atomically.
+    // 2. Verify and delete challenge atomically
     let row = try await database.query(
       """
         DELETE FROM challenges
@@ -40,7 +40,7 @@ extension API {
       throw HTTPError(.badRequest)
     }
 
-    // 3. Verify client credential data and get public key
+    // 3. Validate WebAuthn registration data
     let credential = try await webAuthn.finishRegistration(
       challenge: Array(input.query.challenge.data),
       credentialCreationData: registrationCredential,
@@ -55,7 +55,7 @@ extension API {
       }
     )
 
-    // 4. Save public key to DB
+    // 4. Persist credential metadata
     try await database.query(
       """
         INSERT INTO passkey_credentials (id, user_id, public_key, sign_count)

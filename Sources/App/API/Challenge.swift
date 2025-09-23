@@ -20,7 +20,7 @@ extension API {
           )
         ).challenge
       } else {
-        // SingIn
+        // SignIn
         webAuthn.beginAuthentication().challenge
       }
 
