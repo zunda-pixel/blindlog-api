@@ -1,10 +1,14 @@
+import Crypto
 import Foundation
 import Hummingbird
 import HummingbirdPostgres
+import JWTKit
 import Logging
+import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
 import Valkey
+import WebAuthn
 
 func buildApplication(
   _ arguments: some AppArguments
@@ -24,11 +28,14 @@ func buildApplication(
   }
 
   #if DEBUG
-  let valkeyTLS: ValkeyClientConfiguration.TLS = .disable
+    let valkeyTLS: ValkeyClientConfiguration.TLS = .disable
   #else
-  let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(.clientDefault, tlsServerName: environment.require("VALKEY_HOSTNAME"))
+    let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(
+      .clientDefault,
+      tlsServerName: environment.require("VALKEY_HOSTNAME")
+    )
   #endif
-  
+
   let cache = try ValkeyClient(
     .hostname(environment.require("VALKEY_HOSTNAME")),
     configuration: .init(
@@ -37,11 +44,11 @@ func buildApplication(
     ),
     logger: logger
   )
-  
+
   #if DEBUG
-  let postgresTLS: PostgresClient.Configuration.TLS = .disable
+    let postgresTLS: PostgresClient.Configuration.TLS = .disable
   #else
-  let postgresTLS: PostgresClient.Configuration.TLS = .require(.clientDefault)
+    let postgresTLS: PostgresClient.Configuration.TLS = .require(.clientDefault)
   #endif
 
   let config = try PostgresClient.Configuration(
@@ -66,25 +73,40 @@ func buildApplication(
   )
 
   let router = Router()
-  router.addRoutes(
-    UsersRouter(cache: cache, database: databaseClient).build(),
-    atPath: "users"
-  )
-  router.addRoutes(
-    MeRouter(cache: cache, database: databaseClient).build(),
-    atPath: "me"
-  )
-  router.addRoutes(
-    SignupRouter(cache: cache, database: databaseClient).build(),
+
+  let jwtKeyCollection = JWTKeyCollection()
+
+  let privateKey = try EdDSA.PrivateKey(
+    d: environment.require("EdDSA_PRIVATE_KEY"),
+    curve: .ed25519
   )
 
-  router.addRoutes(
-    AppleAppSiteAssosiationRouter(appleAppSiteAssociation: .init(
+  await jwtKeyCollection.add(eddsa: privateKey)
+  let api = API(
+    cache: cache,
+    database: databaseClient,
+    jwtKeyCollection: jwtKeyCollection,
+    webAuthn: WebAuthnManager(
+      configuration: .init(
+        relyingPartyID: try environment.require("RELYING_PARTY_ID"),
+        relyingPartyName: try environment.require("RELYING_PARTY_NAME"),
+        relyingPartyOrigin: try environment.require("RELYING_PARTY_ORIGIN")
+      ),
+      challengeGenerator: .init {
+        Array(Data(AES.GCM.Nonce()))
+      }
+    ),
+    appleAppSiteAssociation: .init(
       webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
       appclips: .init(apps: []),
-      applinks: .init(details: []))
-    ).build()
+      applinks: .init(details: [])
+    )
   )
+  router.add(
+    middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+  )
+
+  try api.registerHandlers(on: router)
 
   var app = Application(
     router: router,

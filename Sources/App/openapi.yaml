@@ -1,0 +1,322 @@
+openapi: '3.1.0'
+info:
+  title: Blindlog API server
+  version: 1.0.0
+servers:
+  - url: https://api.blindlog.me
+    description: Blindlog API server
+paths:
+  /.well-known/apple-app-site-association:
+    get:
+      operationId: getAppleAppSiteAssociation
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppleAppSiteAssociation'
+  /challenge:
+    post:
+      operationId: generateChallenge
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                type: string
+                contentEncoding: base64
+  /passkey:
+    post:
+      operationId: addPasskey
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: challenge
+          in: query
+          description: Base64URL-encoded challenge returned by `/challenge`.
+          required: true
+          schema:
+            type: string
+            contentEncoding: base64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPasskey'
+      responses:
+        '200':
+          description: A success response with a user.
+  /user:
+    post:
+      operationId: createUser
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserToken'
+  /token:
+    post:
+      operationId: createToken
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTokenRequest'
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserToken'
+  /refreshToken:
+    post:
+      operationId: refreshToken
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  description: User refresh token.
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserToken'
+  /me:
+    get:
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users:
+    get:
+      operationId: getUsers
+      parameters:
+        - name: ids
+          in: query
+          description: ID of user to return
+          required: true
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserToken:
+      type: object
+      description: A value with the User contents.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User id.
+        token:
+          type: string
+          description: User token.
+        refreshToken:
+          type: string
+          description: User refresh token.
+      required:
+        - id
+        - token
+        - refreshToken
+    User:
+      type: object
+      description: A value with the User contents.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User id.
+      required:
+        - id
+    AppleAppSiteAssociation:
+      type: object
+      description: Apple App Site Association document.
+      properties:
+        webcredentials:
+          $ref: '#/components/schemas/WebCredentials'
+          description: Web credentials configuration.
+        appclips:
+          $ref: '#/components/schemas/AppClips'
+          description: App Clips configuration.
+        applinks:
+          $ref: '#/components/schemas/AppLinks'
+          description: Universal Links configuration.
+    WebCredentials:
+      type: object
+      description: Web credentials configuration.
+      properties:
+        apps:
+          type: array
+          items:
+            type: string
+          description: App IDs (e.g., TEAMID.com.example.app).
+    AppClips:
+      type: object
+      description: App Clips configuration.
+      properties:
+        apps:
+          type: array
+          items:
+            type: string
+          description: App Clip bundle IDs.
+    AppLinks:
+      type: object
+      description: Universal Links configuration.
+      properties:
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppLinkDetail'
+    AppLinkDetail:
+      type: object
+      description: Universal Link detail entry.
+      properties:
+        appIDs:
+          type: array
+          description: App IDs.
+          items:
+            type: string
+        components:
+          type: array
+          description: Path components.
+          items:
+            type: string
+    AddPasskey:
+      type: object
+      description: Passkey registration payload from `navigator.credentials.create`.
+      properties:
+        id:
+          type: string
+          contentEncoding: base64
+          description: Credential identifier encoded in Base64URL.
+        rawId:
+          type: string
+          contentEncoding: base64
+          description: Raw credential identifier in Base64URL format.
+        type:
+          type: string
+          description: Credential type reported by the browser.
+        attestationResponse:
+          $ref: '#/components/schemas/AuthenticatorAttestation'
+      required:
+        - id
+        - rawId
+        - type
+        - response
+    AuthenticatorAttestation:
+      type: object
+      description: Authenticator attestation response.
+      properties:
+        clientDataJSON:
+          type: string
+          contentEncoding: base64
+          description: Client Data JSON.
+        attestationObject:
+          type: string
+          contentEncoding: base64
+          description: Attestation Object.
+      required:
+        - clientDataJSON
+        - attestationObject
+    AuthenticatorAssertion:
+      type: object
+      description: Authenticator assertion response for passkey authentication.
+      properties:
+        clientDataJSON:
+          type: string
+          contentEncoding: base64
+          description: Client Data JSON.
+        authenticatorData:
+          type: string
+          contentEncoding: base64
+          description: Authenticator data returned by the authenticator.
+        signature:
+          type: string
+          contentEncoding: base64
+          description: Signature generated by the authenticator.
+        userHandle:
+          type: string
+          contentEncoding: base64
+          description: Base64URL-encoded user handle.
+        attestationObject:
+          type: string
+          contentEncoding: base64
+          description: Base64URL-encoded user handle.
+      required:
+        - clientDataJSON
+        - authenticatorData
+        - signature
+    CreateTokenRequest:
+      type: object
+      description: Passkey authentication payload from `navigator.credentials.get`.
+      properties:
+        challenge:
+          type: string
+          contentEncoding: base64
+          description: Base64URL-encoded challenge issued by the server.
+        id:
+          type: string
+          contentEncoding: base64
+          description: Credential identifier encoded in Base64URL.
+        rawId:
+          type: string
+          contentEncoding: base64
+          description: Raw credential identifier in Base64URL format.
+        type:
+          type: string
+          description: Credential type reported by the browser.
+        authenticatorAttachment:
+          type: string
+          description: Authenticator attachment modality, when available.
+        response:
+          $ref: '#/components/schemas/AuthenticatorAssertion'
+      required:
+        - challenge
+        - id
+        - rawId
+        - type
+        - response
+

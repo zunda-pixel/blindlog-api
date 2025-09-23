@@ -19,6 +19,10 @@ jobs:
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password
       POSTGRES_DB: test_database
+      EdDSA_PRIVATE_KEY: T8s3Xh9Aulyq0UqIkggCgDyyXQKzPgIWH0w4Cb1O3Yg=
+      RELYING_PARTY_ORIGIN: http://localhost:8080
+      RELYING_PARTY_ID: localhost
+      RELYING_PARTY_NAME: Local Host Relying Party
     steps:
       - name: Checkout
         uses: actions/checkout@v5
