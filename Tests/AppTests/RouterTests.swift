@@ -108,7 +108,7 @@ struct RouterTests {
       }
     }
   }
-  
+
   @Test
   func refreshToken() async throws {
     let arguments = TestArguments()
@@ -134,7 +134,7 @@ struct RouterTests {
       #expect(addedUser.id == getUser.id)
     }
   }
-  
+
   @Test
   func challenge() async throws {
     let arguments = TestArguments()
@@ -162,7 +162,7 @@ struct RouterTests {
       print(challenge)
     }
   }
-    
+
   @Test
   func addPasskey() async throws {
     let arguments = TestArguments()
@@ -184,7 +184,7 @@ struct RouterTests {
           .authorization: "Bearer \(addedUser.token)"
         ]
       )
-      
+
       #expect(challengeResponse.status == .ok)
       let challenge = try #require(Data(base64Encoded: String(buffer: challengeResponse.body)))
 
@@ -198,9 +198,9 @@ struct RouterTests {
           attestationObject: .init(Array(Data())),
         )
       )
-      
+
       let bodyData = try JSONEncoder().encode(body)
-      
+
       let addPasskeyResponse = try await client.execute(
         uri: "/passkey?challenge=\(challenge.base64EncodedString())",
         method: .post,
