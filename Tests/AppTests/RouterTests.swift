@@ -209,7 +209,7 @@ struct RouterTests {
         body: ByteBuffer(data: bodyData)
       )
 
-      #expect(challengeResponse.status == .ok)
+      #expect(addPasskeyResponse.status == .ok)
     }
   }
 }
