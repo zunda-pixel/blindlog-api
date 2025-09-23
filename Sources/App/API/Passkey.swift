@@ -13,7 +13,7 @@ extension API {
     let row = try await database.query(
       """
         SELECT * FROM challenges
-        WHERE challenge = \(Data(input.query.challenge.data).base64EncodedString())
+        WHERE challenge = \(Data(input.query.challenge.data))
           AND expired_date > CURRENT_TIMESTAMP
       """
     ).collect().first
@@ -48,7 +48,7 @@ extension API {
     try await database.query(
       """
         INSERT INTO passkey_public_credential (id, public_key)
-        VALUES(\(credential.id), \(Data(credential.publicKey).base64EncodedString()))
+        VALUES(\(credential.id), \(Data(credential.publicKey)))
       """
     )
 

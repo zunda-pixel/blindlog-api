@@ -158,7 +158,7 @@ struct RouterTests {
       )
 
       #expect(challengeResponse.status == .ok)
-      let challenge = String(buffer: challengeResponse.body)
+      let challenge = Data(buffer: challengeResponse.body)
       print(challenge)
     }
   }
