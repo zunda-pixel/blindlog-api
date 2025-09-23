@@ -4,10 +4,16 @@ import PostgresNIO
 import SQLKit
 import WebAuthn
 
-struct PasskeyCredential: Codable, PostgresDecodable {
-  var user_id: UUID
-  var public_key: Data
-  var sign_count: Int64
+struct PasskeyCredential: Codable {
+  var userID: UUID
+  var publicKey: Data
+  var signCount: Int64
+  
+  enum CodingKeys: String, CodingKey {
+    case userID = "user_id"
+    case publicKey = "public_key"
+    case signCount = "sign_count"
+  }
 }
 
 extension API {
@@ -71,8 +77,8 @@ extension API {
     let verifiedAuthentication = try webAuthn.finishAuthentication(
       credential: credential,
       expectedChallenge: bodyData.challenge.base64decoded(),
-      credentialPublicKey: Array(passkeyCredential.public_key),
-      credentialCurrentSignCount: UInt32(passkeyCredential.sign_count)
+      credentialPublicKey: Array(passkeyCredential.publicKey),
+      credentialCurrentSignCount: UInt32(passkeyCredential.signCount)
     )
 
     // 5. Update Sign count
@@ -86,14 +92,14 @@ extension API {
 
     // 6. Generate User Token
     let (token, refreshToken) = try await generateUserToken(
-      userID: passkeyCredential.user_id
+      userID: passkeyCredential.userID
     )
 
     return .ok(
       .init(
         body: .json(
           .init(
-            id: passkeyCredential.user_id.uuidString,
+            id: passkeyCredential.userID.uuidString,
             token: token,
             refreshToken: refreshToken
           )
