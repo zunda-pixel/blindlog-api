@@ -1,5 +1,5 @@
 import Foundation
-import Records
+import StructuredQueriesPostgres
 
 @Table("challenges")
 struct Challenge {
@@ -8,7 +8,7 @@ struct Challenge {
   @Column("user_id") var userID: UUID?
   @Column("purpose") var purpose: Purpose
   
-  enum Purpose: String, PostgresCodable, QueryBindable {
+  enum Purpose: String, QueryBindable {
     case registration
     case authentication
   }

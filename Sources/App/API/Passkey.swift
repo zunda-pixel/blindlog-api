@@ -20,16 +20,20 @@ extension API {
     )
 
     // 2. Verify and delete challenge atomically
-    let row = try await database.query(
-      """
-        DELETE FROM challenges
-        WHERE challenge = \(Data(input.query.challenge.data))
-          AND user_id = \(userID)
-          AND purpose = \(Challenge.Purpose.registration)
-          AND expired_date > CURRENT_TIMESTAMP
-        RETURNING 1
-      """
-    ).collect().first
+    let challengeData = Data(input.query.challenge.data)
+
+    let row = try await database.write { db in
+      try await Challenge
+        .delete()
+        .where {
+          $0.challenge.eq(challengeData)
+            .and($0.userID.is(nil)
+              .and($0.purpose.eq(Challenge.Purpose.authentication)
+                .and($0.expiredDate.gt(Date.currentTimestamp))))
+        }
+        .returning(\.self)
+        .fetchOne(db)
+    }
 
     guard row != nil else {
       throw HTTPError(.badRequest)

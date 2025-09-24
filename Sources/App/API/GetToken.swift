@@ -4,35 +4,7 @@ import PostgresNIO
 import SQLKit
 import WebAuthn
 
-struct PasskeyCredential: Codable {
-  var userID: UUID
-  var publicKey: Data
-  var signCount: Int64
-
-  enum CodingKeys: String, CodingKey {
-    case userID = "user_id"
-    case publicKey = "public_key"
-    case signCount = "sign_count"
-  }
-}
-
 extension API {
-  fileprivate func getPasskeyCredential(credentialID: String) async throws -> PasskeyCredential? {
-    let row = try await database.query(
-      """
-        SELECT user_id, public_key, sign_count FROM passkey_credentials
-        WHERE id = \(credentialID)
-      """
-    ).collect().first
-
-    let credential = try row?.sql().decode(
-      model: PasskeyCredential.self,
-      with: SQLRowDecoder()
-    )
-
-    return credential
-  }
-
   func createToken(
     _ input: Operations.createToken.Input
   ) async throws -> Operations.createToken.Output {
@@ -49,25 +21,33 @@ extension API {
     )
 
     // 2. Verify and delete challenge atomically
-    let row = try await database.query(
-      """
-        DELETE FROM challenges
-        WHERE challenge = \(Data(bodyData.challenge.base64decoded()))
-          AND user_id IS NULL
-          AND purpose = \(Challenge.Purpose.authentication)
-          AND expired_date > CURRENT_TIMESTAMP
-        RETURNING 1
-      """
-    ).collect().first
+    let challengeData = try Data(bodyData.challenge.base64decoded())
+
+    let row = try await database.write { db in
+      try await Challenge
+        .delete()
+        .where {
+          $0.challenge.eq(challengeData)
+            .and($0.userID.is(nil)
+              .and($0.purpose.eq(Challenge.Purpose.authentication)
+                .and($0.expiredDate.gt(Date.currentTimestamp))))
+        }
+        .returning(\.self)
+        .fetchOne(db)
+    }
 
     guard row != nil else {
       throw HTTPError(.badRequest)
     }
 
     // 3. Load stored credential
-    let passkeyCredential = try await getPasskeyCredential(
-      credentialID: credential.id.asString()
-    )
+    let passkeyCredential = try await database.read { db in
+      try await PasskeyCredential
+        .select(\.self)
+        .where { $0.id.eq(credential.id.asString()) }
+        .limit(1)
+        .fetchOne(db)
+    }
 
     guard let passkeyCredential else {
       throw HTTPError(.internalServerError)
