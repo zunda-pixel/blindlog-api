@@ -25,14 +25,17 @@ extension API {
       }
 
     // 2. Save Challenge to DB with expired date
-    let expiredDate = Date(timeIntervalSinceNow: 10 * 60)  // 10 minutes
-    let purpose: Challenge.Purpose = userID == nil ? .authentication : .registration
-    try await database.query(
-      """
-        INSERT INTO challenges (challenge, expired_date, user_id, purpose)
-        VALUES(\(Data(challenge)), \(expiredDate), \(userID), \(purpose))
-      """
+    let challengeRow = Challenge(
+      challenge: Data(challenge),
+      expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
+      userID: userID,
+      purpose: userID == nil ? .authentication : .registration
     )
+    try await database.write { db in
+      try await Challenge.insert {
+        challengeRow
+      }.execute(db)
+    }
 
     return .ok(.init(body: .json(.init(challenge))))
   }
