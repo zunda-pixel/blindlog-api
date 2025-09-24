@@ -26,7 +26,7 @@ extension API {
 
     // 2. Save Challenge to DB with expired date
     let expiredDate = Date(timeIntervalSinceNow: 10 * 60)  // 10 minutes
-    let purpose: ChallengePurpose = userID == nil ? .authentication : .registration
+    let purpose: Challenge.Purpose = userID == nil ? .authentication : .registration
     try await database.query(
       """
         INSERT INTO challenges (challenge, expired_date, user_id, purpose)

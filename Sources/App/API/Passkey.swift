@@ -4,11 +4,6 @@ import PostgresNIO
 import SQLKit
 import WebAuthn
 
-enum ChallengePurpose: String, PostgresCodable {
-  case registration
-  case authentication
-}
-
 extension API {
   func addPasskey(
     _ input: Operations.addPasskey.Input
@@ -30,7 +25,7 @@ extension API {
         DELETE FROM challenges
         WHERE challenge = \(Data(input.query.challenge.data))
           AND user_id = \(userID)
-          AND purpose = \(ChallengePurpose.registration)
+          AND purpose = \(Challenge.Purpose.registration)
           AND expired_date > CURRENT_TIMESTAMP
         RETURNING 1
       """
