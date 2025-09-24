@@ -57,18 +57,12 @@ extension API {
   fileprivate func getUserFromDatabase(
     id: User.ID
   ) async throws -> User? {
-    let query: PostgresQuery = """
-        SELECT id
-        FROM users
-        WHERE users.id = \(id)
-        LIMIT 1
-      """
-    let rows = try await database.query(query).collect()
-
-    if let row = rows.first {
-      return try row.sql().decode(model: User.self, with: SQLRowDecoder())
-    } else {
-      return nil
+    return try await database.read { db in
+      try await User
+        .select(\.self)
+        .where { $0.id.eq(id) }
+        .limit(1)
+        .fetchOne(db)
     }
   }
 
