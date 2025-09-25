@@ -67,18 +67,14 @@ extension API {
   fileprivate func getUsersFromDatabase(
     ids: [User.ID]
   ) async throws -> [User] {
-    let query: PostgresQuery = """
-        SELECT id
-        FROM users
-        WHERE users.id = ANY(\(ids))
-      """
-    let rows = try await database.query(query).collect()
-
-    let decoder = SQLRowDecoder()
-    let users: [User] = try rows.map { row in
-      return try row.sql().decode(model: User.self, with: decoder)
+    return try await database.read { db in
+      try await User
+        .select(\.self)
+        .where { user in
+          user.id.in(ids)
+        }
+        .fetchAll(db)
     }
-    return users
   }
 
   fileprivate func getUsersFromCacheAndUpdateExpiration(
