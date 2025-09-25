@@ -1,7 +1,9 @@
 import Foundation
 import Hummingbird
 import PostgresNIO
+import Records
 import SQLKit
+import StructuredQueriesPostgres
 import Valkey
 
 extension API {

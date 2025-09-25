@@ -51,9 +51,17 @@ let package = Package(
         .product(name: "Records", package: "swift-records"),
         .product(name: "Tagged", package: "swift-tagged"),
       ],
+      swiftSettings: [
+        .enableUpcomingFeature("ExistentialAny"),
+        .enableUpcomingFeature("InternalImportsByDefault"),
+        .enableUpcomingFeature("MemberImportVisibility"),
+        .enableUpcomingFeature("InferIsolatedConformances"),
+        .enableUpcomingFeature("ImmutableWeakCaptures"),
+//        .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+      ],
       plugins: [
         .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
-      ]
+      ],
     ),
     .testTarget(
       name: "AppTests",

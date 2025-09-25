@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import JWTKit
 import PostgresNIO
 import Records
 import SQLKit
