@@ -1,6 +1,8 @@
+import ExtrasBase64
 import Foundation
 import Hummingbird
 import PostgresNIO
+import Records
 import SQLKit
 import StructuredQueriesPostgres
 import WebAuthn

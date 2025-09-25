@@ -1,5 +1,8 @@
 import Foundation
 import Hummingbird
+import OpenAPIRuntime
+import Records
+import StructuredQueriesPostgresCore
 import WebAuthn
 
 extension API {
