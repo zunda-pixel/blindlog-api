@@ -3,9 +3,9 @@ import Hummingbird
 import WebAuthn
 
 extension API {
-  func generateChallenge(
-    _ input: Operations.generateChallenge.Input
-  ) async throws -> Operations.generateChallenge.Output {
+  func createChallenge(
+    _ input: Operations.createChallenge.Input
+  ) async throws -> Operations.createChallenge.Output {
     // 1. Generate Challenge
     let userID = BearerAuthenticateUser.current?.userID
 
@@ -25,15 +25,14 @@ extension API {
       }
 
     // 2. Save Challenge to DB with expired date
-    let challengeRow = Challenge(
-      challenge: Data(challenge),
-      expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
-      userID: userID,
-      purpose: userID == nil ? .authentication : .registration
-    )
     try await database.write { db in
       try await Challenge.insert {
-        challengeRow
+        Challenge(
+          challenge: Data(challenge),
+          expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
+          userID: userID,
+          purpose: userID == nil ? .authentication : .registration
+        )
       }.execute(db)
     }
 
