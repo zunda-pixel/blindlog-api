@@ -2,6 +2,7 @@ import Foundation
 import Hummingbird
 import PostgresNIO
 import SQLKit
+import StructuredQueriesPostgres
 import WebAuthn
 
 extension API {
@@ -28,9 +29,11 @@ extension API {
         .delete()
         .where {
           $0.challenge.eq(challengeData)
-            .and($0.userID.is(nil)
-              .and($0.purpose.eq(Challenge.Purpose.authentication)
-                .and($0.expiredDate.gt(Date.currentTimestamp))))
+            .and(
+              $0.userID.is(nil)
+                .and(
+                  $0.purpose.eq(Challenge.Purpose.authentication)
+                    .and($0.expiredDate.gt(Date.currentTimestamp))))
         }
         .returning(\.self)
         .fetchOne(db)
@@ -62,13 +65,16 @@ extension API {
     )
 
     // 5. Update stored sign counter
-    try await database.query(
-      """
-      UPDATE passkey_credentials
-      SET sign_count = GREATEST(sign_count, \(Int64(verifiedAuthentication.newSignCount)))
-      WHERE id = \(verifiedAuthentication.credentialID.asString())
-      """
-    )
+    try await database.write { db in
+      try await PasskeyCredential
+        .update {
+          $0.signCount = #sql(
+            "GREATEST(\($0.signCount), \(Int64(verifiedAuthentication.newSignCount)))"
+          )
+        }
+        .where { $0.id.eq(verifiedAuthentication.credentialID.asString()) }
+        .execute(db)
+    }
 
     // 6. Issue application tokens
     let (token, refreshToken) = try await generateUserToken(

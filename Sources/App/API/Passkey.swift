@@ -27,9 +27,11 @@ extension API {
         .delete()
         .where {
           $0.challenge.eq(challengeData)
-            .and($0.userID.is(nil)
-              .and($0.purpose.eq(Challenge.Purpose.authentication)
-                .and($0.expiredDate.gt(Date.currentTimestamp))))
+            .and(
+              $0.userID.is(nil)
+                .and(
+                  $0.purpose.eq(Challenge.Purpose.authentication)
+                    .and($0.expiredDate.gt(Date.currentTimestamp))))
         }
         .returning(\.self)
         .fetchOne(db)
@@ -44,23 +46,29 @@ extension API {
       challenge: Array(input.query.challenge.data),
       credentialCreationData: registrationCredential,
       confirmCredentialIDNotRegisteredYet: { credentialID in
-        let row = try await database.query(
-          """
-            SELECT 1 FROM passkey_credentials
-            WHERE id = \(credentialID)
-          """
-        ).collect().first
-        return row == nil
+        let credential = try await database.read { db in
+          try await PasskeyCredential
+            .where { $0.id.eq(credentialID) }
+            .select { _ in 1 }
+            .fetchOne(db)
+        }
+
+        return credential == nil
       }
     )
 
     // 4. Persist credential metadata
-    try await database.query(
-      """
-        INSERT INTO passkey_credentials (id, user_id, public_key, sign_count)
-        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int64(credential.signCount)))
-      """
-    )
+    try await database.write { db in
+      try await PasskeyCredential.insert {
+        PasskeyCredential(
+          id: registrationCredential.id.asString(),
+          userID: userID,
+          publicKey: Data(credential.publicKey),
+          signCount: Int64(credential.signCount)
+        )
+      }
+      .execute(db)
+    }
 
     return .ok
   }
