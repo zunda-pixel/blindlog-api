@@ -28,9 +28,9 @@ extension API {
         .where {
           $0.challenge.eq(challengeData)
             .and(
-              $0.userID.is(nil)
+              $0.userID.eq(userID)
                 .and(
-                  $0.purpose.eq(Challenge.Purpose.authentication)
+                  $0.purpose.eq(Challenge.Purpose.registration)
                     .and($0.expiredDate.gt(Date.currentTimestamp))))
         }
         .returning(\.self)
