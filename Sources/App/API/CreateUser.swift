@@ -1,8 +1,8 @@
 import Foundation
 import Hummingbird
 import PostgresNIO
-import SQLKit
 import Records
+import SQLKit
 
 extension API {
   func createUser(
