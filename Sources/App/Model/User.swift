@@ -1,6 +1,5 @@
 import Foundation
 import Records
-import Tagged
 
 @Table("users")
 struct User: Codable, Identifiable, Hashable {
