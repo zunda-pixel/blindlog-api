@@ -18,7 +18,7 @@ paths:
                 $ref: '#/components/schemas/AppleAppSiteAssociation'
   /challenge:
     post:
-      operationId: generateChallenge
+      operationId: createChallenge
       responses:
         '200':
           description: A success response with a user.

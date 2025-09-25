@@ -4,11 +4,6 @@ import PostgresNIO
 import SQLKit
 import WebAuthn
 
-enum ChallengePurpose: String, PostgresCodable {
-  case registration
-  case authentication
-}
-
 extension API {
   func addPasskey(
     _ input: Operations.addPasskey.Input
@@ -25,16 +20,22 @@ extension API {
     )
 
     // 2. Verify and delete challenge atomically
-    let row = try await database.query(
-      """
-        DELETE FROM challenges
-        WHERE challenge = \(Data(input.query.challenge.data))
-          AND user_id = \(userID)
-          AND purpose = \(ChallengePurpose.registration)
-          AND expired_date > CURRENT_TIMESTAMP
-        RETURNING 1
-      """
-    ).collect().first
+    let challengeData = Data(input.query.challenge.data)
+
+    let row = try await database.write { db in
+      try await Challenge
+        .delete()
+        .where {
+          $0.challenge.eq(challengeData)
+            .and(
+              $0.userID.eq(userID)
+                .and(
+                  $0.purpose.eq(Challenge.Purpose.registration)
+                    .and($0.expiredDate.gt(Date.currentTimestamp))))
+        }
+        .returning(\.self)
+        .fetchOne(db)
+    }
 
     guard row != nil else {
       throw HTTPError(.badRequest)
@@ -45,23 +46,29 @@ extension API {
       challenge: Array(input.query.challenge.data),
       credentialCreationData: registrationCredential,
       confirmCredentialIDNotRegisteredYet: { credentialID in
-        let row = try await database.query(
-          """
-            SELECT 1 FROM passkey_credentials
-            WHERE id = \(credentialID)
-          """
-        ).collect().first
-        return row == nil
+        let credential = try await database.read { db in
+          try await PasskeyCredential
+            .where { $0.id.eq(credentialID) }
+            .select { _ in 1 }
+            .fetchOne(db)
+        }
+
+        return credential == nil
       }
     )
 
     // 4. Persist credential metadata
-    try await database.query(
-      """
-        INSERT INTO passkey_credentials (id, user_id, public_key, sign_count)
-        VALUES(\(registrationCredential.id.asString()), \(userID), \(Data(credential.publicKey)), \(Int64(credential.signCount)))
-      """
-    )
+    try await database.write { db in
+      try await PasskeyCredential.insert {
+        PasskeyCredential(
+          id: registrationCredential.id.asString(),
+          userID: userID,
+          publicKey: Data(credential.publicKey),
+          signCount: Int64(credential.signCount)
+        )
+      }
+      .execute(db)
+    }
 
     return .ok
   }
