@@ -57,7 +57,7 @@ let package = Package(
         .enableUpcomingFeature("MemberImportVisibility"),
         .enableUpcomingFeature("InferIsolatedConformances"),
         .enableUpcomingFeature("ImmutableWeakCaptures"),
-//        .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+        //.enableUpcomingFeature("NonisolatedNonsendingByDefault"),
       ],
       plugins: [
         .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
