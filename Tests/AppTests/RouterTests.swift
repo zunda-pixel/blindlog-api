@@ -1,5 +1,6 @@
 import Foundation
 import HummingbirdTesting
+import Logging
 import NIOCore
 import Testing
 
