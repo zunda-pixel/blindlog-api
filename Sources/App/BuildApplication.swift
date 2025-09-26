@@ -21,24 +21,25 @@ func buildApplication(
   var logger = Logger(label: "Blindlog")
   logger.logLevel = logLevel
 
-  let valkeyAuthentication: ValkeyClientConfiguration.Authentication?
-  if let username = environment.get("VALKEY_USERNAME"),
-    let password = environment.get("VALKEY_PASSWORD")
-  {
-    valkeyAuthentication = ValkeyClientConfiguration.Authentication(
-      username: username, password: password)
-  } else {
-    valkeyAuthentication = nil
+  let valkeyAuthentication: ValkeyClientConfiguration.Authentication? = switch arguments.env {
+  case .develop:
+    try ValkeyClientConfiguration.Authentication(
+      username: environment.require("VALKEY_USERNAME"),
+      password: environment.require("VALKEY_PASSWORD")
+    )
+  case .production:
+    nil
   }
 
-  #if DEBUG
-    let valkeyTLS: ValkeyClientConfiguration.TLS = .disable
-  #else
-    let valkeyTLS: ValkeyClientConfiguration.TLS = try .enable(
+  let valkeyTLS: ValkeyClientConfiguration.TLS = switch arguments.env {
+  case .develop:
+    .disable
+  case .production:
+    try .enable(
       .clientDefault,
       tlsServerName: environment.require("VALKEY_HOSTNAME")
     )
-  #endif
+  }
 
   let cache = try ValkeyClient(
     .hostname(environment.require("VALKEY_HOSTNAME")),
@@ -49,11 +50,12 @@ func buildApplication(
     logger: logger
   )
 
-  #if DEBUG
-    let postgresTLS: PostgresClient.Configuration.TLS = .disable
-  #else
-    let postgresTLS: PostgresClient.Configuration.TLS = .require(.clientDefault)
-  #endif
+  let postgresTLS: PostgresClient.Configuration.TLS = switch arguments.env {
+  case .develop:
+    .disable
+  case .production:
+    .require(.clientDefault)
+  }
 
   let config = try PostgresClient.Configuration(
     host: environment.get("POSTGRES_HOSTNAME")!,
@@ -110,9 +112,7 @@ func buildApplication(
   router.add(middleware: TracingMiddleware())
   router.add(middleware: MetricsMiddleware())
   router.add(middleware: LogRequestsMiddleware(.info))
-  #if DEBUG
-    router.add(middleware: FileMiddleware(searchForIndexHtml: true))
-  #endif
+  router.add(middleware: FileMiddleware(searchForIndexHtml: true))
   router.add(
     middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
   )
