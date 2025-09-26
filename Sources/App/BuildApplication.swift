@@ -14,8 +14,12 @@ func buildApplication(
   _ arguments: some AppArguments
 ) async throws -> some ApplicationProtocol {
   let environment = Environment()
-  var logger = Logger(label: "App")
-  logger.logLevel = .debug
+  let logLevel =
+    arguments.logLevel ?? environment.get("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) }
+    ?? .debug
+
+  var logger = Logger(label: "Blindlog")
+  logger.logLevel = logLevel
 
   let valkeyAuthentication: ValkeyClientConfiguration.Authentication?
   if let username = environment.get("VALKEY_USERNAME"),
@@ -103,7 +107,9 @@ func buildApplication(
     )
   )
 
-  router.add(middleware: LogRequestsMiddleware(.debug))
+  router.add(middleware: TracingMiddleware())
+  router.add(middleware: MetricsMiddleware())
+  router.add(middleware: LogRequestsMiddleware(.info))
   #if DEBUG
     router.add(middleware: FileMiddleware(searchForIndexHtml: true))
   #endif
@@ -123,7 +129,7 @@ func buildApplication(
       database,
       cache,
     ],
-    logger: Logger(label: "Server")
+    logger: logger
   )
 
   app.beforeServerStarts {

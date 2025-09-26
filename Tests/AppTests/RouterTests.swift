@@ -1,5 +1,6 @@
 import Foundation
 import HummingbirdTesting
+import Logging
 import NIOCore
 import Testing
 
@@ -8,6 +9,7 @@ import Testing
 struct TestArguments: AppArguments {
   var hostname: String = "127.0.0.1"
   var port: Int = 8080
+  var logLevel: Logger.Level? = .debug
 }
 
 @Suite(.serialized)
