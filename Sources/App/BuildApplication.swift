@@ -21,25 +21,27 @@ func buildApplication(
   var logger = Logger(label: "Blindlog")
   logger.logLevel = logLevel
 
-  let valkeyAuthentication: ValkeyClientConfiguration.Authentication? = switch arguments.env {
-  case .develop:
-    try ValkeyClientConfiguration.Authentication(
-      username: environment.require("VALKEY_USERNAME"),
-      password: environment.require("VALKEY_PASSWORD")
-    )
-  case .production:
-    nil
-  }
+  let valkeyAuthentication: ValkeyClientConfiguration.Authentication? =
+    switch arguments.env {
+    case .develop:
+      try ValkeyClientConfiguration.Authentication(
+        username: environment.require("VALKEY_USERNAME"),
+        password: environment.require("VALKEY_PASSWORD")
+      )
+    case .production:
+      nil
+    }
 
-  let valkeyTLS: ValkeyClientConfiguration.TLS = switch arguments.env {
-  case .develop:
-    .disable
-  case .production:
-    try .enable(
-      .clientDefault,
-      tlsServerName: environment.require("VALKEY_HOSTNAME")
-    )
-  }
+  let valkeyTLS: ValkeyClientConfiguration.TLS =
+    switch arguments.env {
+    case .develop:
+      .disable
+    case .production:
+      try .enable(
+        .clientDefault,
+        tlsServerName: environment.require("VALKEY_HOSTNAME")
+      )
+    }
 
   let cache = try ValkeyClient(
     .hostname(environment.require("VALKEY_HOSTNAME")),
@@ -50,12 +52,13 @@ func buildApplication(
     logger: logger
   )
 
-  let postgresTLS: PostgresClient.Configuration.TLS = switch arguments.env {
-  case .develop:
-    .disable
-  case .production:
-    .require(.clientDefault)
-  }
+  let postgresTLS: PostgresClient.Configuration.TLS =
+    switch arguments.env {
+    case .develop:
+      .disable
+    case .production:
+      .require(.clientDefault)
+    }
 
   let config = try PostgresClient.Configuration(
     host: environment.get("POSTGRES_HOSTNAME")!,

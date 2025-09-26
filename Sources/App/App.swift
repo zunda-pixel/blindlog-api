@@ -12,7 +12,7 @@ struct AppCommand: AsyncParsableCommand, AppArguments {
 
   @Option(name: .shortAndLong)
   var logLevel: Logger.Level?
-  
+
   @Option(name: .shortAndLong)
   var env: EnvironmentLevel = .develop
 
@@ -35,7 +35,6 @@ protocol AppArguments {
 #else
   extension Logger.Level: ExpressibleByArgument {}
 #endif
-
 
 enum EnvironmentLevel: String, ExpressibleByArgument {
   case develop
