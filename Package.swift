@@ -34,7 +34,6 @@ let package = Package(
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
     .package(url: "https://github.com/coenttb/swift-records.git", from: "0.0.1"),
     .package(url: "https://github.com/pointfreeco/swift-tagged.git", from: "0.10.0"),
-    .package(url: "https://github.com/swift-otel/swift-otel.git", from: "1.0.0-beta.1"),
   ],
   targets: [
     .executableTarget(
@@ -51,7 +50,6 @@ let package = Package(
         .product(name: "JWTKit", package: "jwt-kit"),
         .product(name: "Records", package: "swift-records"),
         .product(name: "Tagged", package: "swift-tagged"),
-        .product(name: "OTel", package: "swift-otel"),
       ],
       swiftSettings: [
         .enableUpcomingFeature("ExistentialAny"),
