@@ -24,12 +24,12 @@ func buildApplication(
   let valkeyAuthentication: ValkeyClientConfiguration.Authentication? =
     switch arguments.env {
     case .develop:
+      nil
+    case .production:
       try ValkeyClientConfiguration.Authentication(
         username: environment.require("VALKEY_USERNAME"),
         password: environment.require("VALKEY_PASSWORD")
       )
-    case .production:
-      nil
     }
 
   let valkeyTLS: ValkeyClientConfiguration.TLS =
