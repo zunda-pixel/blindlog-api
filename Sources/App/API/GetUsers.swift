@@ -12,40 +12,67 @@ extension API {
   ) async throws -> Operations.GetUsers.Output {
     let ids: [UUID] = input.query.ids.compactMap { UUID(uuidString: $0) }
 
+    // 1. Get Users from Cache and Update Expiration if exits
+    let cacheUsers: [User]
     do {
-      // 1. Get Users from Cache and Update Expiration if exits
-      let cacheUsers = try await getUsersFromCacheAndUpdateExpiration(
+      cacheUsers = try await getUsersFromCacheAndUpdateExpiration(
         ids: ids
       )
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to fetch users from cache and update expiration",
+        metadata: [
+          "userIDs": .array(ids.map { .string($0.uuidString) }),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      throw HTTPError(.badRequest)
+    }
 
-      // 2. Get Users from DB that is not in Cache
-      let leftUserIDs = Set(ids).subtracting(Set(cacheUsers.map(\.id)))
-      let dbUsers: [User] = try await getUsersFromDatabase(
+    // 2. Get Users from DB that is not in Cache
+    let leftUserIDs = Set(ids).subtracting(Set(cacheUsers.map(\.id)))
+    let dbUsers: [User]
+    do {
+      dbUsers = try await getUsersFromDatabase(
         ids: Array(leftUserIDs)
       )
-
-      // 3. Set New Users Dat to Cache
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to fetch users from database",
+        metadata: [
+          "userIDs": .array(ids.map { .string($0.uuidString) }),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      throw HTTPError(.badRequest)
+    }
+    // 3. Set new users data to cache
+    do {
       try await addUsersToCache(
         users: dbUsers
       )
-
-      let users = cacheUsers + dbUsers
-
-      return .ok(
-        .init(
-          body: .json(
-            users.map {
-              .init(id: $0.id.uuidString)
-            })))
     } catch {
-      //      logger.error(
-      //        """
-      //        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-      //        Error: \(String(reflecting: error))
-      //        """
-      //      )
+      BasicRequestContext.current?.logger.log(
+        level: .warning,
+        "Failed to write users to cache",
+        metadata: [
+          "users": .array(dbUsers.map { .string(String(describing: $0)) }),
+          "error": .string(String(describing: error)),
+        ]
+      )
       throw HTTPError(.internalServerError)
     }
+
+    let users = cacheUsers + dbUsers
+
+    return .ok(
+      .init(
+        body: .json(
+          users.map {
+            .init(id: $0.id.uuidString)
+          })))
   }
 
   fileprivate func addUsersToCache(

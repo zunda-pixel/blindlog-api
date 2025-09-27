@@ -10,7 +10,7 @@ extension API {
     _ input: Operations.CreateChallenge.Input
   ) async throws -> Operations.CreateChallenge.Output {
     // 1. Generate Challenge
-    let userID = BearerAuthenticateUser.current?.userID
+    let userID = User.currentUserID
 
     let challenge: [UInt8] =
       if let userID {
@@ -28,15 +28,28 @@ extension API {
       }
 
     // 2. Save Challenge to DB with expired date
-    try await database.write { db in
-      try await Challenge.insert {
-        Challenge(
-          challenge: Data(challenge),
-          expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
-          userID: userID,
-          purpose: userID == nil ? .authentication : .registration
-        )
-      }.execute(db)
+    do {
+      try await database.write { db in
+        try await Challenge.insert {
+          Challenge(
+            challenge: Data(challenge),
+            expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
+            userID: userID,
+            purpose: userID == nil ? .authentication : .registration
+          )
+        }.execute(db)
+      }
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to save challenge with expiration",
+        metadata: [
+          "challenge": .string(Data(challenge).base64EncodedString()),
+          "userID": .string(userID?.uuidString ?? "nil"),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      throw HTTPError(.badRequest)
     }
 
     return .ok(.init(body: .json(.init(challenge))))

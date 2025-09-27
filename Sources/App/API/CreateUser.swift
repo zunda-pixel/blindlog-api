@@ -11,8 +11,20 @@ extension API {
   ) async throws -> Operations.CreateUser.Output {
     let user = User(id: UUID())
 
-    try await database.write { db in
-      try await User.insert { user }.execute(db)
+    do {
+      try await database.write { db in
+        try await User.insert { user }.execute(db)
+      }
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to persist user",
+        metadata: [
+          "user": .string(user.id.uuidString),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      throw HTTPError(.badRequest)
     }
 
     let tokenPayload = JWTPayloadData(
@@ -27,9 +39,24 @@ extension API {
       userName: user.id.uuidString
     )
 
-    let token = try await jwtKeyCollection.sign(tokenPayload)
-    let refreshToken = try await jwtKeyCollection.sign(refreshTokenPayload)
-
+    let token: String
+    let refreshToken: String
+    do {
+      token = try await jwtKeyCollection.sign(tokenPayload)
+      refreshToken = try await jwtKeyCollection.sign(refreshTokenPayload)
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to sign user tokens",
+        metadata: [
+          "user": .string(String(describing: user)),
+          "tokenPayload": .string(String(describing: tokenPayload)),
+          "refreshTokenPayload": .string(String(describing: refreshTokenPayload)),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      throw HTTPError(.badRequest)
+    }
     return .ok(
       .init(
         body: .json(

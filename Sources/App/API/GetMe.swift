@@ -7,12 +7,23 @@ import Valkey
 
 extension API {
   func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
-    guard let userID = BearerAuthenticateUser.current?.userID else {
+    guard let userID = User.currentUserID else {
       throw HTTPError(.unauthorized)
     }
-
-    let user = try await getUser(id: userID)
-
+    let user: User
+    do {
+      user = try await getUser(id: userID)
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to fetch user profile",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      throw HTTPError(.badRequest)
+    }
     return .ok(
       .init(
         body: .json(
