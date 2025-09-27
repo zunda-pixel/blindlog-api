@@ -46,7 +46,7 @@ extension API {
         metadata: [
           "challenge": .string(Data(challenge).base64EncodedString()),
           "userID": .string(userID?.uuidString ?? "nil"),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)

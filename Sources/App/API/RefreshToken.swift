@@ -46,7 +46,8 @@ extension API {
       throw HTTPError(.unauthorized)
     }
 
-    let token, refreshToken: String
+    let token: String
+    let refreshToken: String
     do {
       (token, refreshToken) = try await generateUserToken(userID: userID)
     } catch {
@@ -55,7 +56,7 @@ extension API {
         "Failed to issue tokens from refresh token",
         metadata: [
           "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.internalServerError)

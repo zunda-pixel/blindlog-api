@@ -19,7 +19,7 @@ extension API {
     let credential: AuthenticationCredential
     do {
       let data = try JSONEncoder().encode(bodyData)
-      
+
       credential = try JSONDecoder().decode(
         AuthenticationCredential.self,
         from: data
@@ -30,7 +30,7 @@ extension API {
         "Failed to parse token request payload",
         metadata: [
           "bodyData": .string(String(describing: bodyData)),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -39,7 +39,7 @@ extension API {
     // 2. Verify and delete challenge atomically
     do {
       let challengeData = try Data(bodyData.challenge.base64decoded())
-      
+
       let row = try await database.write { db in
         try await Challenge
           .delete()
@@ -54,7 +54,7 @@ extension API {
           .returning(\.self)
           .fetchOne(db)
       }
-      
+
       guard row != nil else {
         throw HTTPError(.badRequest)
       }
@@ -64,7 +64,7 @@ extension API {
         "Failed to verify and delete authentication challenge",
         metadata: [
           "challenge": .string(String(describing: bodyData.challenge)),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -91,7 +91,7 @@ extension API {
       )
       throw HTTPError(.badRequest)
     }
-    
+
     guard let passkeyCredential else {
       throw HTTPError(.internalServerError)
     }
@@ -139,14 +139,15 @@ extension API {
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
           "passkeyCredential": .string(String(describing: passkeyCredential)),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
     }
 
     // 6. Issue application tokens
-    let token, refreshToken: String
+    let token: String
+    let refreshToken: String
     do {
       (token, refreshToken) = try await generateUserToken(
         userID: passkeyCredential.userID
@@ -159,7 +160,7 @@ extension API {
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
           "passkeyCredential": .string(String(describing: passkeyCredential)),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)

@@ -10,7 +10,7 @@ extension BasicRequestContext {
 /// are passed to the Task Local
 struct OpenAPIRequestContextMiddleware: RouterMiddleware {
   typealias Context = BasicRequestContext
-  
+
   func handle(
     _ request: Request,
     context: Context,

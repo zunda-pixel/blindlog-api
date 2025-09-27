@@ -21,7 +21,7 @@ extension API {
         "Failed to persist user",
         metadata: [
           "user": .string(user.id.uuidString),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -39,7 +39,8 @@ extension API {
       userName: user.id.uuidString
     )
 
-    let token, refreshToken: String
+    let token: String
+    let refreshToken: String
     do {
       token = try await jwtKeyCollection.sign(tokenPayload)
       refreshToken = try await jwtKeyCollection.sign(refreshTokenPayload)
@@ -51,7 +52,7 @@ extension API {
           "user": .string(String(describing: user)),
           "tokenPayload": .string(String(describing: tokenPayload)),
           "refreshTokenPayload": .string(String(describing: refreshTokenPayload)),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)

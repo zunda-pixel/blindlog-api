@@ -19,7 +19,7 @@ extension API {
         "Failed to fetch user profile",
         metadata: [
           "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)

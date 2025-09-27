@@ -29,7 +29,7 @@ extension API {
         "Failed to decode WebAuthn registration",
         metadata: [
           "body": .string(String(describing: body)),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -51,7 +51,7 @@ extension API {
           .returning(\.self)
           .fetchOne(db)
       }
-      
+
       guard row != nil else {
         throw HTTPError(.badRequest)
       }
@@ -62,7 +62,7 @@ extension API {
         metadata: [
           "challenge": .string(challengeData.base64EncodedString()),
           "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -81,7 +81,7 @@ extension API {
               .select { _ in 1 }
               .fetchOne(db)
           }
-          
+
           return credential == nil
         }
       )
@@ -92,7 +92,7 @@ extension API {
         metadata: [
           "registrationCredential": .string(String(describing: registrationCredential)),
           "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -117,7 +117,7 @@ extension API {
         metadata: [
           "credentialID": .string(registrationCredential.id.asString()),
           "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)

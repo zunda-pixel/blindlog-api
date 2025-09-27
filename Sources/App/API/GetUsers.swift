@@ -24,7 +24,7 @@ extension API {
         "Failed to fetch users from cache and update expiration",
         metadata: [
           "userIDs": .array(ids.map { .string($0.uuidString) }),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -43,7 +43,7 @@ extension API {
         "Failed to fetch users from database",
         metadata: [
           "userIDs": .array(ids.map { .string($0.uuidString) }),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.badRequest)
@@ -59,7 +59,7 @@ extension API {
         "Failed to write users to cache",
         metadata: [
           "users": .array(dbUsers.map { .string(String(describing: $0)) }),
-          "error": .string(String(describing: error))
+          "error": .string(String(describing: error)),
         ]
       )
       throw HTTPError(.internalServerError)
