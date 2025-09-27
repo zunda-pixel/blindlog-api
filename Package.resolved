@@ -1,5 +1,5 @@
 {
-  "originHash" : "4c5130322fdb412c8dc373796feba1e82e74bba63daa9ab4d17aafb554eee0df",
+  "originHash" : "dfc1e1f568620a1acd3602bc6df35b569c0271012a9c29a9306b5a3c63153b99",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -20,39 +20,12 @@
       }
     },
     {
-      "identity" : "aws-crt-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/awslabs/aws-crt-swift",
-      "state" : {
-        "revision" : "2f4f02595a25a43f9ca9acdc9f4d4a8ff6e5d3ac",
-        "version" : "0.54.0"
-      }
-    },
-    {
-      "identity" : "aws-sdk-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/awslabs/aws-sdk-swift.git",
-      "state" : {
-        "revision" : "37e9ce6acadf258fb9ac7911fe420f480e75cd91",
-        "version" : "1.5.54"
-      }
-    },
-    {
       "identity" : "combine-schedulers",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/combine-schedulers",
       "state" : {
         "revision" : "5928286acce13def418ec36d05a001a9641086f2",
         "version" : "1.0.3"
-      }
-    },
-    {
-      "identity" : "grpc-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/grpc/grpc-swift.git",
-      "state" : {
-        "revision" : "a56a157218877ef3e9625f7e1f7b2cb7e46ead1b",
-        "version" : "1.26.1"
       }
     },
     {
@@ -101,24 +74,6 @@
       }
     },
     {
-      "identity" : "opentelemetry-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/open-telemetry/opentelemetry-swift",
-      "state" : {
-        "revision" : "ef63c346d05f4fa7c9ca883f92631fd139eb2cfe",
-        "version" : "1.17.1"
-      }
-    },
-    {
-      "identity" : "opentracing-objc",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/undefinedlabs/opentracing-objc",
-      "state" : {
-        "revision" : "18c1a35ca966236cee0c5a714a51a73ff33384c1",
-        "version" : "0.5.2"
-      }
-    },
-    {
       "identity" : "postgres-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/postgres-kit.git",
@@ -143,15 +98,6 @@
       "state" : {
         "revision" : "8ee6118c03501196be183b0938d2ec4478c18954",
         "version" : "1.27.0"
-      }
-    },
-    {
-      "identity" : "smithy-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/smithy-lang/smithy-swift",
-      "state" : {
-        "revision" : "eed7acfe8de6a40b61a017a66bfe0b13d9987cab",
-        "version" : "0.158.0"
       }
     },
     {
@@ -416,12 +362,12 @@
       }
     },
     {
-      "identity" : "swift-protobuf",
+      "identity" : "swift-otel",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-protobuf.git",
+      "location" : "https://github.com/swift-otel/swift-otel.git",
       "state" : {
-        "revision" : "2547102afd04fe49f1b286090f13ebce07284980",
-        "version" : "1.31.1"
+        "revision" : "fa1ad6d8e031496962e0b40fa6047864ef289775",
+        "version" : "1.0.0"
       }
     },
     {
@@ -497,12 +443,12 @@
       }
     },
     {
-      "identity" : "swift-uuidv7",
+      "identity" : "swift-w3c-trace-context",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mhayes853/swift-uuidv7.git",
+      "location" : "https://github.com/swift-otel/swift-w3c-trace-context.git",
       "state" : {
-        "revision" : "02c3e05095347a2649846c199adbde756f0c2e90",
-        "version" : "0.3.0"
+        "revision" : "3da4b79545b38cf5551f1c525d800756f38cb697",
+        "version" : "1.0.0-beta.3"
       }
     },
     {
@@ -521,15 +467,6 @@
       "state" : {
         "revision" : "04ccff117f6549121d5721ec84fdf0162122b90e",
         "version" : "0.5.0"
-      }
-    },
-    {
-      "identity" : "thrift-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/undefinedlabs/Thrift-Swift",
-      "state" : {
-        "revision" : "18ff09e6b30e589ed38f90a1af23e193b8ecef8e",
-        "version" : "1.1.2"
       }
     },
     {

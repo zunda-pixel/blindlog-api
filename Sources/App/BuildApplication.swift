@@ -4,6 +4,7 @@ import Hummingbird
 import HummingbirdPostgres
 import JWTKit
 import Logging
+import OTel
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
@@ -18,6 +19,23 @@ func buildApplication(
   let logLevel =
     arguments.logLevel ?? environment.get("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) }
     ?? .debug
+
+  LoggingSystem.bootstrap { label in
+     var handler = StreamLogHandler.standardOutput(
+       label: label,
+       metadataProvider: OTel.makeLoggingMetadataProvider()
+     )
+     handler.logLevel = logLevel
+     return handler
+   }
+
+   var otelConfig = OTel.Configuration.default
+   otelConfig.serviceName = "Blindlog"
+   otelConfig.logs.enabled = false
+   // To use GRPC you can set the otlpExporter protocol for each exporter
+   //otelConfig.metrics.otlpExporter.protocol = .grpc
+   //otelConfig.traces.otlpExporter.protocol = .grpc
+   let observability = try OTel.bootstrap(configuration: otelConfig)
 
   var logger = Logger(label: "Blindlog")
   logger.logLevel = logLevel
@@ -139,6 +157,7 @@ func buildApplication(
       address: .hostname(arguments.hostname, port: arguments.port)
     ),
     services: [
+      observability,
       databaseClient,
       database,
       cache,
