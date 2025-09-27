@@ -6,7 +6,7 @@ import SQLKit
 import Valkey
 
 extension API {
-  func getMe(_ input: Operations.getMe.Input) async throws -> Operations.getMe.Output {
+  func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
     guard let userID = BearerAuthenticateUser.current?.userID else {
       throw HTTPError(.unauthorized)
     }

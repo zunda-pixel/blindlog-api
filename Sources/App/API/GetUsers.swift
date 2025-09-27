@@ -8,8 +8,8 @@ import Valkey
 
 extension API {
   func getUsers(
-    _ input: Operations.getUsers.Input
-  ) async throws -> Operations.getUsers.Output {
+    _ input: Operations.GetUsers.Input
+  ) async throws -> Operations.GetUsers.Output {
     let ids: [UUID] = input.query.ids.compactMap { UUID(uuidString: $0) }
 
     do {

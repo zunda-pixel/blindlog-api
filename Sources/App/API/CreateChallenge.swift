@@ -7,8 +7,8 @@ import WebAuthn
 
 extension API {
   func createChallenge(
-    _ input: Operations.createChallenge.Input
-  ) async throws -> Operations.createChallenge.Output {
+    _ input: Operations.CreateChallenge.Input
+  ) async throws -> Operations.CreateChallenge.Output {
     // 1. Generate Challenge
     let userID = BearerAuthenticateUser.current?.userID
 

@@ -9,8 +9,8 @@ import WebAuthn
 
 extension API {
   func createToken(
-    _ input: Operations.createToken.Input
-  ) async throws -> Operations.createToken.Output {
+    _ input: Operations.CreateToken.Input
+  ) async throws -> Operations.CreateToken.Output {
     // 1. Parse request payload
     guard case .json(let bodyData) = input.body else {
       throw HTTPError(.badRequest)

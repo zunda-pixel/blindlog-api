@@ -9,8 +9,8 @@ import WebAuthn
 
 extension API {
   func addPasskey(
-    _ input: Operations.addPasskey.Input
-  ) async throws -> Operations.addPasskey.Output {
+    _ input: Operations.AddPasskey.Input
+  ) async throws -> Operations.AddPasskey.Output {
     guard let userID = BearerAuthenticateUser.current?.userID else {
       throw HTTPError(.unauthorized)
     }

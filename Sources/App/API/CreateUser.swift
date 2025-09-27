@@ -7,8 +7,8 @@ import SQLKit
 
 extension API {
   func createUser(
-    _ input: Operations.createUser.Input
-  ) async throws -> Operations.createUser.Output {
+    _ input: Operations.CreateUser.Input
+  ) async throws -> Operations.CreateUser.Output {
     let user = User(id: UUID())
 
     try await database.write { db in
