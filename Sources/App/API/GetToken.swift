@@ -13,7 +13,7 @@ extension API {
   ) async throws -> Operations.CreateToken.Output {
     // 1. Parse request payload
     guard case .json(let bodyData) = input.body else {
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     let credential: AuthenticationCredential
@@ -33,7 +33,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     // 2. Verify and delete challenge atomically
@@ -56,7 +56,7 @@ extension API {
       }
 
       guard row != nil else {
-        throw HTTPError(.badRequest)
+        return .badRequest(.init())
       }
     } catch {
       BasicRequestContext.current?.logger.log(
@@ -67,7 +67,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     // 3. Load stored credential
@@ -89,11 +89,11 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     guard let passkeyCredential else {
-      throw HTTPError(.internalServerError)
+      return .badRequest(.init())
     }
 
     // 4. Verify assertion with WebAuthn
@@ -116,7 +116,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     // 5. Update stored sign counter
@@ -142,7 +142,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     // 6. Issue application tokens
@@ -163,7 +163,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     return .ok(

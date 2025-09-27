@@ -27,7 +27,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     // 2. Get Users from DB that is not in Cache
@@ -46,7 +46,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
     // 3. Set new users data to cache
     do {
@@ -62,7 +62,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.internalServerError)
+      return .badRequest(.init())
     }
 
     let users = cacheUsers + dbUsers
