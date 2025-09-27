@@ -8,9 +8,9 @@ import Valkey
 extension API {
   func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
     guard let userID = User.currentUserID else {
-      throw HTTPError(.unauthorized)
+      return .unauthorized(.init())
     }
-    let user: User
+    let user: User?
     do {
       user = try await getUser(id: userID)
     } catch {
@@ -22,8 +22,13 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
+
+    guard let user else {
+      return .notFound(.init())
+    }
+
     return .ok(
       .init(
         body: .json(
@@ -32,7 +37,7 @@ extension API {
           ))))
   }
 
-  fileprivate func getUser(id: UUID) async throws -> User {
+  fileprivate func getUser(id: UUID) async throws -> User? {
     // 1. Get User from Cache and Update Expiration if exits
     let cacheUser = try await getUserFromCacheAndUpdateExpiration(
       id: id
@@ -47,7 +52,7 @@ extension API {
       id: id
     )
 
-    guard let dbUser else { throw HTTPError(.notFound) }
+    guard let dbUser else { return nil }
 
     // 3. Set New User to Cache
     try await addUserToCache(

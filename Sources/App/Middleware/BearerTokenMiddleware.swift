@@ -19,17 +19,17 @@ struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
       payload = try await self.jwtKeyCollection.verify(jwtToken, as: JWTPayloadData.self)
     } catch {
       context.logger.debug("couldn't verify token")
-      throw HTTPError(.unauthorized)
+      return nil
     }
     // get user id and name from payload
     guard let userID = UUID(uuidString: payload.subject.value) else {
       context.logger.debug("Invalid JWT subject \(payload.subject.value)")
-      throw HTTPError(.unauthorized)
+      return nil
     }
     // verify expiration is not over.
     guard payload.expiration.value > Date() else {
       context.logger.debug("Token expired")
-      throw HTTPError(.unauthorized)
+      return nil
     }
 
     return userID

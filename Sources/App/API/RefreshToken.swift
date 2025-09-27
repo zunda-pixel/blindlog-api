@@ -31,19 +31,19 @@ extension API {
     _ input: Operations.RefreshToken.Input
   ) async throws -> Operations.RefreshToken.Output {
     guard case .json(let body) = input.body else {
-      throw HTTPError(.unauthorized)
+      return .unauthorized(.init())
     }
 
     let payload = try await jwtKeyCollection.verify(body.refreshToken, as: JWTPayloadData.self)
 
     guard let userID = UUID(uuidString: payload.subject.value) else {
       BasicRequestContext.current?.logger.debug("Invalid JWT subject \(payload.subject.value)")
-      throw HTTPError(.unauthorized)
+      return .unauthorized(.init())
     }
     // verify expiration is not over.
     guard payload.expiration.value > Date() else {
       BasicRequestContext.current?.logger.debug("Token expired")
-      throw HTTPError(.unauthorized)
+      return .unauthorized(.init())
     }
 
     let token: String
@@ -59,7 +59,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.internalServerError)
+      return .badRequest(.init())
     }
     return .ok(
       .init(

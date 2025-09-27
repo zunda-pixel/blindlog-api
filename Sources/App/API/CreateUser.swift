@@ -24,7 +24,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
 
     let tokenPayload = JWTPayloadData(
@@ -55,7 +55,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      throw HTTPError(.badRequest)
+      return .badRequest(.init())
     }
     return .ok(
       .init(
