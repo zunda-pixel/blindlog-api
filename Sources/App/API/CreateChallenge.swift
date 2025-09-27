@@ -28,15 +28,25 @@ extension API {
       }
 
     // 2. Save Challenge to DB with expired date
-    try await database.write { db in
-      try await Challenge.insert {
-        Challenge(
-          challenge: Data(challenge),
-          expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
-          userID: userID,
-          purpose: userID == nil ? .authentication : .registration
-        )
-      }.execute(db)
+    do {
+      try await database.write { db in
+        try await Challenge.insert {
+          Challenge(
+            challenge: Data(challenge),
+            expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
+            userID: userID,
+            purpose: userID == nil ? .authentication : .registration
+          )
+        }.execute(db)
+      }
+    } catch {
+      BasicRequestContext.current!.logger.info("""
+        Failure to save challenge to DB with expired date
+        Challenge: \(challenge)
+        userID: \(userID)
+        Error: \(error)
+        """)
+      throw HTTPError(.badRequest)
     }
 
     return .ok(.init(body: .json(.init(challenge))))

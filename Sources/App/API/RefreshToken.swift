@@ -46,8 +46,17 @@ extension API {
       throw HTTPError(.unauthorized)
     }
 
-    let (token, refreshToken) = try await generateUserToken(userID: userID)
-
+    let token, refreshToken: String
+    do {
+      (token, refreshToken) = try await generateUserToken(userID: userID)
+    } catch {
+      BasicRequestContext.current!.logger.info("""
+        Failure to issue application tokens
+        userID: \(userID)
+        Error: \(error)
+        """)
+      throw HTTPError(.internalServerError)
+    }
     return .ok(
       .init(
         body: .json(

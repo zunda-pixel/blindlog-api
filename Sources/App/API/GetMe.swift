@@ -10,9 +10,16 @@ extension API {
     guard let userID = User.currentUserID else {
       throw HTTPError(.unauthorized)
     }
-
-    let user = try await getUser(id: userID)
-
+    let user: User
+    do {
+      user = try await getUser(id: userID)
+    } catch {
+      BasicRequestContext.current!.logger.info("""
+        Failure to fetch a user
+        id: \(userID)
+        """)
+      throw HTTPError(.badRequest)
+    }
     return .ok(
       .init(
         body: .json(
