@@ -28,8 +28,8 @@ extension API {
   }
 
   func refreshToken(
-    _ input: Operations.refreshToken.Input
-  ) async throws -> Operations.refreshToken.Output {
+    _ input: Operations.RefreshToken.Input
+  ) async throws -> Operations.RefreshToken.Output {
     guard case .json(let body) = input.body else {
       throw HTTPError(.unauthorized)
     }

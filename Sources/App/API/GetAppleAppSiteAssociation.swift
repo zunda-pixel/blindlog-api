@@ -1,7 +1,7 @@
 extension API {
   func getAppleAppSiteAssociation(
-    _ input: Operations.getAppleAppSiteAssociation.Input
-  ) async throws -> Operations.getAppleAppSiteAssociation.Output {
+    _ input: Operations.GetAppleAppSiteAssociation.Input
+  ) async throws -> Operations.GetAppleAppSiteAssociation.Output {
     return .ok(
       .init(
         body: .json(
