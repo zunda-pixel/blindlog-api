@@ -7,7 +7,7 @@ import Valkey
 
 extension API {
   func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
-    guard let userID = BearerAuthenticateUser.current?.userID else {
+    guard let userID = User.currentUserID else {
       throw HTTPError(.unauthorized)
     }
 

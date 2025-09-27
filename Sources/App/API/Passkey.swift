@@ -11,7 +11,7 @@ extension API {
   func addPasskey(
     _ input: Operations.AddPasskey.Input
   ) async throws -> Operations.AddPasskey.Output {
-    guard let userID = BearerAuthenticateUser.current?.userID else {
+    guard let userID = User.currentUserID else {
       throw HTTPError(.unauthorized)
     }
     // 1. Parse request payload

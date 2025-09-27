@@ -37,12 +37,12 @@ extension API {
     let payload = try await jwtKeyCollection.verify(body.refreshToken, as: JWTPayloadData.self)
 
     guard let userID = UUID(uuidString: payload.subject.value) else {
-      //      context.logger.debug("Invalid JWT subject \(payload.subject.value)")
+      BasicRequestContext.current!.logger.debug("Invalid JWT subject \(payload.subject.value)")
       throw HTTPError(.unauthorized)
     }
     // verify expiration is not over.
     guard payload.expiration.value > Date() else {
-      //      context.logger.debug("Token expired")
+      BasicRequestContext.current!.logger.debug("Token expired")
       throw HTTPError(.unauthorized)
     }
 

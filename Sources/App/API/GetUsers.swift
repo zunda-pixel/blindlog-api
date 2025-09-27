@@ -38,12 +38,12 @@ extension API {
               .init(id: $0.id.uuidString)
             })))
     } catch {
-      //      logger.error(
-      //        """
-      //        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
-      //        Error: \(String(reflecting: error))
-      //        """
-      //      )
+      BasicRequestContext.current!.logger.error(
+        """
+        Failed to fetch users: \(ids.map(\.uuidString).formatted(.list(type: .and)))
+        Error: \(String(reflecting: error))
+        """
+      )
       throw HTTPError(.internalServerError)
     }
   }

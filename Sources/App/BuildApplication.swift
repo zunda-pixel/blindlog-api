@@ -119,6 +119,7 @@ func buildApplication(
   router.add(
     middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
   )
+  router.add(middleware: OpenAPIRequestContextMiddleware())
 
   try api.registerHandlers(on: router)
 

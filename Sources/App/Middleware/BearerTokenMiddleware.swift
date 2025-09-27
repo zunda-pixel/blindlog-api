@@ -45,14 +45,12 @@ struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
       return try await next(request, context)
     }
 
-    return try await BearerAuthenticateUser.$current.withValue(.init(userID: userID)) {
+    return try await User.$currentUserID.withValue(userID) {
       try await next(request, context)
     }
   }
 }
 
-struct BearerAuthenticateUser: Hashable {
-  @TaskLocal static var current: BearerAuthenticateUser?
-
-  var userID: UUID
+extension User {
+  @TaskLocal static var currentUserID: UUID?
 }
