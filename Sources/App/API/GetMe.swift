@@ -14,10 +14,14 @@ extension API {
     do {
       user = try await getUser(id: userID)
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to fetch a user
-        id: \(userID)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to fetch user profile",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
     return .ok(

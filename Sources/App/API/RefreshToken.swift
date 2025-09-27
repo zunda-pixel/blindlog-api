@@ -37,12 +37,12 @@ extension API {
     let payload = try await jwtKeyCollection.verify(body.refreshToken, as: JWTPayloadData.self)
 
     guard let userID = UUID(uuidString: payload.subject.value) else {
-      BasicRequestContext.current!.logger.debug("Invalid JWT subject \(payload.subject.value)")
+      BasicRequestContext.current?.logger.debug("Invalid JWT subject \(payload.subject.value)")
       throw HTTPError(.unauthorized)
     }
     // verify expiration is not over.
     guard payload.expiration.value > Date() else {
-      BasicRequestContext.current!.logger.debug("Token expired")
+      BasicRequestContext.current?.logger.debug("Token expired")
       throw HTTPError(.unauthorized)
     }
 
@@ -50,11 +50,14 @@ extension API {
     do {
       (token, refreshToken) = try await generateUserToken(userID: userID)
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to issue application tokens
-        userID: \(userID)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to issue tokens from refresh token",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.internalServerError)
     }
     return .ok(

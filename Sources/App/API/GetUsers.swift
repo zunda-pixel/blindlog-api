@@ -19,11 +19,14 @@ extension API {
         ids: ids
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to get users from cache and update expiration if exits
-        user ids: \(ids)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to fetch users from cache and update expiration",
+        metadata: [
+          "userIDs": .array(ids.map { .string($0.uuidString) }),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
@@ -35,11 +38,14 @@ extension API {
         ids: Array(leftUserIDs)
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to get users from cache and update expiration if exits
-        user ids: \(ids)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to fetch users from database",
+        metadata: [
+          "userIDs": .array(ids.map { .string($0.uuidString) }),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
     // 3. Set new users data to cache
@@ -48,11 +54,14 @@ extension API {
         users: dbUsers
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure set new users data to cache
-        user: \(dbUsers)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .warning,
+        "Failed to write users to cache",
+        metadata: [
+          "users": .array(dbUsers.map { .string(String(describing: $0)) }),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.internalServerError)
     }
 

@@ -16,11 +16,14 @@ extension API {
         try await User.insert { user }.execute(db)
       }
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to save a user
-        user: \(user)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to persist user",
+        metadata: [
+          "user": .string(user.id.uuidString),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
@@ -41,13 +44,15 @@ extension API {
       token = try await jwtKeyCollection.sign(tokenPayload)
       refreshToken = try await jwtKeyCollection.sign(refreshTokenPayload)
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to update stored sign counter
-        User: \(user)
-        tokenPayload: \(tokenPayload)
-        refreshTokenPayload: \(refreshTokenPayload)
-        Error: \(error)
-        """
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to sign user tokens",
+        metadata: [
+          "user": .string(String(describing: user)),
+          "tokenPayload": .string(String(describing: tokenPayload)),
+          "refreshTokenPayload": .string(String(describing: refreshTokenPayload)),
+          "error": .string(String(describing: error))
+        ]
       )
       throw HTTPError(.badRequest)
     }

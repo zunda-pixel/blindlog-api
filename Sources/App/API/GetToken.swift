@@ -25,11 +25,14 @@ extension API {
         from: data
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to parse request payload
-        bodyData: \(bodyData)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to parse token request payload",
+        metadata: [
+          "bodyData": .string(String(describing: bodyData)),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
@@ -56,11 +59,14 @@ extension API {
         throw HTTPError(.badRequest)
       }
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to verify and delete challenge atomically
-        Challenge: \(bodyData.challenge)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to verify and delete authentication challenge",
+        metadata: [
+          "challenge": .string(String(describing: bodyData.challenge)),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
@@ -75,11 +81,14 @@ extension API {
           .fetchOne(db)
       }
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to load stored credential
-        credentail id: \(credential.id.asString())
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to load stored passkey credential",
+        metadata: [
+          "credentialID": .string(credential.id.asString()),
+          "error": .string(String(describing: error)),
+        ]
+      )
       throw HTTPError(.badRequest)
     }
     
@@ -97,13 +106,16 @@ extension API {
         credentialCurrentSignCount: UInt32(passkeyCredential.signCount)
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to verify assertion with WebAuthn
-        Credential: \(credential)
-        Challenge: \(bodyData.challenge)
-        PasskeyCredentail: \(passkeyCredential)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to verify WebAuthn assertion",
+        metadata: [
+          "credential": .string(String(describing: credential)),
+          "challenge": .string(String(describing: bodyData.challenge)),
+          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "error": .string(String(describing: error)),
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
@@ -120,13 +132,16 @@ extension API {
           .execute(db)
       }
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to update stored sign counter
-        Credential: \(credential)
-        Challenge: \(bodyData.challenge)
-        PasskeyCredentail: \(passkeyCredential)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to update stored sign counter",
+        metadata: [
+          "credential": .string(String(describing: credential)),
+          "challenge": .string(String(describing: bodyData.challenge)),
+          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
@@ -137,13 +152,16 @@ extension API {
         userID: passkeyCredential.userID
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to issue application tokens
-        Credential: \(credential)
-        Challenge: \(bodyData.challenge)
-        PasskeyCredentail: \(passkeyCredential)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to issue application tokens",
+        metadata: [
+          "credential": .string(String(describing: credential)),
+          "challenge": .string(String(describing: bodyData.challenge)),
+          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 

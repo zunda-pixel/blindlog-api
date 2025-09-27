@@ -40,12 +40,15 @@ extension API {
         }.execute(db)
       }
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to save challenge to DB with expired date
-        Challenge: \(challenge)
-        userID: \(userID)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to save challenge with expiration",
+        metadata: [
+          "challenge": .string(Data(challenge).base64EncodedString()),
+          "userID": .string(userID?.uuidString ?? "nil"),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 

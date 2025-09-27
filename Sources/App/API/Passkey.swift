@@ -24,11 +24,14 @@ extension API {
         from: bodyData
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to decode WebAuthn registration
-        Body: \(body)
-        Error: \(error)
-      """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to decode WebAuthn registration",
+        metadata: [
+          "body": .string(String(describing: body)),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
     // 2. Verify and delete challenge atomically
@@ -53,11 +56,15 @@ extension API {
         throw HTTPError(.badRequest)
       }
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to veryfy and delete challnge atomically
-        Challenge: \(challengeData.base64EncodedString())
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to verify and delete registration challenge",
+        metadata: [
+          "challenge": .string(challengeData.base64EncodedString()),
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
@@ -79,11 +86,15 @@ extension API {
         }
       )
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to validate WebAuthn registration data
-        Challenge: \(registrationCredential)
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to validate WebAuthn registration",
+        metadata: [
+          "registrationCredential": .string(String(describing: registrationCredential)),
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
     // 4. Persist credential metadata
@@ -100,11 +111,15 @@ extension API {
         .execute(db)
       }
     } catch {
-      BasicRequestContext.current!.logger.info("""
-        Failure to persist credential metadata
-        credentail id: \(registrationCredential.id.asString())
-        Error: \(error)
-        """)
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to persist passkey credential",
+        metadata: [
+          "credentialID": .string(registrationCredential.id.asString()),
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error))
+        ]
+      )
       throw HTTPError(.badRequest)
     }
 
