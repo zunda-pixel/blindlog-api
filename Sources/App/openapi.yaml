@@ -70,8 +70,6 @@ paths:
   /token:
     post:
       operationId: createToken
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
