@@ -5,6 +5,7 @@ import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
+import Valkey
 import WebAuthn
 
 extension API {
@@ -37,24 +38,20 @@ extension API {
     // 2. Verify and delete challenge atomically
     let challengeData = Data(input.query.challenge.data)
     do {
-      let row = try await database.write { db in
-        try await Challenge
-          .delete()
-          .where {
-            $0.challenge.eq(challengeData)
-              .and(
-                $0.userID.eq(userID)
-                  .and(
-                    $0.purpose.eq(Challenge.Purpose.registration)
-                      .and($0.expiredDate.gt(Date.currentTimestamp))))
-          }
-          .returning(\.self)
-          .fetchOne(db)
-      }
+      let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
 
-      guard row != nil else {
+      let data = try await cache.get(key)
+      let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: $0) }
+
+      guard let challenge else {
         return .badRequest(.init())
       }
+
+      guard challenge.userID == userID && challenge.purpose == .registration else {
+        return .badRequest(.init())
+      }
+
+      try await cache.del(keys: [key])
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
