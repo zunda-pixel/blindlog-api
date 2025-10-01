@@ -104,7 +104,7 @@ func buildApplication(
       challengeGenerator: .init {
         // https://www.w3.org/TR/webauthn-3/#sctn-appid-exclude-extension
         // challenge parameter 32 random bytes
-        Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) // 36 bytes
+        Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce()))  // 36 bytes
       }
     ),
     appleAppSiteAssociation: .init(
