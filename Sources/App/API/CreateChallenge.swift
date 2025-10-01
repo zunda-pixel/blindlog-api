@@ -3,6 +3,7 @@ import Hummingbird
 import OpenAPIRuntime
 import Records
 import StructuredQueriesPostgresCore
+import Valkey
 import WebAuthn
 
 extension API {
@@ -29,16 +30,16 @@ extension API {
 
     // 2. Save Challenge to DB with expired date
     do {
-      try await database.write { db in
-        try await Challenge.insert {
-          Challenge(
-            challenge: Data(challenge),
-            expiredDate: Date(timeIntervalSinceNow: 10 * 60),  // 10 minutes
-            userID: userID,
-            purpose: userID == nil ? .authentication : .registration
-          )
-        }.execute(db)
-      }
+      let challenge = Challenge(
+        challenge: Data(challenge),
+        userID: userID,
+        purpose: userID == nil ? .authentication : .registration
+      )
+      try await cache.set(
+        ValkeyKey("challenge:\(challenge.challenge.base64EncodedString())"),
+        value: try JSONEncoder().encode(challenge),
+        expiration: .seconds(60 * 10)  // 10 minutes
+      )
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,

@@ -1,14 +1,11 @@
 import Foundation
-import StructuredQueriesPostgres
 
-@Table("challenges")
-struct Challenge {
+struct Challenge: Codable {
   var challenge: Data
-  @Column("expired_date") var expiredDate: Date
-  @Column("user_id") var userID: UUID?
-  @Column("purpose") var purpose: Purpose
+  var userID: UUID?
+  var purpose: Purpose
 
-  enum Purpose: String, QueryBindable {
+  enum Purpose: String, Codable {
     case registration
     case authentication
   }
