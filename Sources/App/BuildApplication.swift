@@ -102,7 +102,10 @@ func buildApplication(
         relyingPartyOrigin: try environment.require("RELYING_PARTY_ORIGIN")
       ),
       challengeGenerator: .init {
-        Array(Data(AES.GCM.Nonce()))
+        // https://www.w3.org/TR/webauthn-3/#sctn-appid-exclude-extension
+        // challenge parameter 32 random bytes
+        // 36 bytes
+        Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce()))
       }
     ),
     appleAppSiteAssociation: .init(
