@@ -16,3 +16,8 @@ CREATE TABLE public.totps (
   userID uuid NOT null references users(id),
   email varchar not null
 );
+
+CREATE TABLE public.user_email (
+  userID uuid NOT null references users(id),
+  email varchar not null
+);

@@ -109,7 +109,7 @@ extension API {
     return .ok
   }
 
-  fileprivate func normalizeEmail(_ email: String) -> String {
+  func normalizeEmail(_ email: String) -> String {
     email.trimming(while: \.isWhitespace).lowercased()
   }
 }
