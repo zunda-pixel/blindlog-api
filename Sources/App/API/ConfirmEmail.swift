@@ -27,7 +27,7 @@ extension API {
           .returning(\.self)
           .fetchOne(db)
       }
-      
+
       guard row != nil else {
         return .badRequest(.init())
       }
@@ -43,7 +43,7 @@ extension API {
       )
       return .badRequest(.init())
     }
-    
+
     // 2. Save email to db
     do {
       try await database.write { db in
@@ -66,7 +66,7 @@ extension API {
       )
       return .badRequest(.init())
     }
-    
+
     return .ok
   }
 }
