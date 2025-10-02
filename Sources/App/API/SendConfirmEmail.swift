@@ -16,7 +16,7 @@ extension API {
   ) async throws -> Operations.SendConfirmEmail.Output {
     guard let userID = User.currentUserID else { return .unauthorized }
     let ses: SESv2Client
-    
+
     do {
       let config = try await SESv2Client.SESv2ClientConfiguration(
         awsCredentialIdentityResolver: awsCredentail,
@@ -66,33 +66,12 @@ extension API {
       fromEmailAddress: "support@blindlog.me"
     )
 
-    let messageID: String
-    
-    // 1. Send email
-    do {
-      let output = try await ses.sendEmail(input: input)
-      guard let messageId = output.messageId else { return .badRequest(.init()) }
-      messageID = messageId
-    } catch {
-      BasicRequestContext.current?.logger.log(
-        level: .error,
-        "Failed to send email",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "email": .string(normalizedEmail),
-          "error": .string(String(describing: error)),
-        ]
-      )
-      return .badRequest(.init())
-    }
-
-    // 2. Save TOTP to db
+    // 1. Save TOTP to db
     do {
       try await database.write { db in
         try await TOTP.insert {
           TOTP(
             password: Data(SHA256.hash(data: Data(String(totpPassword).utf8))),
-            messageID: messageID,
             userID: userID,
             email: normalizedEmail
           )
@@ -105,7 +84,22 @@ extension API {
         metadata: [
           "userID": .string(userID.uuidString),
           "email": .string(normalizedEmail),
-          "messageID": .string(messageID),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      return .badRequest(.init())
+    }
+
+    // 2. Send email
+    do {
+      _ = try await ses.sendEmail(input: input)
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to send email",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "email": .string(normalizedEmail),
           "error": .string(String(describing: error)),
         ]
       )
