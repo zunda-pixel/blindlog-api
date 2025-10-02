@@ -34,6 +34,7 @@ let package = Package(
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
     .package(url: "https://github.com/coenttb/swift-records.git", from: "0.0.1"),
     .package(url: "https://github.com/pointfreeco/swift-tagged.git", from: "0.10.0"),
+    .package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.5.0"),
   ],
   targets: [
     .executableTarget(
@@ -42,6 +43,7 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
         .product(name: "Hummingbird", package: "hummingbird"),
         .product(name: "HummingbirdAuth", package: "hummingbird-auth"),
+        .product(name: "HummingbirdOTP", package: "hummingbird-auth"),
         .product(name: "HummingbirdPostgres", package: "hummingbird-postgres"),
         .product(name: "PostgresKit", package: "postgres-kit"),
         .product(name: "Valkey", package: "valkey-swift"),
@@ -50,6 +52,7 @@ let package = Package(
         .product(name: "JWTKit", package: "jwt-kit"),
         .product(name: "Records", package: "swift-records"),
         .product(name: "Tagged", package: "swift-tagged"),
+        .product(name: "AWSSESv2", package: "aws-sdk-swift"),
       ],
       swiftSettings: [
         .enableUpcomingFeature("ExistentialAny"),

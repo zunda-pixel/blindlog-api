@@ -23,12 +23,15 @@ jobs:
       RELYING_PARTY_ORIGIN: http://localhost:8080
       RELYING_PARTY_ID: localhost
       RELYING_PARTY_NAME: Local Host Relying Party
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Start DB & Cache (wait for health)
         run: docker compose up -d --wait postgres valkey
       - name: Run tests (Swift in Docker)
-        run: docker compose run --rm swift bash -lc "swift test --parallel"
+        run: docker compose run --rm swift bash -lc "apt-get update && apt-get install -y libssl-dev && swift test --parallel"
       - name: Shutdown
         run: docker compose down -v

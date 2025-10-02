@@ -156,6 +156,52 @@ paths:
                   $ref: '#/components/schemas/User'
         '400':
           description: A bad request
+  /email/verify/start:
+    post:
+      operationId: sendConfirmEmail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: query
+          description: ID of user to return
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: A success response with a user.
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+  /email/verify:
+    post:
+      operationId: confirmEmail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: query
+          description: ID of user to return
+          required: true
+          schema:
+            type: string
+            format: email
+        - name: password
+          in: query
+          description: ID of user to return
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A success response with a user.
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
 components:
   securitySchemes:
     bearerAuth:
