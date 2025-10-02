@@ -10,3 +10,10 @@ CREATE TABLE public.passkey_credentials (
   sign_count bigint not null,
   CONSTRAINT passkey_credentials_pk PRIMARY KEY (id)
 );
+
+CREATE TABLE public.totps (
+  password varchar not null,
+  messageID varchar not null,
+  userID uuid NOT null references users(id),
+  email varchar not null
+);
