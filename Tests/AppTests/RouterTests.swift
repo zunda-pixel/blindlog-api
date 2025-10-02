@@ -232,7 +232,7 @@ struct RouterTests {
       #expect(addPasskeyResponse.status == .ok)
     }
   }
-  
+
   @Test
   func sendConfirmEmailAPI() async throws {
     let arguments = TestArguments()
@@ -245,13 +245,13 @@ struct RouterTests {
       )
       #expect(signupResponse.status == .ok)
       let addedUser = try JSONDecoder().decode(UserToken.self, from: signupResponse.body)
-      
+
       let response = try await client.execute(
         uri: "/email/verify/start?email=zunda.dev@gmail.com",
         method: .post,
         headers: [.authorization: "Bearer \(addedUser.token)"]
       )
-      
+
       #expect(response.status == .ok)
     }
   }
