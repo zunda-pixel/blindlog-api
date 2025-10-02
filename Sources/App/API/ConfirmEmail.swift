@@ -2,7 +2,6 @@ import Algorithms
 import Crypto
 import Foundation
 import Hummingbird
-import HummingbirdOTP
 import PostgresNIO
 import Records
 import SQLKit
@@ -17,15 +16,15 @@ extension API {
     let hashedPassword = Data(SHA256.hash(data: Data(input.query.password.utf8)))
     // 1. Verify totp
     do {
-      let row = try await database.read { db in
+      let row = try await database.write { db in
         try await TOTP
-          .select(\.self)
+          .delete()
           .where {
             $0.userID.eq(userID)
               .and($0.email.eq(email))
               .and($0.password.eq(hashedPassword))
           }
-          .limit(1)
+          .returning(\.self)
           .fetchOne(db)
       }
       
