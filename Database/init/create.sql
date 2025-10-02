@@ -12,7 +12,7 @@ CREATE TABLE public.passkey_credentials (
 );
 
 CREATE TABLE public.totps (
-  password varchar not null,
+  password bytea not null,
   messageID varchar not null,
   userID uuid NOT null references users(id),
   email varchar not null

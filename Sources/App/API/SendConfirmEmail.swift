@@ -68,6 +68,7 @@ extension API {
 
     let messageID: String
     
+    // 1. Send email
     do {
       let output = try await ses.sendEmail(input: input)
       guard let messageId = output.messageId else { return .badRequest(.init()) }
@@ -85,16 +86,30 @@ extension API {
       return .badRequest(.init())
     }
 
-    // 2. Save totp
-    try await database.write { db in
-      try await TOTP.insert {
-        TOTP(
-          password: String(totpPassword),
-          messageID: messageID,
-          userID: userID,
-          email: normalizedEmail
-        )
-      }.execute(db)
+    // 2. Save TOTP to db
+    do {
+      try await database.write { db in
+        try await TOTP.insert {
+          TOTP(
+            password: Data(SHA256.hash(data: Data(String(totpPassword).utf8))),
+            messageID: messageID,
+            userID: userID,
+            email: normalizedEmail
+          )
+        }.execute(db)
+      }
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to save TOTP to db",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "email": .string(normalizedEmail),
+          "messageID": .string(messageID),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      return .badRequest(.init())
     }
 
     return .ok
