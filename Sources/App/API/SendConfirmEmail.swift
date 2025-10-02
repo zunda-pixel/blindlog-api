@@ -70,14 +70,15 @@ extension API {
     
     do {
       let output = try await ses.sendEmail(input: input)
-      guard messageID = output.messageId else { return .badRequest(.init()) }
+      guard let messageId = output.messageId else { return .badRequest(.init()) }
+      messageID = messageId
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
         "Failed to send email",
         metadata: [
           "userID": .string(userID.uuidString),
-          "email": normalizedEmail,
+          "email": .string(normalizedEmail),
           "error": .string(String(describing: error)),
         ]
       )
