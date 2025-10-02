@@ -15,12 +15,25 @@ extension API {
     _ input: Operations.SendConfirmEmail.Input
   ) async throws -> Operations.SendConfirmEmail.Output {
     guard let userID = User.currentUserID else { return .unauthorized }
-
-    let config = try await SESv2Client.SESv2ClientConfiguration(
-      awsCredentialIdentityResolver: awsCredentail,
-      region: awsRegion,
-    )
-    let ses = SESv2Client(config: config)
+    let ses: SESv2Client
+    
+    do {
+      let config = try await SESv2Client.SESv2ClientConfiguration(
+        awsCredentialIdentityResolver: awsCredentail,
+        region: awsRegion,
+      )
+      ses = SESv2Client(config: config)
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to initialize SESv2Client",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      return .badRequest(.init())
+    }
 
     let normalizedEmail = normalizeEmail(input.query.email)
 
@@ -53,15 +66,30 @@ extension API {
       fromEmailAddress: "support@blindlog.me"
     )
 
-    let output = try await ses.sendEmail(input: input)
-    guard let messageId = output.messageId else { return .badRequest(.init()) }
+    let messageID: String
+    
+    do {
+      let output = try await ses.sendEmail(input: input)
+      guard messageID = output.messageId else { return .badRequest(.init()) }
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to send email",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "email": normalizedEmail,
+          "error": .string(String(describing: error)),
+        ]
+      )
+      return .badRequest(.init())
+    }
 
     // 2. Save totp
     try await database.write { db in
       try await TOTP.insert {
         TOTP(
           password: String(totpPassword),
-          messageID: messageId,
+          messageID: messageID,
           userID: userID,
           email: normalizedEmail
         )
@@ -71,7 +99,7 @@ extension API {
     return .ok
   }
 
-  func normalizeEmail(_ email: String) -> String {
+  fileprivate func normalizeEmail(_ email: String) -> String {
     email.trimming(while: \.isWhitespace).lowercased()
   }
 }
