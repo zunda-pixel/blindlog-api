@@ -1,3 +1,4 @@
+import AWSSDKIdentity
 import JWTKit
 import PostgresNIO
 import Valkey
@@ -9,4 +10,6 @@ struct API: APIProtocol {
   var jwtKeyCollection: JWTKeyCollection
   var webAuthn: WebAuthnManager
   var appleAppSiteAssociation: AppleAppSiteAssociation
+  let awsCredentail: StaticAWSCredentialIdentityResolver
+  let awsRegion: String
 }

@@ -7,6 +7,7 @@ import Logging
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
+import SmithyIdentity
 import Valkey
 import WebAuthn
 
@@ -112,7 +113,13 @@ func buildApplication(
       webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
       appclips: .init(apps: []),
       applinks: .init(details: [])
-    )
+    ),
+    awsCredentail: .init(
+      .init(
+        accessKey: try environment.require("AWS_ACCESS_KEY_ID"),
+        secret: try environment.require("AWS_SECRET_ACCESS_KEY")
+      )),
+    awsRegion: try environment.require("AWS_REGION")
   )
 
   router.add(middleware: TracingMiddleware())
