@@ -3,6 +3,6 @@ import Records
 
 @Table("user_email")
 struct UserEmail: Codable, Hashable {
-  var userID: UUID
+  @Column("user_id") var userID: UUID
   var email: String
 }

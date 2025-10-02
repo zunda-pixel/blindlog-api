@@ -4,6 +4,6 @@ import Records
 @Table("totps")
 struct TOTP: Codable, Hashable {
   var password: Data
-  var userID: User.ID
+  @Column("user_id") var userID: User.ID
   var email: String
 }
