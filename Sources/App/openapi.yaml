@@ -218,13 +218,23 @@ components:
         token:
           type: string
           description: User token.
+        tokenExpiredDate:
+          type: number
+          format: double
+          description: User token expired date.
         refreshToken:
           type: string
           description: User refresh token.
+        refreshTokenExpiredDate:
+          type: number
+          format: double
+          description: User refresh token expired date.
       required:
         - userID
         - token
+        - tokenExpiredDate
         - refreshToken
+        - refreshTokenExpiredDate
     User:
       type: object
       description: A value with the User contents.

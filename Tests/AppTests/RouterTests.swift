@@ -13,6 +13,12 @@ struct TestArguments: AppArguments {
   var env: EnvironmentLevel = .develop
 }
 
+struct UserToken: Codable, Hashable {
+  var userID: UUID
+  var token: String
+  var refreshToken: String
+}
+
 @Suite(.serialized)
 struct RouterTests {
   @Test
@@ -54,7 +60,7 @@ struct RouterTests {
 
       #expect(getResponse.status == .ok)
       let getUser = try JSONDecoder().decode(User.self, from: getResponse.body)
-      #expect(addedUser.id == getUser.id)
+      #expect(addedUser.userID == getUser.id)
     }
   }
 
@@ -88,7 +94,7 @@ struct RouterTests {
         return users
       }
 
-      let idsQuery = newUsers.map(\.id.uuidString).joined(separator: ",")
+      let idsQuery = newUsers.map(\.userID.uuidString).joined(separator: ",")
 
       // 2. Get Users from Database and add to Cache
       try await client.execute(
@@ -97,7 +103,7 @@ struct RouterTests {
       ) { response in
         #expect(response.status == .ok)
         let dbUsers = try JSONDecoder().decode([User].self, from: response.body)
-        #expect(Set(newUsers.map(\.id)) == Set(dbUsers.map(\.id)))
+        #expect(Set(newUsers.map(\.userID)) == Set(dbUsers.map(\.id)))
       }
 
       // 3. Get Users from Cache
@@ -107,7 +113,7 @@ struct RouterTests {
       ) { response in
         #expect(response.status == .ok)
         let cachedUsers = try JSONDecoder().decode([User].self, from: response.body)
-        #expect(Set(newUsers.map(\.id)) == Set(cachedUsers.map(\.id)))
+        #expect(Set(newUsers.map(\.userID)) == Set(cachedUsers.map(\.id)))
       }
     }
   }
@@ -134,7 +140,7 @@ struct RouterTests {
 
       #expect(refreshResponse.status == .ok)
       let getUser = try JSONDecoder().decode(UserToken.self, from: refreshResponse.body)
-      #expect(addedUser.id == getUser.id)
+      #expect(addedUser.userID == getUser.userID)
     }
   }
 

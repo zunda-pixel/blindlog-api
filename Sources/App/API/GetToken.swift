@@ -142,10 +142,9 @@ extension API {
     }
 
     // 6. Issue application tokens
-    let token: String
-    let refreshToken: String
+    let userToken: Components.Schemas.UserToken
     do {
-      (token, refreshToken) = try await generateUserToken(
+      userToken = try await generateUserToken(
         userID: passkeyCredential.userID
       )
     } catch {
@@ -162,16 +161,6 @@ extension API {
       return .badRequest(.init())
     }
 
-    return .ok(
-      .init(
-        body: .json(
-          .init(
-            userID: passkeyCredential.userID.uuidString,
-            token: token,
-            refreshToken: refreshToken
-          )
-        )
-      )
-    )
+    return .ok(.init(body: .json(userToken)))
   }
 }

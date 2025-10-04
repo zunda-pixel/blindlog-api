@@ -27,43 +27,20 @@ extension API {
       return .badRequest(.init())
     }
 
-    let tokenPayload = JWTPayloadData(
-      subject: .init(value: user.id.uuidString),
-      expiration: .init(value: Date(timeIntervalSinceNow: 1 * 60 * 60)),  // 1 hour
-      tokenType: .token
-    )
-
-    let refreshTokenPayload = JWTPayloadData(
-      subject: .init(value: user.id.uuidString),
-      expiration: .init(value: Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)),  // 1 year
-      tokenType: .refreshToken
-    )
-
-    let token: String
-    let refreshToken: String
+    let userToken: Components.Schemas.UserToken
     do {
-      token = try await jwtKeyCollection.sign(tokenPayload)
-      refreshToken = try await jwtKeyCollection.sign(refreshTokenPayload)
+      userToken = try await generateUserToken(userID: user.id)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
         "Failed to sign user tokens",
         metadata: [
           "user": .string(String(describing: user)),
-          "tokenPayload": .string(String(describing: tokenPayload)),
-          "refreshTokenPayload": .string(String(describing: refreshTokenPayload)),
           "error": .string(String(describing: error)),
         ]
       )
       return .badRequest(.init())
     }
-    return .ok(
-      .init(
-        body: .json(
-          .init(
-            userID: user.id.uuidString,
-            token: token,
-            refreshToken: refreshToken
-          ))))
+    return .ok(.init(body: .json(userToken)))
   }
 }
