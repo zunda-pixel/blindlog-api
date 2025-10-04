@@ -26,9 +26,14 @@ struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
       context.logger.debug("Invalid JWT subject \(payload.subject.value)")
       return nil
     }
-    // verify expiration is not over.
+    // verify expiration is not over
     guard payload.expiration.value > Date() else {
       context.logger.debug("Token expired")
+      return nil
+    }
+    // verify token type
+    guard payload.tokenType == .token else {
+      context.logger.debug("Token type is not token")
       return nil
     }
 

@@ -6,27 +6,6 @@ import SQLKit
 import Valkey
 
 extension API {
-  func generateUserToken(
-    userID: UUID
-  ) async throws -> (token: String, refreshToken: String) {
-    let tokenPayload = JWTPayloadData(
-      subject: .init(value: userID.uuidString),
-      expiration: .init(value: Date(timeIntervalSinceNow: 1 * 60 * 60)),  // 1 hour
-      userName: userID.uuidString
-    )
-
-    let refreshTokenPayload = JWTPayloadData(
-      subject: .init(value: userID.uuidString),
-      expiration: .init(value: Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)),  // 1 year
-      userName: userID.uuidString
-    )
-
-    let token = try await jwtKeyCollection.sign(tokenPayload)
-    let refreshToken = try await jwtKeyCollection.sign(refreshTokenPayload)
-
-    return (token, refreshToken)
-  }
-
   func refreshToken(
     _ input: Operations.RefreshToken.Input
   ) async throws -> Operations.RefreshToken.Output {
@@ -46,10 +25,14 @@ extension API {
       return .unauthorized(.init())
     }
 
-    let token: String
-    let refreshToken: String
+    guard payload.tokenType == .refreshToken else {
+      BasicRequestContext.current?.logger.debug("Token type is not refresh token")
+      return .unauthorized(.init())
+    }
+
+    let userToken: Components.Schemas.UserToken
     do {
-      (token, refreshToken) = try await generateUserToken(userID: userID)
+      userToken = try await generateUserToken(userID: userID)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
@@ -61,13 +44,6 @@ extension API {
       )
       return .badRequest(.init())
     }
-    return .ok(
-      .init(
-        body: .json(
-          .init(
-            id: userID.uuidString,
-            token: token,
-            refreshToken: refreshToken
-          ))))
+    return .ok(.init(body: .json(userToken)))
   }
 }
