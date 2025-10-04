@@ -1,5 +1,5 @@
 CREATE TABLE public.users (
-  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  id uuid NOT NULL,
   CONSTRAINT users_pk PRIMARY KEY (id)
 );
 

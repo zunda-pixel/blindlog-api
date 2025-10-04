@@ -1,5 +1,6 @@
 import Foundation
 import JWTKit
+import UUIDV7
 
 extension API {
   func generateUserToken(
@@ -8,17 +9,17 @@ extension API {
     let tokenExpiredDate = Date(timeIntervalSinceNow: 1 * 60 * 60)  // 1 hour
 
     let tokenPayload = JWTPayloadData(
+      tokenType: .token,
       subject: .init(value: userID.uuidString),
       expiration: .init(value: tokenExpiredDate),
-      tokenType: .token
     )
 
     let refreshTokenExpiredDate = Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)  // 1 year
 
     let refreshTokenPayload = JWTPayloadData(
+      tokenType: .refreshToken,
       subject: .init(value: userID.uuidString),
       expiration: .init(value: refreshTokenExpiredDate),
-      tokenType: .refreshToken
     )
 
     let token = try await jwtKeyCollection.sign(tokenPayload)

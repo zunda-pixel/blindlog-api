@@ -4,12 +4,13 @@ import JWTKit
 import PostgresNIO
 import Records
 import SQLKit
+import UUIDV7
 
 extension API {
   func createUser(
     _ input: Operations.CreateUser.Input
   ) async throws -> Operations.CreateUser.Output {
-    let user = User(id: UUID())
+    let user = User(id: UUIDV7().rawValue)
 
     do {
       try await database.write { db in
