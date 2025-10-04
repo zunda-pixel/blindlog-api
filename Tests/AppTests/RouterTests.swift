@@ -42,7 +42,10 @@ struct RouterTests {
         method: .post
       )
       #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(Components.Schemas.UserToken.self, from: signupResponse.body)
+      let addedUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: signupResponse.body
+      )
       // 2. Get User to DB
       let getResponse = try await client.execute(
         uri: "/me",
@@ -73,7 +76,10 @@ struct RouterTests {
               method: .post
             ) { response in
               #expect(response.status == .ok)
-              return try JSONDecoder().decode(Components.Schemas.UserToken.self, from: response.body)
+              return try JSONDecoder().decode(
+                Components.Schemas.UserToken.self,
+                from: response.body
+              )
             }
             return newUser
           }
@@ -124,7 +130,8 @@ struct RouterTests {
         method: .post
       )
       #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(Components.Schemas.UserToken.self, from: signupResponse.body)
+      let addedUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self, from: signupResponse.body)
       // 2. Get User to DB
       let refreshResponse = try await client.execute(
         uri: "/refreshToken",
@@ -133,7 +140,10 @@ struct RouterTests {
       )
 
       #expect(refreshResponse.status == .ok)
-      let getUser = try JSONDecoder().decode(Components.Schemas.UserToken.self, from: refreshResponse.body)
+      let getUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: refreshResponse.body
+      )
       #expect(addedUser.userID == getUser.userID)
     }
   }
@@ -150,7 +160,10 @@ struct RouterTests {
         method: .post
       )
       #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(Components.Schemas.UserToken.self, from: signupResponse.body)
+      let addedUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: signupResponse.body
+      )
       // 2. Get User to DB
       let challengeResponse = try await client.execute(
         uri: "/challenge",
@@ -195,7 +208,10 @@ struct RouterTests {
         method: .post
       )
       #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(Components.Schemas.UserToken.self, from: signupResponse.body)
+      let addedUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: signupResponse.body
+      )
       // 2. Get User to DB
       let challengeResponse = try await client.execute(
         uri: "/challenge",
@@ -244,7 +260,10 @@ struct RouterTests {
         method: .post
       )
       #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(Components.Schemas.UserToken.self, from: signupResponse.body)
+      let addedUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: signupResponse.body
+      )
 
       let response = try await client.execute(
         uri: "/email/verify/start?email=zunda.dev@gmail.com",
