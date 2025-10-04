@@ -37,27 +37,27 @@ struct RouterTests {
 
     try await app.test(.router) { client in
       // 1. Add User to DB
-      let signupResponse = try await client.execute(
+      let newUserResponse = try await client.execute(
         uri: "/user",
         method: .post
       )
-      #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
         Components.Schemas.UserToken.self,
-        from: signupResponse.body
+        from: newUserResponse.body
       )
       // 2. Get User to DB
       let getResponse = try await client.execute(
         uri: "/me",
         method: .get,
         headers: [
-          .authorization: "Bearer \(addedUser.token)"
+          .authorization: "Bearer \(newUser.token)"
         ]
       )
 
       #expect(getResponse.status == .ok)
       let getUser = try JSONDecoder().decode(User.self, from: getResponse.body)
-      #expect(addedUser.userID == getUser.id.uuidString)
+      #expect(newUser.userID == getUser.id.uuidString)
     }
   }
 
@@ -125,18 +125,18 @@ struct RouterTests {
 
     try await app.test(.router) { client in
       // 1. Add User to DB
-      let signupResponse = try await client.execute(
+      let newUserResponse = try await client.execute(
         uri: "/user",
         method: .post
       )
-      #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(
-        Components.Schemas.UserToken.self, from: signupResponse.body)
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self, from: newUserResponse.body)
       // 2. Get User to DB
       let refreshResponse = try await client.execute(
         uri: "/refreshToken",
         method: .post,
-        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": addedUser.refreshToken]))
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": newUser.refreshToken]))
       )
 
       #expect(refreshResponse.status == .ok)
@@ -144,7 +144,7 @@ struct RouterTests {
         Components.Schemas.UserToken.self,
         from: refreshResponse.body
       )
-      #expect(addedUser.userID == getUser.userID)
+      #expect(newUser.userID == getUser.userID)
     }
   }
 
@@ -155,21 +155,21 @@ struct RouterTests {
 
     try await app.test(.router) { client in
       // 1. Add User to DB
-      let signupResponse = try await client.execute(
+      let newUserResponse = try await client.execute(
         uri: "/user",
         method: .post
       )
-      #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
         Components.Schemas.UserToken.self,
-        from: signupResponse.body
+        from: newUserResponse.body
       )
       // 2. Get User to DB
       let challengeResponse = try await client.execute(
         uri: "/challenge",
         method: .post,
         headers: [
-          .authorization: "Bearer \(addedUser.token)"
+          .authorization: "Bearer \(newUser.token)"
         ]
       )
 
@@ -203,21 +203,21 @@ struct RouterTests {
 
     try await app.test(.router) { client in
       // 1. Add User to DB
-      let signupResponse = try await client.execute(
+      let newUserResponse = try await client.execute(
         uri: "/user",
         method: .post
       )
-      #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
         Components.Schemas.UserToken.self,
-        from: signupResponse.body
+        from: newUserResponse.body
       )
       // 2. Get User to DB
       let challengeResponse = try await client.execute(
         uri: "/challenge",
         method: .post,
         headers: [
-          .authorization: "Bearer \(addedUser.token)"
+          .authorization: "Bearer \(newUser.token)"
         ]
       )
 
@@ -240,7 +240,7 @@ struct RouterTests {
         uri: "/passkey?challenge=\(challenge.base64EncodedString())",
         method: .post,
         headers: [
-          .authorization: "Bearer \(addedUser.token)"
+          .authorization: "Bearer \(newUser.token)"
         ],
         body: ByteBuffer(data: bodyData)
       )
@@ -255,20 +255,20 @@ struct RouterTests {
     let app = try await buildApplication(arguments)
 
     try await app.test(.router) { client in
-      let signupResponse = try await client.execute(
+      let newUserResponse = try await client.execute(
         uri: "/user",
         method: .post
       )
-      #expect(signupResponse.status == .ok)
-      let addedUser = try JSONDecoder().decode(
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
         Components.Schemas.UserToken.self,
-        from: signupResponse.body
+        from: newUserResponse.body
       )
 
       let response = try await client.execute(
         uri: "/email/verify/start?email=zunda.dev@gmail.com",
         method: .post,
-        headers: [.authorization: "Bearer \(addedUser.token)"]
+        headers: [.authorization: "Bearer \(newUser.token)"]
       )
 
       #expect(response.status == .ok)
