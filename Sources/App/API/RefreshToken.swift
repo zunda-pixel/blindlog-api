@@ -8,23 +8,33 @@ import Valkey
 extension API {
   func generateUserToken(
     userID: UUID
-  ) async throws -> (token: String, refreshToken: String) {
+  ) async throws -> Components.Schemas.UserToken {
+    let tokenExpiredDate = Date(timeIntervalSinceNow: 1 * 60 * 60)  // 1 hour
+
     let tokenPayload = JWTPayloadData(
       subject: .init(value: userID.uuidString),
-      expiration: .init(value: Date(timeIntervalSinceNow: 1 * 60 * 60)),  // 1 hour
-      userName: userID.uuidString
+      expiration: .init(value: tokenExpiredDate),
+      tokenType: .token
     )
+
+    let refreshTokenExpiredDate = Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)  // 1 year
 
     let refreshTokenPayload = JWTPayloadData(
       subject: .init(value: userID.uuidString),
-      expiration: .init(value: Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)),  // 1 year
-      userName: userID.uuidString
+      expiration: .init(value: refreshTokenExpiredDate),
+      tokenType: .refreshToken
     )
 
     let token = try await jwtKeyCollection.sign(tokenPayload)
     let refreshToken = try await jwtKeyCollection.sign(refreshTokenPayload)
 
-    return (token, refreshToken)
+    return .init(
+      userID: userID.uuidString,
+      token: token,
+      tokenExpiredDate: tokenExpiredDate.timeIntervalSinceReferenceDate,
+      refreshToken: refreshToken,
+      refreshTokenExpiredDate: refreshTokenExpiredDate.timeIntervalSinceReferenceDate
+    )
   }
 
   func refreshToken(
@@ -46,10 +56,14 @@ extension API {
       return .unauthorized(.init())
     }
 
-    let token: String
-    let refreshToken: String
+    guard payload.tokenType == .refreshToken else {
+      BasicRequestContext.current?.logger.debug("Token type is not refresh token")
+      return .unauthorized(.init())
+    }
+
+    let userToken: Components.Schemas.UserToken
     do {
-      (token, refreshToken) = try await generateUserToken(userID: userID)
+      userToken = try await generateUserToken(userID: userID)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
@@ -61,13 +75,6 @@ extension API {
       )
       return .badRequest(.init())
     }
-    return .ok(
-      .init(
-        body: .json(
-          .init(
-            id: userID.uuidString,
-            token: token,
-            refreshToken: refreshToken
-          ))))
+    return .ok(.init(body: .json(userToken)))
   }
 }
