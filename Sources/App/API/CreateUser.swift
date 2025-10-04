@@ -30,13 +30,13 @@ extension API {
     let tokenPayload = JWTPayloadData(
       subject: .init(value: user.id.uuidString),
       expiration: .init(value: Date(timeIntervalSinceNow: 1 * 60 * 60)),  // 1 hour
-      userName: user.id.uuidString
+      tokenType: .token
     )
 
     let refreshTokenPayload = JWTPayloadData(
       subject: .init(value: user.id.uuidString),
       expiration: .init(value: Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)),  // 1 year
-      userName: user.id.uuidString
+      tokenType: .refreshToken
     )
 
     let token: String
@@ -61,7 +61,7 @@ extension API {
       .init(
         body: .json(
           .init(
-            id: user.id.uuidString,
+            userID: user.id.uuidString,
             token: token,
             refreshToken: refreshToken
           ))))

@@ -166,7 +166,7 @@ extension API {
       .init(
         body: .json(
           .init(
-            id: passkeyCredential.userID.uuidString,
+            userID: passkeyCredential.userID.uuidString,
             token: token,
             refreshToken: refreshToken
           )

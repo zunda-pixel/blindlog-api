@@ -12,13 +12,13 @@ extension API {
     let tokenPayload = JWTPayloadData(
       subject: .init(value: userID.uuidString),
       expiration: .init(value: Date(timeIntervalSinceNow: 1 * 60 * 60)),  // 1 hour
-      userName: userID.uuidString
+      tokenType: .token
     )
 
     let refreshTokenPayload = JWTPayloadData(
       subject: .init(value: userID.uuidString),
       expiration: .init(value: Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)),  // 1 year
-      userName: userID.uuidString
+      tokenType: .refreshToken
     )
 
     let token = try await jwtKeyCollection.sign(tokenPayload)
@@ -46,6 +46,11 @@ extension API {
       return .unauthorized(.init())
     }
 
+    guard payload.tokenType == .refreshToken else {
+      BasicRequestContext.current?.logger.debug("Token type is not refresh token")
+      return .unauthorized(.init())
+    }
+
     let token: String
     let refreshToken: String
     do {
@@ -65,7 +70,7 @@ extension API {
       .init(
         body: .json(
           .init(
-            id: userID.uuidString,
+            userID: userID.uuidString,
             token: token,
             refreshToken: refreshToken
           ))))

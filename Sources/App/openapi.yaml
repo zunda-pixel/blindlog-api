@@ -88,8 +88,6 @@ paths:
   /refreshToken:
     post:
       operationId: refreshToken
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -213,7 +211,7 @@ components:
       type: object
       description: A value with the User contents.
       properties:
-        id:
+        userID:
           type: string
           format: uuid
           description: User id.
@@ -224,7 +222,7 @@ components:
           type: string
           description: User refresh token.
       required:
-        - id
+        - userID
         - token
         - refreshToken
     User:
