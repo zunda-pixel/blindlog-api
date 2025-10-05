@@ -55,6 +55,29 @@
     button:not(:disabled):active {
       transform: scale(0.97);
     }
+    input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid #cbd5f5;
+      background: #ffffff;
+      font-size: 1rem;
+      color: inherit;
+    }
+    input:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+    }
+    .field {
+      margin-bottom: 0.9rem;
+    }
+    .field label {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
     .status {
       min-height: 1.25rem;
       margin-top: 0.75rem;
@@ -74,6 +97,8 @@
       section { background: #1f2937; box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45); }
       button { background: #38bdf8; color: #0f172a; }
       button:not(:disabled):hover { background: #0ea5e9; }
+      input { background: #111827; border-color: #334155; color: #e2e8f0; }
+      input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.4); }
       pre { background: #020617; color: #cbd5f5; }
     }
   </style>
@@ -87,6 +112,23 @@
       <p>匿名ユーザーを作成して認証トークンを取得します。</p>
       <button id="create-user" type="button">ユーザー作成</button>
       <p id="create-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>メールアドレス認証</h2>
+      <p>トークンを使って確認メールを送り、受け取ったコードで認証します。</p>
+      <div class="field">
+        <label for="email-input">メールアドレス</label>
+        <input id="email-input" type="email" autocomplete="email" placeholder="user@example.com">
+      </div>
+      <button id="send-email" type="button">確認メール送信</button>
+      <p id="email-start-status" class="status" role="status"></p>
+      <div class="field">
+        <label for="email-code">確認コード</label>
+        <input id="email-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6桁のコード">
+      </div>
+      <button id="confirm-email" type="button">コードを送信</button>
+      <p id="email-confirm-status" class="status" role="status"></p>
     </section>
 
     <section>
@@ -123,15 +165,23 @@
       const elements = {
         buttons: {
           create: document.getElementById('create-user'),
+          sendEmail: document.getElementById('send-email'),
+          confirmEmail: document.getElementById('confirm-email'),
           addPasskey: document.getElementById('add-passkey'),
           login: document.getElementById('login'),
           logout: document.getElementById('logout'),
         },
         statuses: {
           create: document.getElementById('create-status'),
+          emailStart: document.getElementById('email-start-status'),
+          emailConfirm: document.getElementById('email-confirm-status'),
           passkey: document.getElementById('passkey-status'),
           login: document.getElementById('login-status'),
           logout: document.getElementById('logout-status'),
+        },
+        inputs: {
+          email: document.getElementById('email-input'),
+          code: document.getElementById('email-code'),
         },
         sessionOutput: document.getElementById('session-output'),
       };
@@ -158,6 +208,7 @@
           tokenExpiresAt: null,
           refreshToken: null,
           refreshTokenExpiresAt: null,
+          email: null,
         },
         apply(payload) {
           const data = this.data;
@@ -169,6 +220,10 @@
           data.refreshTokenExpiresAt = formatReferenceDate(payload?.refreshTokenExpiredDate);
           this.render();
         },
+        updateEmail(email) {
+          this.data.email = email ? email.trim() : null;
+          this.render();
+        },
         reset() {
           const data = this.data;
           data.userID = null;
@@ -176,6 +231,7 @@
           data.tokenExpiresAt = null;
           data.refreshToken = null;
           data.refreshTokenExpiresAt = null;
+          data.email = null;
           this.render();
         },
         render() {
@@ -356,6 +412,31 @@
         return response.json();
       }
 
+      async function sendVerificationEmail(email, token) {
+        const url = new URL('/email/verify/start', window.location.origin);
+        url.searchParams.set('email', email);
+        await ensureOk(
+          fetch(url, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          '確認メールの送信に失敗しました。'
+        );
+      }
+
+      async function confirmEmailAddress(email, code, token) {
+        const url = new URL('/email/verify', window.location.origin);
+        url.searchParams.set('email', email);
+        url.searchParams.set('password', code);
+        await ensureOk(
+          fetch(url, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          'メールアドレスの確認に失敗しました。'
+        );
+      }
+
       async function runWithButtonDisabled(button, action) {
         button.disabled = true;
         try {
@@ -367,14 +448,69 @@
 
       async function handleCreateUser() {
         status.set('create', 'ユーザー作成中...');
-        status.clear('passkey', 'login', 'logout');
+        status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'logout');
         try {
           const payload = await createUser();
           session.apply(payload);
+          session.updateEmail(null);
           status.set('create', 'ユーザーを作成しトークンを取得しました。');
         } catch (error) {
           console.error(error);
           status.set('create', error.message || 'ユーザー作成に失敗しました。', { error: true });
+        }
+      }
+
+      async function handleSendVerificationEmail() {
+        const { token } = session.data;
+        const email = elements.inputs.email.value.trim();
+        if (!token) {
+          status.set('emailStart', '先にユーザーを作成またはログインしてください。', { error: true });
+          return;
+        }
+        if (!email) {
+          status.set('emailStart', 'メールアドレスを入力してください。', { error: true });
+          return;
+        }
+
+        status.set('emailStart', '確認メール送信中...');
+        status.clear('emailConfirm', 'logout');
+        try {
+          await sendVerificationEmail(email, token);
+          session.updateEmail(email);
+          status.set('emailStart', '確認メールを送信しました。');
+        } catch (error) {
+          console.error(error);
+          status.set('emailStart', error.message || '確認メールの送信に失敗しました。', { error: true });
+        }
+      }
+
+      async function handleConfirmEmail() {
+        const { token } = session.data;
+        const email = elements.inputs.email.value.trim();
+        const code = elements.inputs.code.value.trim();
+        if (!token) {
+          status.set('emailConfirm', '先にユーザーを作成またはログインしてください。', { error: true });
+          return;
+        }
+        if (!email) {
+          status.set('emailConfirm', 'メールアドレスを入力してください。', { error: true });
+          return;
+        }
+        if (!code) {
+          status.set('emailConfirm', '確認コードを入力してください。', { error: true });
+          return;
+        }
+
+        status.set('emailConfirm', '確認コード送信中...');
+        status.clear('logout');
+        try {
+          await confirmEmailAddress(email, code, token);
+          session.updateEmail(email);
+          elements.inputs.code.value = '';
+          status.set('emailConfirm', 'メールアドレスを認証しました。');
+        } catch (error) {
+          console.error(error);
+          status.set('emailConfirm', error.message || 'メールアドレスの確認に失敗しました。', { error: true });
         }
       }
 
@@ -442,11 +578,13 @@
       function handleLogout() {
         session.reset();
         status.set('logout', 'ログアウトしました。');
-        status.clear('create', 'passkey', 'login');
+        status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login');
       }
 
-      const { create, addPasskey, login, logout } = elements.buttons;
+      const { create, sendEmail, confirmEmail, addPasskey, login, logout } = elements.buttons;
       create.addEventListener('click', () => runWithButtonDisabled(create, handleCreateUser));
+      sendEmail.addEventListener('click', () => runWithButtonDisabled(sendEmail, handleSendVerificationEmail));
+      confirmEmail.addEventListener('click', () => runWithButtonDisabled(confirmEmail, handleConfirmEmail));
       addPasskey.addEventListener('click', () => runWithButtonDisabled(addPasskey, handleAddPasskey));
       login.addEventListener('click', () => runWithButtonDisabled(login, handleLogin));
       logout.addEventListener('click', handleLogout);
