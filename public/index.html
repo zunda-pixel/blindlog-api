@@ -119,7 +119,13 @@
   <script>
     (() => {
       const supportsWebAuthn = 'PublicKeyCredential' in window;
-      const state = { id: null, token: null, refreshToken: null };
+      const state = {
+        userID: null,
+        token: null,
+        tokenExpiresAt: null,
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+      };
 
       const createBtn = document.getElementById('create-user');
       const addPasskeyBtn = document.getElementById('add-passkey');
@@ -138,15 +144,36 @@
       }
 
       function updateSessionOutput() {
-        if (!state.id) {
+        if (!state.userID) {
           sessionOutput.textContent = 'セッションがありません。';
           return;
         }
         sessionOutput.textContent = JSON.stringify({
-          id: state.id,
+          userID: state.userID,
           token: state.token,
+          tokenExpiresAt: state.tokenExpiresAt,
           refreshToken: state.refreshToken,
+          refreshTokenExpiresAt: state.refreshTokenExpiresAt,
         }, null, 2);
+      }
+
+      // Epoch used by Date.timeIntervalSinceReferenceDate (Jan 1, 2001 UTC).
+      const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
+
+      function formatReferenceDate(value) {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+          return null;
+        }
+        return new Date(APPLE_REFERENCE_DATE_MS + value * 1000).toISOString();
+      }
+
+      function applyUserTokenPayload(payload) {
+        const userID = payload?.userID ?? payload?.id ?? null;
+        state.userID = userID;
+        state.token = payload?.token ?? null;
+        state.tokenExpiresAt = formatReferenceDate(payload?.tokenExpiredDate);
+        state.refreshToken = payload?.refreshToken ?? null;
+        state.refreshTokenExpiresAt = formatReferenceDate(payload?.refreshTokenExpiredDate);
       }
 
       function normalizeBase64(input) {
@@ -275,9 +302,7 @@
           const response = await fetch('/user', { method: 'POST' });
           if (!response.ok) throw new Error('ユーザー作成に失敗しました。');
           const json = await response.json();
-          state.id = json.id;
-          state.token = json.token;
-          state.refreshToken = json.refreshToken;
+          applyUserTokenPayload(json);
           setStatus(createStatus, 'ユーザーを作成しトークンを取得しました。');
         } catch (error) {
           console.error(error);
@@ -289,6 +314,10 @@
       async function handleAddPasskey() {
         if (!state.token) {
           setStatus(passkeyStatus, '先にユーザーを作成またはログインしてください。', true);
+          return;
+        }
+        if (!state.userID) {
+          setStatus(passkeyStatus, 'ユーザーIDを取得できませんでした。', true);
           return;
         }
         if (!supportsWebAuthn) {
@@ -305,7 +334,7 @@
           if (!challengeResponse.ok) throw new Error('チャレンジ取得に失敗しました。');
           const challenge = await readChallengeResponse(challengeResponse);
 
-          const publicKey = buildRegistrationOptions(challenge, state.id);
+          const publicKey = buildRegistrationOptions(challenge, state.userID);
           const credential = await navigator.credentials.create({ publicKey });
           if (!credential) throw new Error('認証器がキャンセルされました。');
 
@@ -358,9 +387,7 @@
             throw new Error(`ログインに失敗しました: ${detail}`);
           }
           const tokens = await tokenResponse.json();
-          state.id = tokens.id;
-          state.token = tokens.token;
-          state.refreshToken = tokens.refreshToken;
+          applyUserTokenPayload(tokens);
           setStatus(loginStatus, 'ログインしました。新しいトークンを取得しました。');
         } catch (error) {
           console.error(error);
@@ -370,9 +397,11 @@
       }
 
       function handleLogout() {
-        state.id = null;
+        state.userID = null;
         state.token = null;
+        state.tokenExpiresAt = null;
         state.refreshToken = null;
+        state.refreshTokenExpiresAt = null;
         setStatus(logoutStatus, 'ログアウトしました。');
         setStatus(createStatus, '');
         setStatus(passkeyStatus, '');
