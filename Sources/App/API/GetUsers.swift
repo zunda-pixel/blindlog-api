@@ -65,14 +65,9 @@ extension API {
       return .badRequest
     }
 
-    let users = cacheUsers + dbUsers
+    let users: [Components.Schemas.User] = (cacheUsers + dbUsers).map { .init(id: $0.id.uuidString) }
 
-    return .ok(
-      .init(
-        body: .json(
-          users.map {
-            .init(id: $0.id.uuidString)
-          })))
+    return .ok(.init(body: .json(users)))
   }
 
   fileprivate func addUsersToCache(

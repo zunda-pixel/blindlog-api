@@ -13,7 +13,7 @@ extension API {
     _ input: Operations.AddPasskey.Input
   ) async throws -> Operations.AddPasskey.Output {
     guard let userID = User.currentUserID else {
-      return .unauthorized(.init())
+      return .unauthorized
     }
     // 1. Parse request payload
     guard case .json(let body) = input.body else { return .badRequest }

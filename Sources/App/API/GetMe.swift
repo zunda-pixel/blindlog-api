@@ -8,7 +8,7 @@ import Valkey
 extension API {
   func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
     guard let userID = User.currentUserID else {
-      return .unauthorized(.init())
+      return .unauthorized
     }
     let user: User?
     do {
@@ -26,15 +26,12 @@ extension API {
     }
 
     guard let user else {
-      return .notFound(.init())
+      return .notFound
     }
 
-    return .ok(
-      .init(
-        body: .json(
-          .init(
-            id: user.id.uuidString
-          ))))
+    let responseUser = Components.Schemas.User(id: user.id.uuidString)
+    
+    return .ok(.init(body: .json(responseUser)))
   }
 
   fileprivate func getUser(id: UUID) async throws -> User? {
