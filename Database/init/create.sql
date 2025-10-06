@@ -19,5 +19,6 @@ CREATE TABLE public.totps (
 
 CREATE TABLE public.user_email (
   user_id uuid NOT NULL references users(id),
-  email varchar NOT NULL
+  email varchar NOT NULL,
+  CONSTRAINT user_email_email_key UNIQUE (email)
 );
