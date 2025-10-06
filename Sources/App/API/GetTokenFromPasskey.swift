@@ -9,9 +9,9 @@ import Valkey
 import WebAuthn
 
 extension API {
-  func createToken(
-    _ input: Operations.CreateToken.Input
-  ) async throws -> Operations.CreateToken.Output {
+  func createTokenFromPasskey(
+    _ input: Operations.CreateTokenFromPasskey.Input
+  ) async throws -> Operations.CreateTokenFromPasskey.Output {
     // 1. Parse request payload
     guard case .json(let bodyData) = input.body else {
       return .badRequest(.init())

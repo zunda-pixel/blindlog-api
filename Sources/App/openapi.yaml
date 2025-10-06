@@ -67,15 +67,15 @@ paths:
                 $ref: '#/components/schemas/UserToken'
         '400':
           description: A bad request
-  /token:
+  /token/passkey:
     post:
-      operationId: createToken
+      operationId: createTokenFromPasskey
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTokenRequest'
+              $ref: '#/components/schemas/CreatePasskeyTokenRequest'
       responses:
         '200':
           description: A success response with a user.
@@ -354,7 +354,7 @@ components:
         - clientDataJSON
         - authenticatorData
         - signature
-    CreateTokenRequest:
+    CreatePasskeyTokenRequest:
       type: object
       description: Passkey authentication payload from `navigator.credentials.get`.
       properties:
