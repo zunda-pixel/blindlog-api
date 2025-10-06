@@ -14,7 +14,7 @@ extension API {
   ) async throws -> Operations.CreateTokenFromPasskey.Output {
     // 1. Parse request payload
     guard case .json(let bodyData) = input.body else {
-      return .badRequest(.init())
+      return .badRequest
     }
 
     let credential: AuthenticationCredential
@@ -34,7 +34,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 2. Verify and delete challenge atomically
@@ -46,11 +46,11 @@ extension API {
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: $0) }
 
       guard let challenge else {
-        return .badRequest(.init())
+        return .badRequest
       }
 
       guard challenge.userID == nil && challenge.purpose == .authentication else {
-        return .badRequest(.init())
+        return .badRequest
       }
 
       try await cache.del(keys: [key])
@@ -63,7 +63,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 3. Load stored credential
@@ -85,11 +85,11 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     guard let passkeyCredential else {
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 4. Verify assertion with WebAuthn
@@ -112,7 +112,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 5. Update stored sign counter
@@ -138,7 +138,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 6. Issue application tokens
@@ -158,7 +158,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     return .ok(.init(body: .json(userToken)))

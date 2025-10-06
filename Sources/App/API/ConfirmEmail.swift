@@ -29,7 +29,7 @@ extension API {
       }
 
       guard row != nil else {
-        return .badRequest(.init())
+        return .badRequest
       }
     } catch {
       BasicRequestContext.current?.logger.log(
@@ -41,7 +41,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 2. Save email to db
@@ -64,7 +64,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     return .ok
