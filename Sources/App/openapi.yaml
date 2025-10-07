@@ -290,6 +290,10 @@ components:
           type: string
           format: uuid
           description: User id.
+        email:
+          type: string
+          format: email
+          description: User email.
       required:
         - id
     AppleAppSiteAssociation:
