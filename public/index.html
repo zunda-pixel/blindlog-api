@@ -269,12 +269,10 @@
           async send() {
             const { token } = session.data;
             const email = emailInput.value.trim();
-            if (!token) {
-              status.set('emailStart', '先にユーザーを作成またはログインしてください。', { error: true });
-              return;
-            }
-            if (!email) {
-              status.set('emailStart', 'メールアドレスを入力してください。', { error: true });
+            if (!validate('emailStart', [
+              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
+              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
+            ])) {
               return;
             }
 
@@ -294,16 +292,11 @@
             const { token } = session.data;
             const email = emailInput.value.trim();
             const code = codeInput.value.trim();
-            if (!token) {
-              status.set('emailConfirm', '先にユーザーを作成またはログインしてください。', { error: true });
-              return;
-            }
-            if (!email) {
-              status.set('emailConfirm', 'メールアドレスを入力してください。', { error: true });
-              return;
-            }
-            if (!code) {
-              status.set('emailConfirm', '確認コードを入力してください。', { error: true });
+            if (!validate('emailConfirm', [
+              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
+              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
+              { predicate: () => code.length > 0, message: '確認コードを入力してください。' },
+            ])) {
               return;
             }
 
@@ -329,8 +322,9 @@
         return {
           async start() {
             const email = emailInput.value.trim();
-            if (!email) {
-              status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
+            if (!validate('emailLogin', [
+              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
+            ])) {
               return;
             }
 
@@ -350,16 +344,11 @@
             const email = emailInput.value.trim();
             const otp = codeInput.value.trim();
 
-            if (!email) {
-              status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
-              return;
-            }
-            if (!otp) {
-              status.set('emailLogin', '確認コードを入力してください。', { error: true });
-              return;
-            }
-            if (!state.emailLoginChallenge) {
-              status.set('emailLogin', '先にログインコードを送信してください。', { error: true });
+            if (!validate('emailLogin', [
+              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
+              { predicate: () => otp.length > 0, message: '確認コードを入力してください。' },
+              { predicate: () => !!state.emailLoginChallenge, message: '先にログインコードを送信してください。' },
+            ])) {
               return;
             }
 
@@ -389,16 +378,11 @@
         return {
           async add() {
             const { token, userID } = session.data;
-            if (!token) {
-              status.set('passkey', '先にユーザーを作成またはログインしてください。', { error: true });
-              return;
-            }
-            if (!userID) {
-              status.set('passkey', 'ユーザーIDを取得できませんでした。', { error: true });
-              return;
-            }
-            if (!supportsWebAuthn) {
-              status.set('passkey', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
+            if (!validate('passkey', [
+              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
+              { predicate: () => !!userID, message: 'ユーザーIDを取得できませんでした。' },
+              { predicate: () => supportsWebAuthn, message: 'このブラウザーは WebAuthn をサポートしていません。' },
+            ])) {
               return;
             }
 
@@ -422,8 +406,9 @@
           },
 
           async login() {
-            if (!supportsWebAuthn) {
-              status.set('login', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
+            if (!validate('login', [
+              { predicate: () => supportsWebAuthn, message: 'このブラウザーは WebAuthn をサポートしていません。' },
+            ])) {
               return;
             }
 
@@ -440,6 +425,7 @@
               const payload = webAuthn.serializeAuthenticationCredential(credential, challenge);
               const tokens = await api.requestPasskeyToken(payload);
               session.apply(tokens);
+              await refreshSessionEmail(tokens.token);
               status.set('login', 'Passkeyでログインしました。新しいトークンを取得しました。');
             } catch (error) {
               console.error(error);
@@ -458,8 +444,30 @@
         };
       }
 
+      async function refreshSessionEmail(token) {
+        if (!token) {
+          return;
+        }
+        try {
+          const user = await api.fetchCurrentUser(token);
+          session.updateEmail(user?.email ?? null);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
       function bindAsync(button, action) {
         button.addEventListener('click', () => runWithButtonDisabled(button, action));
+      }
+
+      function validate(statusKey, checks) {
+        for (const { predicate, message } of checks) {
+          if (!predicate()) {
+            status.set(statusKey, message, { error: true });
+            return false;
+          }
+        }
+        return true;
       }
 
       async function runWithButtonDisabled(button, action) {
@@ -628,6 +636,14 @@
             });
           },
 
+          async fetchCurrentUser(token) {
+            const response = await get('/me', {
+              headers: { Authorization: `Bearer ${token}` },
+              message: 'ユーザー情報の取得に失敗しました。',
+            });
+            return response.json();
+          },
+
           async sendEmailLoginChallenge(email) {
             const url = new URL('/token/email/start', window.location.origin);
             url.searchParams.set('email', email);
@@ -763,6 +779,16 @@
           message,
         });
         return response.json();
+      }
+
+      async function get(resource, { headers = {}, message }) {
+        return ensureOk(
+          fetch(resource, {
+            method: 'GET',
+            headers,
+          }),
+          message
+        );
       }
 
       async function ensureOk(responsePromise, defaultMessage) {
