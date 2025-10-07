@@ -85,6 +85,53 @@ paths:
                 $ref: '#/components/schemas/UserToken'
         '400':
           description: A bad request
+  /token/email:
+    post:
+      operationId: createTokenFromEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmailTokenRequest'
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserToken'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found User
+  /token/email/start:
+    post:
+      operationId: sendEmailForToken
+      parameters:
+        - name: email
+          in: query
+          description: ID of user to return
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: A success response with a user.
+          content:
+            application/json:
+              schema:
+                type: string
+                contentEncoding: base64
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found User
   /refreshToken:
     post:
       operationId: refreshToken
@@ -381,4 +428,21 @@ components:
         - rawId
         - type
         - response
+    CreateEmailTokenRequest:
+      type: object
+      description: Email authentication payload
+      properties:
+        challenge:
+          type: string
+          description: Base64URL-encoded challenge issued by the server.
+        email:
+          type: string
+          description: Credential identifier encoded in Base64URL.
+        otp:
+          type: string
+          description: Raw credential identifier in Base64URL format.
+      required:
+        - challenge
+        - email
+        - otp
 

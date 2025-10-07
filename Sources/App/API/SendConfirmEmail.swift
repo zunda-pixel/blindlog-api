@@ -44,7 +44,7 @@ extension API {
 
     let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
-    let totpPassword = HummingbirdOTP.TOTP(
+    let totpPassword = TOTP(
       secret: String(decoding: Data(AES.GCM.Nonce()), as: UTF8.self),
       length: 6,
       timeStep: 60,
