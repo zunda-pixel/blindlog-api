@@ -390,7 +390,11 @@
             status.clear('logout');
             try {
               const challenge = await api.fetchChallenge({ token });
-              const options = webAuthn.buildRegistrationOptions(challenge, userID);
+              const options = webAuthn.buildRegistrationOptions({
+                challenge,
+                userID,
+                email: session.data.email,
+              });
               const credential = await navigator.credentials.create({ publicKey: options });
               if (!credential) {
                 throw new Error('認証器がキャンセルされました。');
@@ -664,14 +668,15 @@
       function createWebAuthnHelpers() {
         const encoder = new TextEncoder();
         return {
-          buildRegistrationOptions(challenge, userID) {
+          buildRegistrationOptions({ challenge, userID, email }) {
+            const label = (email ?? '').trim() || userID;
             return {
               challenge: base64ToUint8Array(challenge),
               rp: { name: document.title || 'BlindLog', id: window.location.hostname },
               user: {
                 id: encoder.encode(userID),
-                name: userID,
-                displayName: userID,
+                name: label,
+                displayName: label,
               },
               pubKeyCredParams: [
                 { type: 'public-key', alg: -7 },
