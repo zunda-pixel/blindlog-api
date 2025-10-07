@@ -188,7 +188,28 @@
       const api = createApi();
       const webAuthn = createWebAuthnHelpers();
 
-      const flows = createFlows();
+      const userFlow = createUserFlow({ api, session, status, state });
+      const emailVerificationFlow = createEmailVerificationFlow({
+        api,
+        session,
+        status,
+        inputs: elements.inputs,
+      });
+      const emailLoginFlow = createEmailLoginFlow({
+        api,
+        session,
+        status,
+        inputs: elements.inputs,
+        state,
+      });
+      const passkeyFlow = createPasskeyFlow({
+        api,
+        session,
+        status,
+        webAuthn,
+        supportsWebAuthn,
+      });
+      const logoutFlow = createLogoutFlow({ session, status, state });
 
       init();
 
@@ -204,14 +225,14 @@
           logout,
         } = elements.buttons;
 
-        bindAsync(create, flows.createUser);
-        bindAsync(sendEmail, flows.sendVerificationEmail);
-        bindAsync(confirmEmail, flows.confirmEmail);
-        bindAsync(addPasskey, flows.addPasskey);
-        bindAsync(login, flows.passkeyLogin);
-        bindAsync(startEmailLogin, flows.startEmailLogin);
-        bindAsync(completeEmailLogin, flows.completeEmailLogin);
-        logout.addEventListener('click', flows.logout);
+        bindAsync(create, userFlow);
+        bindAsync(sendEmail, emailVerificationFlow.send);
+        bindAsync(confirmEmail, emailVerificationFlow.confirm);
+        bindAsync(addPasskey, passkeyFlow.add);
+        bindAsync(login, passkeyFlow.login);
+        bindAsync(startEmailLogin, emailLoginFlow.start);
+        bindAsync(completeEmailLogin, emailLoginFlow.complete);
+        logout.addEventListener('click', logoutFlow);
 
         if (!supportsWebAuthn) {
           addPasskey.disabled = true;
