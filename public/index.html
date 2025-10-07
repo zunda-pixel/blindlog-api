@@ -178,100 +178,500 @@
     (() => {
       const supportsWebAuthn = 'PublicKeyCredential' in window;
 
-      const elements = {
-        buttons: {
-          create: document.getElementById('create-user'),
-          sendEmail: document.getElementById('send-email'),
-          confirmEmail: document.getElementById('confirm-email'),
-          addPasskey: document.getElementById('add-passkey'),
-          login: document.getElementById('login'),
-          startEmailLogin: document.getElementById('start-email-login'),
-          completeEmailLogin: document.getElementById('complete-email-login'),
-          logout: document.getElementById('logout'),
-        },
-        statuses: {
-          create: document.getElementById('create-status'),
-          emailStart: document.getElementById('email-start-status'),
-          emailConfirm: document.getElementById('email-confirm-status'),
-          passkey: document.getElementById('passkey-status'),
-          login: document.getElementById('login-status'),
-          emailLogin: document.getElementById('email-login-status'),
-          logout: document.getElementById('logout-status'),
-        },
-        inputs: {
-          email: document.getElementById('email-input'),
-          code: document.getElementById('email-code'),
-          emailLoginEmail: document.getElementById('email-login-input'),
-          emailLoginCode: document.getElementById('email-login-code'),
-        },
-        sessionOutput: document.getElementById('session-output'),
+      const elements = createElementsMap();
+      const status = createStatusManager(elements.statuses);
+      const session = createSessionManager(elements.sessionOutput);
+      const state = {
+        emailLoginChallenge: null,
       };
 
-      const status = {
-        set(key, message, { error = false } = {}) {
-          const element = elements.statuses[key];
-          if (!element) return;
-          element.textContent = message;
-          element.style.color = error ? '#dc2626' : '';
-        },
-        clear(...keys) {
-          keys.forEach(key => this.set(key, ''));
-        },
-      };
+      const api = createApi();
+      const webAuthn = createWebAuthnHelpers();
 
-      // Epoch used by Date.timeIntervalSinceReferenceDate (Jan 1, 2001 UTC).
-      const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
+      const flows = createFlows();
 
-      const session = {
-        data: {
+      init();
+
+      function init() {
+        const {
+          create,
+          sendEmail,
+          confirmEmail,
+          addPasskey,
+          login,
+          startEmailLogin,
+          completeEmailLogin,
+          logout,
+        } = elements.buttons;
+
+        bindAsync(create, flows.createUser);
+        bindAsync(sendEmail, flows.sendVerificationEmail);
+        bindAsync(confirmEmail, flows.confirmEmail);
+        bindAsync(addPasskey, flows.addPasskey);
+        bindAsync(login, flows.passkeyLogin);
+        bindAsync(startEmailLogin, flows.startEmailLogin);
+        bindAsync(completeEmailLogin, flows.completeEmailLogin);
+        logout.addEventListener('click', flows.logout);
+
+        if (!supportsWebAuthn) {
+          addPasskey.disabled = true;
+          login.disabled = true;
+          status.set('passkey', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
+          status.set('login', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
+        }
+
+        session.render();
+      }
+
+      function createFlows() {
+        return {
+          async createUser() {
+            status.set('create', 'ユーザー作成中...');
+            status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'logout');
+            try {
+              const payload = await api.createUser();
+              session.apply(payload);
+              session.updateEmail(null);
+              state.emailLoginChallenge = null;
+              status.set('create', 'ユーザーを作成しトークンを取得しました。');
+            } catch (error) {
+              console.error(error);
+              status.set('create', error.message || 'ユーザー作成に失敗しました。', { error: true });
+            }
+          },
+
+          async sendVerificationEmail() {
+            const { token } = session.data;
+            const email = elements.inputs.email.value.trim();
+            if (!token) {
+              status.set('emailStart', '先にユーザーを作成またはログインしてください。', { error: true });
+              return;
+            }
+            if (!email) {
+              status.set('emailStart', 'メールアドレスを入力してください。', { error: true });
+              return;
+            }
+
+            status.set('emailStart', '確認メール送信中...');
+            status.clear('emailConfirm', 'logout');
+            try {
+              await api.sendVerificationEmail({ email, token });
+              session.updateEmail(email);
+              status.set('emailStart', '確認メールを送信しました。');
+            } catch (error) {
+              console.error(error);
+              status.set('emailStart', error.message || '確認メールの送信に失敗しました。', { error: true });
+            }
+          },
+
+          async confirmEmail() {
+            const { token } = session.data;
+            const email = elements.inputs.email.value.trim();
+            const code = elements.inputs.code.value.trim();
+            if (!token) {
+              status.set('emailConfirm', '先にユーザーを作成またはログインしてください。', { error: true });
+              return;
+            }
+            if (!email) {
+              status.set('emailConfirm', 'メールアドレスを入力してください。', { error: true });
+              return;
+            }
+            if (!code) {
+              status.set('emailConfirm', '確認コードを入力してください。', { error: true });
+              return;
+            }
+
+            status.set('emailConfirm', '確認コード送信中...');
+            status.clear('logout');
+            try {
+              await api.confirmEmailAddress({ email, code, token });
+              session.updateEmail(email);
+              elements.inputs.code.value = '';
+              status.set('emailConfirm', 'メールアドレスを認証しました。');
+            } catch (error) {
+              console.error(error);
+              status.set('emailConfirm', error.message || 'メールアドレスの確認に失敗しました。', { error: true });
+            }
+          },
+
+          async startEmailLogin() {
+            const email = elements.inputs.emailLoginEmail.value.trim();
+            if (!email) {
+              status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
+              return;
+            }
+
+            status.set('emailLogin', 'ログインコード送信中...');
+            status.clear('logout', 'login');
+            try {
+              state.emailLoginChallenge = await api.sendEmailLoginChallenge(email);
+              elements.inputs.emailLoginCode.value = '';
+              status.set('emailLogin', '確認コードを送信しました。メールをご確認ください。');
+            } catch (error) {
+              console.error(error);
+              status.set('emailLogin', error.message || 'ログインコードの送信に失敗しました。', { error: true });
+            }
+          },
+
+          async completeEmailLogin() {
+            const email = elements.inputs.emailLoginEmail.value.trim();
+            const otp = elements.inputs.emailLoginCode.value.trim();
+
+            if (!email) {
+              status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
+              return;
+            }
+            if (!otp) {
+              status.set('emailLogin', '確認コードを入力してください。', { error: true });
+              return;
+            }
+            if (!state.emailLoginChallenge) {
+              status.set('emailLogin', '先にログインコードを送信してください。', { error: true });
+              return;
+            }
+
+            status.set('emailLogin', 'ログイン処理中...');
+            status.clear('logout', 'login');
+            try {
+              const tokens = await api.exchangeEmailCodeForToken({
+                email,
+                otp,
+                challenge: state.emailLoginChallenge,
+              });
+              state.emailLoginChallenge = null;
+              session.apply(tokens);
+              session.updateEmail(email);
+              elements.inputs.emailLoginCode.value = '';
+              status.set('emailLogin', 'メールアドレスでログインしました。');
+              status.clear('login');
+            } catch (error) {
+              console.error(error);
+              status.set('emailLogin', error.message || 'メールでのログインに失敗しました。', { error: true });
+            }
+          },
+
+          async addPasskey() {
+            const { token, userID } = session.data;
+            if (!token) {
+              status.set('passkey', '先にユーザーを作成またはログインしてください。', { error: true });
+              return;
+            }
+            if (!userID) {
+              status.set('passkey', 'ユーザーIDを取得できませんでした。', { error: true });
+              return;
+            }
+            if (!supportsWebAuthn) {
+              status.set('passkey', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
+              return;
+            }
+
+            status.set('passkey', 'チャレンジ取得中...');
+            status.clear('logout');
+            try {
+              const challenge = await api.fetchChallenge({ token });
+              const options = webAuthn.buildRegistrationOptions(challenge, userID);
+              const credential = await navigator.credentials.create({ publicKey: options });
+              if (!credential) {
+                throw new Error('認証器がキャンセルされました。');
+              }
+
+              const payload = webAuthn.serializeRegistrationCredential(credential);
+              await api.registerPasskey({ challenge, payload, token });
+              status.set('passkey', 'Passkey を登録しました。');
+            } catch (error) {
+              console.error(error);
+              status.set('passkey', error.message || 'Passkey登録に失敗しました。', { error: true });
+            }
+          },
+
+          async passkeyLogin() {
+            if (!supportsWebAuthn) {
+              status.set('login', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
+              return;
+            }
+
+            status.set('login', 'チャレンジ取得中...');
+            status.clear('logout', 'emailLogin');
+            try {
+              const challenge = await api.fetchChallenge();
+              const options = webAuthn.buildAuthenticationOptions(challenge);
+              const credential = await navigator.credentials.get({ publicKey: options });
+              if (!credential) {
+                throw new Error('認証器がキャンセルされました。');
+              }
+
+              const payload = webAuthn.serializeAuthenticationCredential(credential, challenge);
+              const tokens = await api.requestPasskeyToken(payload);
+              session.apply(tokens);
+              status.set('login', 'Passkeyでログインしました。新しいトークンを取得しました。');
+            } catch (error) {
+              console.error(error);
+              status.set('login', error.message || 'ログインに失敗しました。', { error: true });
+            }
+          },
+
+          logout() {
+            session.reset();
+            state.emailLoginChallenge = null;
+            status.set('logout', 'ログアウトしました。');
+            status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin');
+          },
+        };
+      }
+
+      function bindAsync(button, action) {
+        button.addEventListener('click', () => runWithButtonDisabled(button, action));
+      }
+
+      async function runWithButtonDisabled(button, action) {
+        button.disabled = true;
+        try {
+          await action();
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      function createElementsMap() {
+        return {
+          buttons: {
+            create: document.getElementById('create-user'),
+            sendEmail: document.getElementById('send-email'),
+            confirmEmail: document.getElementById('confirm-email'),
+            addPasskey: document.getElementById('add-passkey'),
+            login: document.getElementById('login'),
+            startEmailLogin: document.getElementById('start-email-login'),
+            completeEmailLogin: document.getElementById('complete-email-login'),
+            logout: document.getElementById('logout'),
+          },
+          statuses: {
+            create: document.getElementById('create-status'),
+            emailStart: document.getElementById('email-start-status'),
+            emailConfirm: document.getElementById('email-confirm-status'),
+            passkey: document.getElementById('passkey-status'),
+            login: document.getElementById('login-status'),
+            emailLogin: document.getElementById('email-login-status'),
+            logout: document.getElementById('logout-status'),
+          },
+          inputs: {
+            email: document.getElementById('email-input'),
+            code: document.getElementById('email-code'),
+            emailLoginEmail: document.getElementById('email-login-input'),
+            emailLoginCode: document.getElementById('email-login-code'),
+          },
+          sessionOutput: document.getElementById('session-output'),
+        };
+      }
+
+      function createStatusManager(statusElements) {
+        return {
+          set(key, message, { error = false } = {}) {
+            const element = statusElements[key];
+            if (!element) return;
+            element.textContent = message;
+            element.style.color = error ? '#dc2626' : '';
+          },
+          clear(...keys) {
+            keys.forEach(key => {
+              const element = statusElements[key];
+              if (element) {
+                element.textContent = '';
+                element.style.color = '';
+              }
+            });
+          },
+        };
+      }
+
+      function createSessionManager(outputElement) {
+        const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
+        const data = {
           userID: null,
           token: null,
           tokenExpiresAt: null,
           refreshToken: null,
           refreshTokenExpiresAt: null,
           email: null,
-        },
-        apply(payload) {
-          const data = this.data;
-          const userID = payload?.userID ?? payload?.id ?? null;
-          data.userID = userID;
-          data.token = payload?.token ?? null;
-          data.tokenExpiresAt = formatReferenceDate(payload?.tokenExpiredDate);
-          data.refreshToken = payload?.refreshToken ?? null;
-          data.refreshTokenExpiresAt = formatReferenceDate(payload?.refreshTokenExpiredDate);
-          this.render();
-        },
-        updateEmail(email) {
-          this.data.email = email ? email.trim() : null;
-          this.render();
-        },
-        reset() {
-          const data = this.data;
-          data.userID = null;
-          data.token = null;
-          data.tokenExpiresAt = null;
-          data.refreshToken = null;
-          data.refreshTokenExpiresAt = null;
-          data.email = null;
-          this.render();
-        },
-        render() {
-          const data = this.data;
+        };
+
+        function render() {
           if (!data.userID) {
-            elements.sessionOutput.textContent = 'セッションがありません。';
+            outputElement.textContent = 'セッションがありません。';
             return;
           }
-          elements.sessionOutput.textContent = JSON.stringify(data, null, 2);
-        },
-      };
-
-      let emailLoginChallenge = null;
-
-      function formatReferenceDate(value) {
-        if (typeof value !== 'number' || Number.isNaN(value)) {
-          return null;
+          outputElement.textContent = JSON.stringify(data, null, 2);
         }
-        return new Date(APPLE_REFERENCE_DATE_MS + value * 1000).toISOString();
+
+        function formatReferenceDate(value) {
+          if (typeof value !== 'number' || Number.isNaN(value)) {
+            return null;
+          }
+          return new Date(APPLE_REFERENCE_DATE_MS + value * 1000).toISOString();
+        }
+
+        return {
+          data,
+          apply(payload) {
+            const userID = payload?.userID ?? payload?.id ?? null;
+            data.userID = userID;
+            data.token = payload?.token ?? null;
+            data.tokenExpiresAt = formatReferenceDate(payload?.tokenExpiredDate);
+            data.refreshToken = payload?.refreshToken ?? null;
+            data.refreshTokenExpiresAt = formatReferenceDate(payload?.refreshTokenExpiredDate);
+            render();
+          },
+          updateEmail(email) {
+            data.email = email ? email.trim() : null;
+            render();
+          },
+          reset() {
+            data.userID = null;
+            data.token = null;
+            data.tokenExpiresAt = null;
+            data.refreshToken = null;
+            data.refreshTokenExpiresAt = null;
+            data.email = null;
+            render();
+          },
+          render,
+        };
+      }
+
+      function createApi() {
+        return {
+          async createUser() {
+            const response = await post('/user', { message: 'ユーザー作成に失敗しました。' });
+            return response.json();
+          },
+
+          async sendVerificationEmail({ email, token }) {
+            const url = new URL('/email/verify/start', window.location.origin);
+            url.searchParams.set('email', email);
+            await post(url, {
+              headers: { Authorization: `Bearer ${token}` },
+              message: '確認メールの送信に失敗しました。',
+            });
+          },
+
+          async confirmEmailAddress({ email, code, token }) {
+            const url = new URL('/email/verify', window.location.origin);
+            url.searchParams.set('email', email);
+            url.searchParams.set('password', code);
+            await post(url, {
+              headers: { Authorization: `Bearer ${token}` },
+              message: 'メールアドレスの確認に失敗しました。',
+            });
+          },
+
+          async fetchChallenge({ token } = {}) {
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const response = await post('/challenge', {
+              headers,
+              message: 'チャレンジ取得に失敗しました。',
+            });
+            return readChallengeResponse(response);
+          },
+
+          async registerPasskey({ challenge, payload, token }) {
+            await post(`/passkey?challenge=${encodeURIComponent(challenge)}`, {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(payload),
+              message: 'Passkey登録に失敗しました。',
+            });
+          },
+
+          async requestPasskeyToken(payload) {
+            return postJSON('/token/passkey', payload, {
+              message: 'ログインに失敗しました。',
+            });
+          },
+
+          async sendEmailLoginChallenge(email) {
+            const url = new URL('/token/email/start', window.location.origin);
+            url.searchParams.set('email', email);
+            const response = await post(url, {
+              message: 'ログインコードの送信に失敗しました。',
+            });
+            return readChallengeResponse(response);
+          },
+
+          async exchangeEmailCodeForToken(payload) {
+            return postJSON('/token/email', payload, {
+              message: 'メールでのログインに失敗しました。',
+            });
+          },
+        };
+      }
+
+      function createWebAuthnHelpers() {
+        const encoder = new TextEncoder();
+        return {
+          buildRegistrationOptions(challenge, userID) {
+            return {
+              challenge: base64ToUint8Array(challenge),
+              rp: { name: document.title || 'BlindLog', id: window.location.hostname },
+              user: {
+                id: encoder.encode(userID),
+                name: userID,
+                displayName: userID,
+              },
+              pubKeyCredParams: [
+                { type: 'public-key', alg: -7 },
+                { type: 'public-key', alg: -257 },
+              ],
+              authenticatorSelection: { userVerification: 'preferred' },
+              timeout: 60000,
+              attestation: 'none',
+            };
+          },
+
+          buildAuthenticationOptions(challenge) {
+            return {
+              challenge: base64ToUint8Array(challenge),
+              rpId: window.location.hostname,
+              timeout: 60000,
+              userVerification: 'preferred',
+            };
+          },
+
+          serializeRegistrationCredential(credential) {
+            const { response } = credential;
+            return {
+              id: credential.id,
+              rawId: arrayBufferToBase64Url(credential.rawId),
+              type: credential.type,
+              response: {
+                clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
+                attestationObject: arrayBufferToBase64Url(response.attestationObject),
+              },
+            };
+          },
+
+          serializeAuthenticationCredential(credential, challenge) {
+            const { response } = credential;
+            const payload = {
+              id: credential.id,
+              rawId: arrayBufferToBase64Url(credential.rawId),
+              type: credential.type,
+              response: {
+                clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
+                authenticatorData: arrayBufferToBase64Url(response.authenticatorData),
+                signature: arrayBufferToBase64Url(response.signature),
+              },
+              challenge,
+            };
+            if (response.userHandle) {
+              payload.response.userHandle = arrayBufferToBase64Url(response.userHandle);
+            }
+            if (credential.authenticatorAttachment) {
+              payload.authenticatorAttachment = credential.authenticatorAttachment;
+            }
+            return payload;
+          },
+        };
       }
 
       function normalizeBase64(input) {
@@ -303,6 +703,38 @@
         return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
       }
 
+      async function post(resource, { headers = {}, body, message }) {
+        const init = {
+          method: 'POST',
+          headers,
+        };
+        if (body !== undefined) {
+          init.body = body;
+        }
+        return ensureOk(fetch(resource, init), message);
+      }
+
+      async function postJSON(resource, payload, { headers = {}, message }) {
+        const response = await post(resource, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body: JSON.stringify(payload),
+          message,
+        });
+        return response.json();
+      }
+
+      async function ensureOk(responsePromise, defaultMessage) {
+        const response = await responsePromise;
+        if (response.ok) {
+          return response;
+        }
+        const detail = (await response.text()).trim();
+        throw new Error(detail ? `${defaultMessage}: ${detail}` : defaultMessage);
+      }
+
       async function readChallengeResponse(response) {
         const text = (await response.text()).trim();
         try {
@@ -319,399 +751,6 @@
         }
         throw new Error('Unexpected challenge response format.');
       }
-
-      function buildRegistrationOptions(challenge, userID) {
-        return {
-          challenge: base64ToUint8Array(challenge),
-          rp: { name: document.title || 'BlindLog', id: window.location.hostname },
-          user: {
-            id: new TextEncoder().encode(userID),
-            name: userID,
-            displayName: userID,
-          },
-          pubKeyCredParams: [
-            { type: 'public-key', alg: -7 },
-            { type: 'public-key', alg: -257 },
-          ],
-          authenticatorSelection: { userVerification: 'preferred' },
-          timeout: 60000,
-          attestation: 'none',
-        };
-      }
-
-      function buildAuthenticationOptions(challenge) {
-        return {
-          challenge: base64ToUint8Array(challenge),
-          rpId: window.location.hostname,
-          timeout: 60000,
-          userVerification: 'preferred',
-        };
-      }
-
-      function serializeRegistrationCredential(credential) {
-        const response = credential.response;
-        return {
-          id: credential.id,
-          rawId: arrayBufferToBase64Url(credential.rawId),
-          type: credential.type,
-          response: {
-            clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
-            attestationObject: arrayBufferToBase64Url(response.attestationObject),
-          },
-        };
-      }
-
-      function serializeAuthenticationCredential(credential) {
-        const response = credential.response;
-        const payload = {
-          id: credential.id,
-          rawId: arrayBufferToBase64Url(credential.rawId),
-          type: credential.type,
-          response: {
-            clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
-            authenticatorData: arrayBufferToBase64Url(response.authenticatorData),
-            signature: arrayBufferToBase64Url(response.signature),
-          },
-        };
-        if (response.userHandle) {
-          payload.response.userHandle = arrayBufferToBase64Url(response.userHandle);
-        }
-        if (credential.authenticatorAttachment) {
-          payload.authenticatorAttachment = credential.authenticatorAttachment;
-        }
-        return payload;
-      }
-
-      async function ensureOk(responsePromise, defaultMessage) {
-        const response = await responsePromise;
-        if (response.ok) {
-          return response;
-        }
-        const detail = (await response.text()).trim();
-        throw new Error(detail ? `${defaultMessage}: ${detail}` : defaultMessage);
-      }
-
-      async function fetchChallenge({ token } = {}) {
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await ensureOk(
-          fetch('/challenge', { method: 'POST', headers }),
-          'チャレンジ取得に失敗しました。'
-        );
-        return readChallengeResponse(response);
-      }
-
-      async function registerPasskey({ challenge, credential, token }) {
-        const payload = serializeRegistrationCredential(credential);
-        await ensureOk(
-          fetch(`/passkey?challenge=${encodeURIComponent(challenge)}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          }),
-          'Passkey登録に失敗しました。'
-        );
-      }
-
-      async function requestToken(payload) {
-        const response = await ensureOk(
-          fetch('/token/passkey', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          }),
-          'ログインに失敗しました。'
-        );
-        return response.json();
-      }
-
-      async function createUser() {
-        const response = await ensureOk(
-          fetch('/user', { method: 'POST' }),
-          'ユーザー作成に失敗しました。'
-        );
-        return response.json();
-      }
-
-      async function sendVerificationEmail(email, token) {
-        const url = new URL('/email/verify/start', window.location.origin);
-        url.searchParams.set('email', email);
-        await ensureOk(
-          fetch(url, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          '確認メールの送信に失敗しました。'
-        );
-      }
-
-      async function confirmEmailAddress(email, code, token) {
-        const url = new URL('/email/verify', window.location.origin);
-        url.searchParams.set('email', email);
-        url.searchParams.set('password', code);
-        await ensureOk(
-          fetch(url, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          'メールアドレスの確認に失敗しました。'
-        );
-      }
-
-      async function sendEmailLoginChallenge(email) {
-        const url = new URL('/token/email/start', window.location.origin);
-        url.searchParams.set('email', email);
-        const response = await ensureOk(
-          fetch(url, { method: 'POST' }),
-          'ログインコードの送信に失敗しました。'
-        );
-        return readChallengeResponse(response);
-      }
-
-      async function exchangeEmailCodeForToken({ email, code, challenge }) {
-        const payload = { challenge, email, otp: code };
-        const response = await ensureOk(
-          fetch('/token/email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          }),
-          'メールでのログインに失敗しました。'
-        );
-        return response.json();
-      }
-
-      async function runWithButtonDisabled(button, action) {
-        button.disabled = true;
-        try {
-          await action();
-        } finally {
-          button.disabled = false;
-        }
-      }
-
-      async function handleCreateUser() {
-        status.set('create', 'ユーザー作成中...');
-        status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'logout');
-        try {
-          const payload = await createUser();
-          session.apply(payload);
-          session.updateEmail(null);
-          emailLoginChallenge = null;
-          status.set('create', 'ユーザーを作成しトークンを取得しました。');
-        } catch (error) {
-          console.error(error);
-          status.set('create', error.message || 'ユーザー作成に失敗しました。', { error: true });
-        }
-      }
-
-      async function handleSendVerificationEmail() {
-        const { token } = session.data;
-        const email = elements.inputs.email.value.trim();
-        if (!token) {
-          status.set('emailStart', '先にユーザーを作成またはログインしてください。', { error: true });
-          return;
-        }
-        if (!email) {
-          status.set('emailStart', 'メールアドレスを入力してください。', { error: true });
-          return;
-        }
-
-        status.set('emailStart', '確認メール送信中...');
-        status.clear('emailConfirm', 'logout');
-        try {
-          await sendVerificationEmail(email, token);
-          session.updateEmail(email);
-          status.set('emailStart', '確認メールを送信しました。');
-        } catch (error) {
-          console.error(error);
-          status.set('emailStart', error.message || '確認メールの送信に失敗しました。', { error: true });
-        }
-      }
-
-      async function handleConfirmEmail() {
-        const { token } = session.data;
-        const email = elements.inputs.email.value.trim();
-        const code = elements.inputs.code.value.trim();
-        if (!token) {
-          status.set('emailConfirm', '先にユーザーを作成またはログインしてください。', { error: true });
-          return;
-        }
-        if (!email) {
-          status.set('emailConfirm', 'メールアドレスを入力してください。', { error: true });
-          return;
-        }
-        if (!code) {
-          status.set('emailConfirm', '確認コードを入力してください。', { error: true });
-          return;
-        }
-
-        status.set('emailConfirm', '確認コード送信中...');
-        status.clear('logout');
-        try {
-          await confirmEmailAddress(email, code, token);
-          session.updateEmail(email);
-          elements.inputs.code.value = '';
-          status.set('emailConfirm', 'メールアドレスを認証しました。');
-        } catch (error) {
-          console.error(error);
-          status.set('emailConfirm', error.message || 'メールアドレスの確認に失敗しました。', { error: true });
-        }
-      }
-
-      async function handleStartEmailLogin() {
-        const email = elements.inputs.emailLoginEmail.value.trim();
-        if (!email) {
-          status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
-          return;
-        }
-
-        status.set('emailLogin', 'ログインコード送信中...');
-        status.clear('logout', 'login');
-        try {
-          emailLoginChallenge = await sendEmailLoginChallenge(email);
-          elements.inputs.emailLoginCode.value = '';
-          status.set('emailLogin', '確認コードを送信しました。メールをご確認ください。');
-        } catch (error) {
-          console.error(error);
-          status.set('emailLogin', error.message || 'ログインコードの送信に失敗しました。', { error: true });
-        }
-      }
-
-      async function handleCompleteEmailLogin() {
-        const email = elements.inputs.emailLoginEmail.value.trim();
-        const code = elements.inputs.emailLoginCode.value.trim();
-
-        if (!email) {
-          status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
-          return;
-        }
-        if (!code) {
-          status.set('emailLogin', '確認コードを入力してください。', { error: true });
-          return;
-        }
-        if (!emailLoginChallenge) {
-          status.set('emailLogin', '先にログインコードを送信してください。', { error: true });
-          return;
-        }
-
-        status.set('emailLogin', 'ログイン処理中...');
-        status.clear('logout', 'login');
-        try {
-          const tokens = await exchangeEmailCodeForToken({
-            email,
-            code,
-            challenge: emailLoginChallenge,
-          });
-          emailLoginChallenge = null;
-          session.apply(tokens);
-          session.updateEmail(email);
-          elements.inputs.emailLoginCode.value = '';
-          status.set('emailLogin', 'メールアドレスでログインしました。');
-          status.clear('login');
-        } catch (error) {
-          console.error(error);
-          status.set('emailLogin', error.message || 'メールでのログインに失敗しました。', { error: true });
-        }
-      }
-
-      async function handleAddPasskey() {
-        const { token, userID } = session.data;
-        if (!token) {
-          status.set('passkey', '先にユーザーを作成またはログインしてください。', { error: true });
-          return;
-        }
-        if (!userID) {
-          status.set('passkey', 'ユーザーIDを取得できませんでした。', { error: true });
-          return;
-        }
-        if (!supportsWebAuthn) {
-          status.set('passkey', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
-          return;
-        }
-
-        status.set('passkey', 'チャレンジ取得中...');
-        status.clear('logout');
-        try {
-          const challenge = await fetchChallenge({ token });
-          const options = buildRegistrationOptions(challenge, userID);
-          const credential = await navigator.credentials.create({ publicKey: options });
-          if (!credential) {
-            throw new Error('認証器がキャンセルされました。');
-          }
-
-          await registerPasskey({ challenge, credential, token });
-          status.set('passkey', 'Passkey を登録しました。');
-        } catch (error) {
-          console.error(error);
-          status.set('passkey', error.message || 'Passkey登録に失敗しました。', { error: true });
-        }
-      }
-
-      async function handleLogin() {
-        if (!supportsWebAuthn) {
-          status.set('login', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
-          return;
-        }
-
-        status.set('login', 'チャレンジ取得中...');
-        status.clear('logout', 'emailLogin');
-        try {
-          const challenge = await fetchChallenge();
-          const options = buildAuthenticationOptions(challenge);
-          const credential = await navigator.credentials.get({ publicKey: options });
-          if (!credential) {
-            throw new Error('認証器がキャンセルされました。');
-          }
-
-          const payload = serializeAuthenticationCredential(credential);
-          payload.challenge = challenge;
-
-          const tokens = await requestToken(payload);
-          session.apply(tokens);
-          status.set('login', 'Passkeyでログインしました。新しいトークンを取得しました。');
-        } catch (error) {
-          console.error(error);
-          status.set('login', error.message || 'ログインに失敗しました。', { error: true });
-        }
-      }
-
-      function handleLogout() {
-        session.reset();
-        emailLoginChallenge = null;
-        status.set('logout', 'ログアウトしました。');
-        status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin');
-      }
-
-      const {
-        create,
-        sendEmail,
-        confirmEmail,
-        addPasskey,
-        login,
-        startEmailLogin,
-        completeEmailLogin,
-        logout,
-      } = elements.buttons;
-      create.addEventListener('click', () => runWithButtonDisabled(create, handleCreateUser));
-      sendEmail.addEventListener('click', () => runWithButtonDisabled(sendEmail, handleSendVerificationEmail));
-      confirmEmail.addEventListener('click', () => runWithButtonDisabled(confirmEmail, handleConfirmEmail));
-      addPasskey.addEventListener('click', () => runWithButtonDisabled(addPasskey, handleAddPasskey));
-      startEmailLogin.addEventListener('click', () => runWithButtonDisabled(startEmailLogin, handleStartEmailLogin));
-      completeEmailLogin.addEventListener('click', () => runWithButtonDisabled(completeEmailLogin, handleCompleteEmailLogin));
-      login.addEventListener('click', () => runWithButtonDisabled(login, handleLogin));
-      logout.addEventListener('click', handleLogout);
-
-      if (!supportsWebAuthn) {
-        addPasskey.disabled = true;
-        login.disabled = true;
-        status.set('passkey', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
-        status.set('login', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
-      }
-
-      session.render();
     })();
   </script>
 </body>
