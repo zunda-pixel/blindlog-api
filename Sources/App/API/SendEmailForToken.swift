@@ -1,21 +1,29 @@
 import AWSSDKIdentity
 import AWSSESv2
-import Algorithms
 import Crypto
+import ExtrasBase64
 import Foundation
 import Hummingbird
 import HummingbirdOTP
+import OpenAPIRuntime
 import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
 import Valkey
+import WebAuthn
 
 extension API {
-  func sendConfirmEmail(
-    _ input: Operations.SendConfirmEmail.Input
-  ) async throws -> Operations.SendConfirmEmail.Output {
-    guard let userID = User.currentUserID else { return .unauthorized }
+  func sendEmailForToken(
+    _ input: Operations.SendEmailForToken.Input
+  ) async throws -> Operations.SendEmailForToken.Output {
+    let email: String = normalizeEmail(input.query.email)
+    let challenge: [UInt8] =
+      Array(Data(AES.GCM.Nonce()))
+      + Array(Data(AES.GCM.Nonce()))
+      + Array(Data(AES.GCM.Nonce()))
+
+    // 1. initialize SES Client
     let ses: SESv2Client
 
     do {
@@ -29,27 +37,57 @@ extension API {
         level: .error,
         "Failed to initialize SESv2Client",
         metadata: [
-          "userID": .string(userID.uuidString),
+          "email": .string(email),
           "error": .string(String(describing: error)),
         ]
       )
       return .badRequest
     }
 
-    let normalizedEmail = normalizeEmail(input.query.email)
-
-    let destination = SESv2ClientTypes.Destination(
-      toAddresses: [normalizedEmail]
-    )
-
-    let subject = SESv2ClientTypes.Content(data: "Confirm your email")
-
+    // 2. Generate TOTP
     let totpPassword = TOTP(
       secret: String(decoding: Data(AES.GCM.Nonce()), as: UTF8.self),
       length: 6,
       timeStep: 60,
       hashFunction: .sha256
     ).compute()
+    let hashedPassword = Data(SHA256.hash(data: Data(String(totpPassword).utf8)))
+
+    let totp = TOTPEmailAuthentication(
+      challenge: Data(challenge),
+      email: email,
+      hashedPassword: hashedPassword
+    )
+
+    // 3. Save TOTP to cache
+    do {
+      let key = ValkeyKey("TOTPEmailAuthentication:\(totp.challenge.base64EncodedString())")
+      let totpData = try JSONEncoder().encode(totp)
+
+      try await cache.set(
+        key,
+        value: totpData,
+        expiration: .seconds(60 * 1)  // 1 minutes
+      )
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to update stored sign counter",
+        metadata: [
+          "email": .string(email),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      return .badRequest
+    }
+
+    // 4. Send Email
+
+    let destination = SESv2ClientTypes.Destination(
+      toAddresses: [email]
+    )
+
+    let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
     let body = SESv2ClientTypes.Body(
       html: SESv2ClientTypes.Content(data: "\(totpPassword)"),
@@ -67,31 +105,6 @@ extension API {
       fromEmailAddress: "support@blindlog.me"
     )
 
-    // 1. Save TOTP to db
-    do {
-      let totp = TOTPEmailRegistration(
-        hashedPassword: Data(SHA256.hash(data: Data(String(totpPassword).utf8))),
-        userID: userID,
-        email: normalizedEmail
-      )
-
-      let totpData = try JSONEncoder().encode(totp)
-
-      try await cache.set(ValkeyKey("TOTPEmailRegistration:\(userID)"), value: totpData)
-    } catch {
-      BasicRequestContext.current?.logger.log(
-        level: .error,
-        "Failed to save TOTP to db",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "email": .string(normalizedEmail),
-          "error": .string(String(describing: error)),
-        ]
-      )
-      return .badRequest
-    }
-
-    // 2. Send email
     do {
       _ = try await ses.sendEmail(input: input)
     } catch {
@@ -99,18 +112,13 @@ extension API {
         level: .error,
         "Failed to send email",
         metadata: [
-          "userID": .string(userID.uuidString),
-          "email": .string(normalizedEmail),
+          "email": .string(email),
           "error": .string(String(describing: error)),
         ]
       )
       return .badRequest
     }
 
-    return .ok
-  }
-
-  func normalizeEmail(_ email: String) -> String {
-    email.trimming(while: \.isWhitespace).lowercased()
+    return .ok(.init(body: .json(.init(challenge))))
   }
 }

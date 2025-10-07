@@ -11,13 +11,8 @@ CREATE TABLE public.passkey_credentials (
   CONSTRAINT passkey_credentials_pk PRIMARY KEY (id)
 );
 
-CREATE TABLE public.totps (
-  password bytea NOT NULL,
-  user_id uuid NOT NULL references users(id),
-  email varchar NOT NULL
-);
-
 CREATE TABLE public.user_email (
   user_id uuid NOT NULL references users(id),
-  email varchar NOT NULL
+  email varchar NOT NULL,
+  CONSTRAINT user_email_email_key UNIQUE (email)
 );

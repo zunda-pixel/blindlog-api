@@ -13,10 +13,10 @@ extension API {
     _ input: Operations.AddPasskey.Input
   ) async throws -> Operations.AddPasskey.Output {
     guard let userID = User.currentUserID else {
-      return .unauthorized(.init())
+      return .unauthorized
     }
     // 1. Parse request payload
-    guard case .json(let body) = input.body else { return .badRequest(.init()) }
+    guard case .json(let body) = input.body else { return .badRequest }
     let registrationCredential: RegistrationCredential
     do {
       let bodyData = try JSONEncoder().encode(body)
@@ -33,7 +33,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
     // 2. Verify and delete challenge atomically
     let challengeData = Data(input.query.challenge.data)
@@ -44,11 +44,11 @@ extension API {
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: $0) }
 
       guard let challenge else {
-        return .badRequest(.init())
+        return .badRequest
       }
 
       guard challenge.userID == userID && challenge.purpose == .registration else {
-        return .badRequest(.init())
+        return .badRequest
       }
 
       try await cache.del(keys: [key])
@@ -62,7 +62,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 3. Validate WebAuthn registration data
@@ -92,7 +92,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
     // 4. Persist credential metadata
     do {
@@ -117,7 +117,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     return .ok
