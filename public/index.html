@@ -139,10 +139,26 @@
     </section>
 
     <section>
-      <h2>ログイン</h2>
+      <h2>Passkeyログイン</h2>
       <p>Passkey を使って認証し、新しいトークンを取得します。</p>
-      <button id="login" type="button">ログイン</button>
+      <button id="login" type="button">Passkeyでログイン</button>
       <p id="login-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>メールログイン</h2>
+      <p>メールアドレスにコードを送り、新しいトークンを取得します。</p>
+      <div class="field">
+        <label for="email-login-input">メールアドレス</label>
+        <input id="email-login-input" type="email" autocomplete="email" placeholder="user@example.com">
+      </div>
+      <button id="start-email-login" type="button">ログインコード送信</button>
+      <div class="field">
+        <label for="email-login-code">確認コード</label>
+        <input id="email-login-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6桁のコード">
+      </div>
+      <button id="complete-email-login" type="button">コードでログイン</button>
+      <p id="email-login-status" class="status" role="status"></p>
     </section>
 
     <section>
@@ -169,6 +185,8 @@
           confirmEmail: document.getElementById('confirm-email'),
           addPasskey: document.getElementById('add-passkey'),
           login: document.getElementById('login'),
+          startEmailLogin: document.getElementById('start-email-login'),
+          completeEmailLogin: document.getElementById('complete-email-login'),
           logout: document.getElementById('logout'),
         },
         statuses: {
@@ -177,11 +195,14 @@
           emailConfirm: document.getElementById('email-confirm-status'),
           passkey: document.getElementById('passkey-status'),
           login: document.getElementById('login-status'),
+          emailLogin: document.getElementById('email-login-status'),
           logout: document.getElementById('logout-status'),
         },
         inputs: {
           email: document.getElementById('email-input'),
           code: document.getElementById('email-code'),
+          emailLoginEmail: document.getElementById('email-login-input'),
+          emailLoginCode: document.getElementById('email-login-code'),
         },
         sessionOutput: document.getElementById('session-output'),
       };
@@ -243,6 +264,8 @@
           elements.sessionOutput.textContent = JSON.stringify(data, null, 2);
         },
       };
+
+      let emailLoginChallenge = null;
 
       function formatReferenceDate(value) {
         if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -394,7 +417,7 @@
 
       async function requestToken(payload) {
         const response = await ensureOk(
-          fetch('/token', {
+          fetch('/token/passkey', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -437,6 +460,29 @@
         );
       }
 
+      async function sendEmailLoginChallenge(email) {
+        const url = new URL('/token/email/start', window.location.origin);
+        url.searchParams.set('email', email);
+        const response = await ensureOk(
+          fetch(url, { method: 'POST' }),
+          'ログインコードの送信に失敗しました。'
+        );
+        return readChallengeResponse(response);
+      }
+
+      async function exchangeEmailCodeForToken({ email, code, challenge }) {
+        const payload = { challenge, email, otp: code };
+        const response = await ensureOk(
+          fetch('/token/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }),
+          'メールでのログインに失敗しました。'
+        );
+        return response.json();
+      }
+
       async function runWithButtonDisabled(button, action) {
         button.disabled = true;
         try {
@@ -448,11 +494,12 @@
 
       async function handleCreateUser() {
         status.set('create', 'ユーザー作成中...');
-        status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'logout');
+        status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'logout');
         try {
           const payload = await createUser();
           session.apply(payload);
           session.updateEmail(null);
+          emailLoginChallenge = null;
           status.set('create', 'ユーザーを作成しトークンを取得しました。');
         } catch (error) {
           console.error(error);
@@ -514,6 +561,62 @@
         }
       }
 
+      async function handleStartEmailLogin() {
+        const email = elements.inputs.emailLoginEmail.value.trim();
+        if (!email) {
+          status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
+          return;
+        }
+
+        status.set('emailLogin', 'ログインコード送信中...');
+        status.clear('logout', 'login');
+        try {
+          emailLoginChallenge = await sendEmailLoginChallenge(email);
+          elements.inputs.emailLoginCode.value = '';
+          status.set('emailLogin', '確認コードを送信しました。メールをご確認ください。');
+        } catch (error) {
+          console.error(error);
+          status.set('emailLogin', error.message || 'ログインコードの送信に失敗しました。', { error: true });
+        }
+      }
+
+      async function handleCompleteEmailLogin() {
+        const email = elements.inputs.emailLoginEmail.value.trim();
+        const code = elements.inputs.emailLoginCode.value.trim();
+
+        if (!email) {
+          status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
+          return;
+        }
+        if (!code) {
+          status.set('emailLogin', '確認コードを入力してください。', { error: true });
+          return;
+        }
+        if (!emailLoginChallenge) {
+          status.set('emailLogin', '先にログインコードを送信してください。', { error: true });
+          return;
+        }
+
+        status.set('emailLogin', 'ログイン処理中...');
+        status.clear('logout', 'login');
+        try {
+          const tokens = await exchangeEmailCodeForToken({
+            email,
+            code,
+            challenge: emailLoginChallenge,
+          });
+          emailLoginChallenge = null;
+          session.apply(tokens);
+          session.updateEmail(email);
+          elements.inputs.emailLoginCode.value = '';
+          status.set('emailLogin', 'メールアドレスでログインしました。');
+          status.clear('login');
+        } catch (error) {
+          console.error(error);
+          status.set('emailLogin', error.message || 'メールでのログインに失敗しました。', { error: true });
+        }
+      }
+
       async function handleAddPasskey() {
         const { token, userID } = session.data;
         if (!token) {
@@ -554,7 +657,7 @@
         }
 
         status.set('login', 'チャレンジ取得中...');
-        status.clear('logout');
+        status.clear('logout', 'emailLogin');
         try {
           const challenge = await fetchChallenge();
           const options = buildAuthenticationOptions(challenge);
@@ -568,7 +671,7 @@
 
           const tokens = await requestToken(payload);
           session.apply(tokens);
-          status.set('login', 'ログインしました。新しいトークンを取得しました。');
+          status.set('login', 'Passkeyでログインしました。新しいトークンを取得しました。');
         } catch (error) {
           console.error(error);
           status.set('login', error.message || 'ログインに失敗しました。', { error: true });
@@ -577,15 +680,27 @@
 
       function handleLogout() {
         session.reset();
+        emailLoginChallenge = null;
         status.set('logout', 'ログアウトしました。');
-        status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login');
+        status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin');
       }
 
-      const { create, sendEmail, confirmEmail, addPasskey, login, logout } = elements.buttons;
+      const {
+        create,
+        sendEmail,
+        confirmEmail,
+        addPasskey,
+        login,
+        startEmailLogin,
+        completeEmailLogin,
+        logout,
+      } = elements.buttons;
       create.addEventListener('click', () => runWithButtonDisabled(create, handleCreateUser));
       sendEmail.addEventListener('click', () => runWithButtonDisabled(sendEmail, handleSendVerificationEmail));
       confirmEmail.addEventListener('click', () => runWithButtonDisabled(confirmEmail, handleConfirmEmail));
       addPasskey.addEventListener('click', () => runWithButtonDisabled(addPasskey, handleAddPasskey));
+      startEmailLogin.addEventListener('click', () => runWithButtonDisabled(startEmailLogin, handleStartEmailLogin));
+      completeEmailLogin.addEventListener('click', () => runWithButtonDisabled(completeEmailLogin, handleCompleteEmailLogin));
       login.addEventListener('click', () => runWithButtonDisabled(login, handleLogin));
       logout.addEventListener('click', handleLogout);
 
