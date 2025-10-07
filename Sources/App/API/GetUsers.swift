@@ -65,7 +65,9 @@ extension API {
       return .badRequest
     }
 
-    let users: [Components.Schemas.User] = (cacheUsers + dbUsers).map { .init(id: $0.id.uuidString) }
+    let users: [Components.Schemas.User] = (cacheUsers + dbUsers).map {
+      .init(id: $0.id.uuidString)
+    }
 
     return .ok(.init(body: .json(users)))
   }

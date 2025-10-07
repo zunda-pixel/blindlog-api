@@ -30,7 +30,7 @@ extension API {
     }
 
     let responseUser = Components.Schemas.User(id: user.id.uuidString)
-    
+
     return .ok(.init(body: .json(responseUser)))
   }
 

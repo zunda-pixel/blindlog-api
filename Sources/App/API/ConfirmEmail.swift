@@ -21,7 +21,7 @@ extension API {
       guard let totpData else {
         return .badRequest
       }
-      
+
       let totp = try JSONDecoder().decode(TOTPEmailRegistration.self, from: totpData)
 
       guard totp.userID == userID && totp.email == email else {
