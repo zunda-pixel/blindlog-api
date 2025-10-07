@@ -60,7 +60,7 @@ extension API {
 
     // 3. fetch user with email
     let userID: UUID?
-    
+
     do {
       userID = try await database.read { db in
         try await UserEmail
@@ -80,7 +80,7 @@ extension API {
       )
       return .badRequest
     }
-    
+
     guard let userID else {
       return .notFound
     }
