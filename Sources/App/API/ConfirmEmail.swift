@@ -6,6 +6,7 @@ import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
+import Valkey
 
 extension API {
   func confirmEmail(
@@ -16,20 +17,19 @@ extension API {
     let hashedPassword = Data(SHA256.hash(data: Data(input.query.password.utf8)))
     // 1. Verify totp
     do {
-      let row = try await database.write { db in
-        try await TOTP
-          .delete()
-          .where {
-            $0.userID.eq(userID)
-              .and($0.email.eq(email))
-              .and($0.password.eq(hashedPassword))
-          }
-          .returning(\.self)
-          .fetchOne(db)
+      let totpData = try await cache.get(ValkeyKey("TOTPEmailRegistration:\(userID.uuidString)"))
+      guard let totpData else {
+        return .badRequest
+      }
+      
+      let totp = try JSONDecoder().decode(TOTPEmailRegistration.self, from: totpData)
+
+      guard totp.userID == userID && totp.email == email else {
+        return .badRequest
       }
 
-      guard row != nil else {
-        return .badRequest
+      guard totp.hashedPassword == hashedPassword else {
+        return .unauthorized
       }
     } catch {
       BasicRequestContext.current?.logger.log(

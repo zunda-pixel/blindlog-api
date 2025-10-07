@@ -9,6 +9,7 @@ import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
+import Valkey
 
 extension API {
   func sendConfirmEmail(
@@ -68,15 +69,15 @@ extension API {
 
     // 1. Save TOTP to db
     do {
-      try await database.write { db in
-        try await TOTP.insert {
-          TOTP(
-            password: Data(SHA256.hash(data: Data(String(totpPassword).utf8))),
-            userID: userID,
-            email: normalizedEmail
-          )
-        }.execute(db)
-      }
+      let totp = TOTPEmailRegistration(
+        hashedPassword: Data(SHA256.hash(data: Data(String(totpPassword).utf8))),
+        userID: userID,
+        email: normalizedEmail
+      )
+
+      let totpData = try JSONEncoder().encode(totp)
+
+      try await cache.set(ValkeyKey("TOTPEmailRegistration:\(userID)"), value: totpData)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
