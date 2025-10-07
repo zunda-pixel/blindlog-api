@@ -4,7 +4,7 @@ services:
     restart: always
 
   postgres:
-    image: postgres:18rc1
+    image: postgres:latest
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
