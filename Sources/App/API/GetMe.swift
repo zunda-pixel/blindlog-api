@@ -77,10 +77,8 @@ extension API {
     return try await database.read { db in
       try await User
         .leftJoin(UserEmail.all) { $0.0.id.eq($0.1.userID) }
-        .where { $1.userID.eq(id) }
-        .select { user, userEmail in
-          UserProfile.Columns(id: user.id, email: userEmail.email)
-        }
+        .where { user, _ in user.id.eq(id) }
+        .select { UserProfile.Columns(id: $0.id, email: $1.email) }
         .limit(1)
         .fetchOne(db)
     }
