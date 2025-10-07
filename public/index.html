@@ -244,26 +244,31 @@
         session.render();
       }
 
-      function createFlows() {
-        return {
-          async createUser() {
-            status.set('create', 'ユーザー作成中...');
-            status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'logout');
-            try {
-              const payload = await api.createUser();
-              session.apply(payload);
-              session.updateEmail(null);
-              state.emailLoginChallenge = null;
-              status.set('create', 'ユーザーを作成しトークンを取得しました。');
-            } catch (error) {
-              console.error(error);
-              status.set('create', error.message || 'ユーザー作成に失敗しました。', { error: true });
-            }
-          },
+      function createUserFlow({ api, session, status, state }) {
+        return async function handleCreateUser() {
+          status.set('create', 'ユーザー作成中...');
+          status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'logout');
+          try {
+            const payload = await api.createUser();
+            session.apply(payload);
+            session.updateEmail(null);
+            state.emailLoginChallenge = null;
+            status.set('create', 'ユーザーを作成しトークンを取得しました。');
+          } catch (error) {
+            console.error(error);
+            status.set('create', error.message || 'ユーザー作成に失敗しました。', { error: true });
+          }
+        };
+      }
 
-          async sendVerificationEmail() {
+      function createEmailVerificationFlow({ api, session, status, inputs }) {
+        const emailInput = inputs.email;
+        const codeInput = inputs.code;
+
+        return {
+          async send() {
             const { token } = session.data;
-            const email = elements.inputs.email.value.trim();
+            const email = emailInput.value.trim();
             if (!token) {
               status.set('emailStart', '先にユーザーを作成またはログインしてください。', { error: true });
               return;
@@ -285,10 +290,10 @@
             }
           },
 
-          async confirmEmail() {
+          async confirm() {
             const { token } = session.data;
-            const email = elements.inputs.email.value.trim();
-            const code = elements.inputs.code.value.trim();
+            const email = emailInput.value.trim();
+            const code = codeInput.value.trim();
             if (!token) {
               status.set('emailConfirm', '先にユーザーを作成またはログインしてください。', { error: true });
               return;
@@ -307,16 +312,23 @@
             try {
               await api.confirmEmailAddress({ email, code, token });
               session.updateEmail(email);
-              elements.inputs.code.value = '';
+              codeInput.value = '';
               status.set('emailConfirm', 'メールアドレスを認証しました。');
             } catch (error) {
               console.error(error);
               status.set('emailConfirm', error.message || 'メールアドレスの確認に失敗しました。', { error: true });
             }
           },
+        };
+      }
 
-          async startEmailLogin() {
-            const email = elements.inputs.emailLoginEmail.value.trim();
+      function createEmailLoginFlow({ api, session, status, inputs, state }) {
+        const emailInput = inputs.emailLoginEmail;
+        const codeInput = inputs.emailLoginCode;
+
+        return {
+          async start() {
+            const email = emailInput.value.trim();
             if (!email) {
               status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
               return;
@@ -326,7 +338,7 @@
             status.clear('logout', 'login');
             try {
               state.emailLoginChallenge = await api.sendEmailLoginChallenge(email);
-              elements.inputs.emailLoginCode.value = '';
+              codeInput.value = '';
               status.set('emailLogin', '確認コードを送信しました。メールをご確認ください。');
             } catch (error) {
               console.error(error);
@@ -334,9 +346,9 @@
             }
           },
 
-          async completeEmailLogin() {
-            const email = elements.inputs.emailLoginEmail.value.trim();
-            const otp = elements.inputs.emailLoginCode.value.trim();
+          async complete() {
+            const email = emailInput.value.trim();
+            const otp = codeInput.value.trim();
 
             if (!email) {
               status.set('emailLogin', 'メールアドレスを入力してください。', { error: true });
@@ -362,7 +374,7 @@
               state.emailLoginChallenge = null;
               session.apply(tokens);
               session.updateEmail(email);
-              elements.inputs.emailLoginCode.value = '';
+              codeInput.value = '';
               status.set('emailLogin', 'メールアドレスでログインしました。');
               status.clear('login');
             } catch (error) {
@@ -370,8 +382,12 @@
               status.set('emailLogin', error.message || 'メールでのログインに失敗しました。', { error: true });
             }
           },
+        };
+      }
 
-          async addPasskey() {
+      function createPasskeyFlow({ api, session, status, webAuthn, supportsWebAuthn }) {
+        return {
+          async add() {
             const { token, userID } = session.data;
             if (!token) {
               status.set('passkey', '先にユーザーを作成またはログインしてください。', { error: true });
@@ -405,7 +421,7 @@
             }
           },
 
-          async passkeyLogin() {
+          async login() {
             if (!supportsWebAuthn) {
               status.set('login', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
               return;
@@ -430,13 +446,15 @@
               status.set('login', error.message || 'ログインに失敗しました。', { error: true });
             }
           },
+        };
+      }
 
-          logout() {
-            session.reset();
-            state.emailLoginChallenge = null;
-            status.set('logout', 'ログアウトしました。');
-            status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin');
-          },
+      function createLogoutFlow({ session, status, state }) {
+        return function handleLogout() {
+          session.reset();
+          state.emailLoginChallenge = null;
+          status.set('logout', 'ログアウトしました。');
+          status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin');
         };
       }
 
