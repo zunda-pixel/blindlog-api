@@ -77,7 +77,11 @@ extension API {
 
       let totpData = try JSONEncoder().encode(totp)
 
-      try await cache.set(ValkeyKey("TOTPEmailRegistration:\(userID)"), value: totpData)
+      try await cache.set(
+        ValkeyKey("TOTPEmailRegistration:\(userID)"),
+        value: totpData,
+        expiration: .seconds(60 * 1)
+      )
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
