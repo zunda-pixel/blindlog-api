@@ -45,8 +45,10 @@ extension API {
     }
 
     // 2. Generate TOTP
+    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce())).base64EncodedString()
+
     let totpPassword = TOTP(
-      secret: String(decoding: Data(AES.GCM.Nonce()), as: UTF8.self),
+      secret: secret,
       length: 6,
       timeStep: 60,
       hashFunction: .sha256
