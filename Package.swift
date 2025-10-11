@@ -36,6 +36,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-tagged.git", from: "0.10.0"),
     .package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.5.0"),
     .package(url: "https://github.com/mhayes853/swift-uuidv7.git", from: "0.3.0"),
+    .package(url: "https://github.com/swift-otel/swift-otel.git", from: "1.0.0"),
   ],
   targets: [
     .executableTarget(
@@ -55,6 +56,7 @@ let package = Package(
         .product(name: "Tagged", package: "swift-tagged"),
         .product(name: "AWSSESv2", package: "aws-sdk-swift"),
         .product(name: "UUIDV7", package: "swift-uuidv7"),
+        .product(name: "OTel", package: "swift-otel"),
       ],
       swiftSettings: [
         .enableUpcomingFeature("ExistentialAny"),

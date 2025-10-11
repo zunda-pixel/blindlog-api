@@ -1,5 +1,5 @@
 {
-  "originHash" : "4c5130322fdb412c8dc373796feba1e82e74bba63daa9ab4d17aafb554eee0df",
+  "originHash" : "db8a3313afae5963288c9da64c5c2758007eb2b23e23fec8067bbca079597347",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/awslabs/aws-sdk-swift.git",
       "state" : {
-        "revision" : "37e9ce6acadf258fb9ac7911fe420f480e75cd91",
-        "version" : "1.5.54"
+        "revision" : "d99ab03af04835391602261f5f1fa9217dfdcc06",
+        "version" : "1.5.57"
       }
     },
     {
@@ -150,8 +150,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/smithy-lang/smithy-swift",
       "state" : {
-        "revision" : "eed7acfe8de6a40b61a017a66bfe0b13d9987cab",
-        "version" : "0.158.0"
+        "revision" : "2c8b0061b314d4b49a92879f019fe6afb6f1d464",
+        "version" : "0.161.0"
       }
     },
     {
@@ -416,6 +416,15 @@
       }
     },
     {
+      "identity" : "swift-otel",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-otel/swift-otel.git",
+      "state" : {
+        "revision" : "fa1ad6d8e031496962e0b40fa6047864ef289775",
+        "version" : "1.0.0"
+      }
+    },
+    {
       "identity" : "swift-protobuf",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
@@ -503,6 +512,15 @@
       "state" : {
         "revision" : "02c3e05095347a2649846c199adbde756f0c2e90",
         "version" : "0.3.0"
+      }
+    },
+    {
+      "identity" : "swift-w3c-trace-context",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-otel/swift-w3c-trace-context.git",
+      "state" : {
+        "revision" : "3da4b79545b38cf5551f1c525d800756f38cb697",
+        "version" : "1.0.0-beta.3"
       }
     },
     {
