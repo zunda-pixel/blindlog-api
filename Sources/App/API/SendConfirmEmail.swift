@@ -44,7 +44,8 @@ extension API {
 
     let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
-    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce())).base64EncodedString()
+    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()))
+      .base64EncodedString()
 
     let totpPassword = TOTP(
       secret: secret,
