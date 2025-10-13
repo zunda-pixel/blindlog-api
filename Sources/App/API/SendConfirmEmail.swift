@@ -44,8 +44,11 @@ extension API {
 
     let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
+    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()))
+      .base64EncodedString()
+
     let totpPassword = TOTP(
-      secret: String(decoding: Data(AES.GCM.Nonce()), as: UTF8.self),
+      secret: secret,
       length: 6,
       timeStep: 60,
       hashFunction: .sha256
@@ -77,7 +80,11 @@ extension API {
 
       let totpData = try JSONEncoder().encode(totp)
 
-      try await cache.set(ValkeyKey("TOTPEmailRegistration:\(userID)"), value: totpData)
+      try await cache.set(
+        ValkeyKey("TOTPEmailRegistration:\(userID)"),
+        value: totpData,
+        expiration: .seconds(60 * 1)
+      )
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
