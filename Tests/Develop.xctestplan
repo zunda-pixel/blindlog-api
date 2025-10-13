@@ -15,7 +15,7 @@
         "value" : "localhost"
       },
       {
-        "key" : "EdDSA_PRIVATE_KEY",
+        "key" : "EDDSA_PRIVATE_KEY",
         "value" : "T8s3Xh9Aulyq0UqIkggCgDyyXQKzPgIWH0w4Cb1O3Yg="
       },
       {
