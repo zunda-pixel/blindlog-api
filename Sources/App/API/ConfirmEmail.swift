@@ -14,27 +14,29 @@ extension API {
   ) async throws -> Operations.ConfirmEmail.Output {
     guard let userID = User.currentUserID else { return .unauthorized }
     let email = normalizeEmail(input.query.email)
-    let hashedPassword = Data(SHA256.hash(data: Data(input.query.password.utf8)))
-    // 1. Verify totp
+    // 1. Verify otp
     do {
-      let totpData = try await cache.get(ValkeyKey("TOTPEmailRegistration:\(userID.uuidString)"))
-      guard let totpData else {
+      let otpData = try await cache.get(ValkeyKey("OTPEmailRegistration:\(userID.uuidString)"))
+      guard let otpData else {
         return .badRequest
       }
 
-      let totp = try JSONDecoder().decode(TOTPEmailRegistration.self, from: totpData)
+      let otp = try JSONDecoder().decode(OTPEmailRegistration.self, from: otpData)
 
-      guard totp.userID == userID && totp.email == email else {
+      guard otp.userID == userID && otp.email == email else {
         return .badRequest
       }
-
-      guard totp.hashedPassword == hashedPassword else {
+      let message = Data(input.query.password.utf8)
+      guard
+        HMAC<SHA256>.isValidAuthenticationCode(
+          otp.hashedPassword, authenticating: message, using: otpSecretKey)
+      else {
         return .unauthorized
       }
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
-        "Failed to verify totp",
+        "Failed to verify otp",
         metadata: [
           "userID": .string(userID.uuidString),
           "email": .string(email),

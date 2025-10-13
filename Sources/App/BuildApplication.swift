@@ -54,7 +54,8 @@ func buildApplication(
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
     awsCredentail: awsCredential,
-    awsRegion: awsRegion
+    awsRegion: awsRegion,
+    otpSecretKey: makeOTPSecretKey(config: config)
   )
 
   router.add(middleware: TracingMiddleware())
@@ -209,4 +210,10 @@ func makeAWSConfig(config: ConfigReader) throws -> (StaticAWSCredentialIdentityR
   let region = try config.requiredString(forKey: "region")
 
   return (credential, region)
+}
+
+func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
+  let secretKey = try config.requiredString(forKey: "otp.secret.key")
+  let secretKeyData = Data(base64Encoded: secretKey)!
+  return SymmetricKey(data: secretKeyData)
 }
