@@ -1,6 +1,6 @@
 import Foundation
 
-struct TOTPEmailAuthentication: Codable {
+struct OTPEmailAuthentication: Codable {
   var challenge: Data
   var email: String
   var hashedPassword: Data

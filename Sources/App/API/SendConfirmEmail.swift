@@ -44,18 +44,10 @@ extension API {
 
     let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
-    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()))
-      .base64EncodedString()
-
-    let totpPassword = TOTP(
-      secret: secret,
-      length: 6,
-      timeStep: 60,
-      hashFunction: .sha256
-    ).compute()
+    let otpPassword = generateOTP()
 
     let body = SESv2ClientTypes.Body(
-      html: SESv2ClientTypes.Content(data: "\(totpPassword)"),
+      html: SESv2ClientTypes.Content(data: otpPassword),
     )
 
     let simple = SESv2ClientTypes.Message(body: body, subject: subject)
@@ -70,25 +62,28 @@ extension API {
       fromEmailAddress: "support@blindlog.me"
     )
 
-    // 1. Save TOTP to db
+    // 1. Save OTP to db
     do {
-      let totp = TOTPEmailRegistration(
-        hashedPassword: Data(SHA256.hash(data: Data(String(totpPassword).utf8))),
+      let message = Data(otpPassword.utf8)
+      let hashedOTP = HMAC<SHA256>.authenticationCode(for: message, using: otpSecretKey)
+
+      let otp = OTPEmailRegistration(
+        hashedPassword: Data(hashedOTP),
         userID: userID,
         email: normalizedEmail
       )
 
-      let totpData = try JSONEncoder().encode(totp)
+      let otpData = try JSONEncoder().encode(otp)
 
       try await cache.set(
-        ValkeyKey("TOTPEmailRegistration:\(userID)"),
-        value: totpData,
+        ValkeyKey("OTPEmailRegistration:\(userID)"),
+        value: otpData,
         expiration: .seconds(60 * 1)
       )
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
-        "Failed to save TOTP to db",
+        "Failed to save OTP to db",
         metadata: [
           "userID": .string(userID.uuidString),
           "email": .string(normalizedEmail),
@@ -119,5 +114,19 @@ extension API {
 
   func normalizeEmail(_ email: String) -> String {
     email.trimming(while: \.isWhitespace).lowercased()
+  }
+
+  func generateOTP() -> String {
+    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()))
+      .base64EncodedString()
+
+    let totpPassword = TOTP(
+      secret: secret,
+      length: 6,
+      timeStep: 60,
+      hashFunction: .sha256
+    ).compute()
+
+    return String(totpPassword)
   }
 }

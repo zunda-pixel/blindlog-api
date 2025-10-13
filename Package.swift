@@ -37,6 +37,12 @@ let package = Package(
     .package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.5.0"),
     .package(url: "https://github.com/mhayes853/swift-uuidv7.git", from: "0.3.0"),
     .package(url: "https://github.com/apple/swift-configuration.git", from: "0.1.1"),
+    .package(url: "https://github.com/apple/swift-crypto.git", from: "4.0.0"),
+    .package(url: "https://github.com/apple/swift-certificates.git", branch: "main"),
+    .package(
+      url: "https://github.com/zunda-pixel/postgres-nio.git",
+      branch: "update-swift-crypt-version"
+    ),
   ],
   targets: [
     .executableTarget(

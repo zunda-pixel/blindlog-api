@@ -22,11 +22,11 @@ extension API {
     let email: String = normalizeEmail(bodyData.email)
     do {
       let challengeData = try Data(bodyData.challenge.base64decoded())
-      let key = ValkeyKey("TOTPEmailAuthentication:\(challengeData.base64EncodedString())")
+      let key = ValkeyKey("OTPEmailAuthentication:\(challengeData.base64EncodedString())")
 
       let data = try await cache.get(key)
       let challenge = try data.map {
-        try JSONDecoder().decode(TOTPEmailAuthentication.self, from: $0)
+        try JSONDecoder().decode(OTPEmailAuthentication.self, from: $0)
       }
 
       guard let challenge else {
@@ -41,7 +41,11 @@ extension API {
         return .unauthorized
       }
 
-      guard Data(SHA256.hash(data: Data(bodyData.otp.utf8))) == challenge.hashedPassword else {
+      let message = Data(bodyData.otp.utf8)
+      guard
+        HMAC<SHA256>.isValidAuthenticationCode(
+          challenge.hashedPassword, authenticating: message, using: otpSecretKey)
+      else {
         return .unauthorized
       }
 

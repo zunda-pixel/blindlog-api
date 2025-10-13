@@ -44,32 +44,25 @@ extension API {
       return .badRequest
     }
 
-    // 2. Generate TOTP
-    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()))
-      .base64EncodedString()
+    // 2. Generate OTP
+    let otpPassword = generateOTP()
+    let message = Data(otpPassword.utf8)
+    let hashedOTP = HMAC<SHA256>.authenticationCode(for: message, using: otpSecretKey)
 
-    let totpPassword = TOTP(
-      secret: secret,
-      length: 6,
-      timeStep: 60,
-      hashFunction: .sha256
-    ).compute()
-    let hashedPassword = Data(SHA256.hash(data: Data(String(totpPassword).utf8)))
-
-    let totp = TOTPEmailAuthentication(
+    let otp = OTPEmailAuthentication(
       challenge: Data(challenge),
       email: email,
-      hashedPassword: hashedPassword
+      hashedPassword: Data(hashedOTP)
     )
 
     // 3. Save TOTP to cache
     do {
-      let key = ValkeyKey("TOTPEmailAuthentication:\(totp.challenge.base64EncodedString())")
-      let totpData = try JSONEncoder().encode(totp)
+      let key = ValkeyKey("OTPEmailAuthentication:\(otp.challenge.base64EncodedString())")
+      let otpData = try JSONEncoder().encode(otp)
 
       try await cache.set(
         key,
-        value: totpData,
+        value: otpData,
         expiration: .seconds(60 * 1)  // 1 minutes
       )
     } catch {
@@ -93,7 +86,7 @@ extension API {
     let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
     let body = SESv2ClientTypes.Body(
-      html: SESv2ClientTypes.Content(data: "\(totpPassword)"),
+      html: SESv2ClientTypes.Content(data: "\(otpPassword)"),
     )
 
     let simple = SESv2ClientTypes.Message(body: body, subject: subject)

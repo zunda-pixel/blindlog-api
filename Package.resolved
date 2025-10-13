@@ -1,5 +1,5 @@
 {
-  "originHash" : "3706d44dfe07ffee346de41fd60e4b75a7141fc1512a1880441dcf620b8b77a9",
+  "originHash" : "30faa5e5bed4ee0a7fbf43725965181c2ce2d8878107104fa7c8210bce81e57e",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -139,10 +139,10 @@
     {
       "identity" : "postgres-nio",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/postgres-nio",
+      "location" : "https://github.com/zunda-pixel/postgres-nio.git",
       "state" : {
-        "revision" : "312444ea512ac9ed77fe58dcf737265ee48503cf",
-        "version" : "1.28.0"
+        "branch" : "update-swift-crypt-version",
+        "revision" : "0f51cbff7694f470db2b1b48021c9556fb35023f"
       }
     },
     {
@@ -213,8 +213,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-certificates.git",
       "state" : {
-        "revision" : "4b092f15164144c24554e0a75e080a960c5190a6",
-        "version" : "1.14.0"
+        "branch" : "main",
+        "revision" : "f4cd9e78a1ec209b27e426a5f5c693675f95e75a"
       }
     },
     {
@@ -258,8 +258,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "revision" : "95ba0316a9b733e92bb6b071255ff46263bbe7dc",
-        "version" : "3.15.1"
+        "revision" : "bcd2b89f2a4446395830b82e4e192765edd71e18",
+        "version" : "4.0.0"
       }
     },
     {
@@ -520,7 +520,7 @@
       "location" : "https://github.com/zunda-pixel/swift-webauthn.git",
       "state" : {
         "branch" : "custom-ChallengeGenerator",
-        "revision" : "4c154606f1f73286b767af5a9bcb9a9bde0842c9"
+        "revision" : "a50edf2fca3aa9f31ff8a5a4e442a30085c90549"
       }
     },
     {
