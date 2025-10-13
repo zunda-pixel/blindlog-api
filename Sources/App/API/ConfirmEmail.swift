@@ -67,6 +67,20 @@ extension API {
       return .badRequest
     }
 
+    do {
+      try await cache.del(keys: [ValkeyKey("user:\(userID.uuidString)")])
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to delete old user from cache",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      return .badRequest
+    }
+
     return .ok
   }
 }
