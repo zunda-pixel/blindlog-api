@@ -18,17 +18,8 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
     .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/hummingbird-project/hummingbird-auth.git", from: "2.0.0"),
-    .package(
-      url: "https://github.com/hummingbird-project/hummingbird-postgres.git",
-      from: "1.0.0-rc.1"
-    ),
     .package(url: "https://github.com/vapor/postgres-kit.git", from: "2.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "0.2.0"),
-    // https://github.com/swift-server/swift-webauthn/pull/107
-    .package(
-      url: "https://github.com/zunda-pixel/swift-webauthn.git",
-      branch: "custom-ChallengeGenerator"
-    ),
     .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
@@ -37,11 +28,15 @@ let package = Package(
     .package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.5.0"),
     .package(url: "https://github.com/mhayes853/swift-uuidv7.git", from: "0.3.0"),
     .package(url: "https://github.com/apple/swift-configuration.git", from: "0.1.1"),
-    .package(url: "https://github.com/apple/swift-crypto.git", from: "4.0.0"),
-    .package(url: "https://github.com/apple/swift-certificates.git", branch: "main"),
+    .package(url: "https://github.com/vapor/postgres-nio.git", branch: "main"),
+    // https://github.com/swift-server/swift-webauthn/pull/107
     .package(
-      url: "https://github.com/zunda-pixel/postgres-nio.git",
-      branch: "update-swift-crypt-version"
+      url: "https://github.com/zunda-pixel/swift-webauthn.git",
+      branch: "custom-ChallengeGenerator"
+    ),
+    .package(
+      url: "https://github.com/hummingbird-project/hummingbird-postgres.git",
+      from: "1.0.0-rc.1"
     ),
   ],
   targets: [
