@@ -1,5 +1,5 @@
 {
-  "originHash" : "8dfd425664a084826854c5f75a9bad7c9d9232948d1f30012b0ab625b34abeac",
+  "originHash" : "59f3f66b7323e14042bacc45f67e71b336c594985ae6b280fdaf00146299378f",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/awslabs/aws-sdk-swift.git",
       "state" : {
-        "revision" : "96c1dbb8eaa667c1feca7917a03d37a9cea4b868",
-        "version" : "1.5.61"
+        "revision" : "89b1285af6f13d4a74c251ad041412757849db2e",
+        "version" : "1.5.62"
       }
     },
     {
@@ -490,7 +490,7 @@
     {
       "identity" : "swift-system",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-system.git",
+      "location" : "https://github.com/apple/swift-system",
       "state" : {
         "revision" : "395a77f0aa927f0ff73941d7ac35f2b46d47c9db",
         "version" : "1.6.3"
@@ -520,7 +520,7 @@
       "location" : "https://github.com/zunda-pixel/swift-webauthn.git",
       "state" : {
         "branch" : "custom-ChallengeGenerator",
-        "revision" : "a50edf2fca3aa9f31ff8a5a4e442a30085c90549"
+        "revision" : "cbf064e4d181ee656386935cd12c1e210390c9de"
       }
     },
     {
