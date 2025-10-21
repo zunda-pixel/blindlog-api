@@ -23,12 +23,10 @@ let package = Package(
     .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
-    .package(url: "https://github.com/coenttb/swift-records.git", from: "0.0.1"),
-    .package(url: "https://github.com/pointfreeco/swift-tagged.git", from: "0.10.0"),
+    .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-dependencies"),
     .package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.5.0"),
     .package(url: "https://github.com/mhayes853/swift-uuidv7.git", from: "0.3.0"),
     .package(url: "https://github.com/apple/swift-configuration.git", from: "0.1.1"),
-    .package(url: "https://github.com/vapor/postgres-nio.git", branch: "main"),
     // https://github.com/swift-server/swift-webauthn/pull/107
     .package(
       url: "https://github.com/zunda-pixel/swift-webauthn.git",
@@ -54,7 +52,6 @@ let package = Package(
         .product(name: "OpenAPIHummingbird", package: "swift-openapi-hummingbird"),
         .product(name: "JWTKit", package: "jwt-kit"),
         .product(name: "Records", package: "swift-records"),
-        .product(name: "Tagged", package: "swift-tagged"),
         .product(name: "AWSSESv2", package: "aws-sdk-swift"),
         .product(name: "UUIDV7", package: "swift-uuidv7"),
         .product(name: "Configuration", package: "swift-configuration"),

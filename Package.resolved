@@ -1,5 +1,5 @@
 {
-  "originHash" : "93cfaf9b4781112e01ee5fe844bf293523638f593e90b8605a8d2231650d0404",
+  "originHash" : "f2863327bbde088812107e9967b0d706b68b3425c26ea00158f35937da53bfe5",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/awslabs/aws-sdk-swift.git",
       "state" : {
-        "revision" : "89b1285af6f13d4a74c251ad041412757849db2e",
-        "version" : "1.5.62"
+        "revision" : "37f1ef1c1c00a28b867dd761f20a2bd8a0f2a6b9",
+        "version" : "1.5.66"
       }
     },
     {
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/postgres-nio.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "4795a0b0762c5cca843a720969c9dfee378e5120"
+        "revision" : "4795a0b0762c5cca843a720969c9dfee378e5120",
+        "version" : "1.29.0"
       }
     },
     {
@@ -150,8 +150,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/smithy-lang/smithy-swift",
       "state" : {
-        "revision" : "a3576238801cd1c962d36b98d860e28af78b1160",
-        "version" : "0.164.0"
+        "revision" : "4ac5f40b807d767884596f085215209af194a146",
+        "version" : "0.165.0"
       }
     },
     {
@@ -249,8 +249,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-configuration.git",
       "state" : {
-        "revision" : "7e5bc11e2c455da4aa8b73f4be356d7f0c3dc763",
-        "version" : "0.1.1"
+        "revision" : "9d5e40727efd060fb9b41b69932738f478abaa43",
+        "version" : "0.2.0"
       }
     },
     {
@@ -321,8 +321,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-http-types",
       "state" : {
-        "revision" : "a0a57e949a8903563aba4615869310c0ebf14c03",
-        "version" : "1.4.0"
+        "revision" : "9410f6b9a3d418a5416cfe30d8de4227bc6890a0",
+        "version" : "1.5.0"
       }
     },
     {
@@ -436,10 +436,10 @@
     {
       "identity" : "swift-records",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/coenttb/swift-records.git",
+      "location" : "https://github.com/zunda-pixel/swift-records.git",
       "state" : {
-        "revision" : "7110f0ec50977d923baa2d604838de3144837752",
-        "version" : "0.0.1"
+        "branch" : "fix-dependencies",
+        "revision" : "d414aea338fceb8c660b0346be9110fe4f03b5d5"
       }
     },
     {
@@ -474,8 +474,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/coenttb/swift-structured-queries-postgres",
       "state" : {
-        "revision" : "23a9e5b990c429f88c713cb5255219c275962e3e",
-        "version" : "0.0.2"
+        "branch" : "main",
+        "revision" : "5b3274302787a055acebb55535624069e7a979cd"
       }
     },
     {
@@ -483,8 +483,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-syntax",
       "state" : {
-        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
-        "version" : "601.0.1"
+        "branch" : "swift-6.2-DEVELOPMENT-SNAPSHOT-2025-10-09-a",
+        "revision" : "4799286537280063c85a32f09884cfbca301b1a1"
       }
     },
     {
@@ -546,8 +546,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/valkey-io/valkey-swift.git",
       "state" : {
-        "revision" : "4df9a1db37d932366fee3de5e413514e9e2fda33",
-        "version" : "0.3.0"
+        "revision" : "f065fc2edcd7bb952d996f9ab06d080081fd4e01",
+        "version" : "0.4.0"
       }
     },
     {
@@ -555,8 +555,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
       "state" : {
-        "revision" : "4c27acf5394b645b70d8ba19dc249c0472d5f618",
-        "version" : "1.7.0"
+        "revision" : "b2ed9eabefe56202ee4939dd9fc46b6241c88317",
+        "version" : "1.6.1"
       }
     },
     {
