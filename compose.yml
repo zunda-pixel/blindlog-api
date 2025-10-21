@@ -14,7 +14,8 @@ services:
       - ./Database/init:/docker-entrypoint-initdb.d
 
   otel:
-    otel/opentelemetry-collector:latest
+    image: otel/opentelemetry-collector:latest
+    restart: always
     ports:
       - "4317:4317"
     environment:
