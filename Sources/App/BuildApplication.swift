@@ -1,3 +1,4 @@
+import Configuration
 import Crypto
 import Foundation
 import Hummingbird
@@ -15,9 +16,10 @@ import WebAuthn
 func buildApplication(
   _ arguments: some AppArguments
 ) async throws -> some ApplicationProtocol {
-  let environment = Environment()
+  let config = ConfigReader(providers: [EnvironmentVariablesProvider()])
+
   let logLevel =
-    arguments.logLevel ?? environment.get("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) }
+    arguments.logLevel ?? config.string(forKey: "log.level").flatMap { Logger.Level(rawValue: $0) }
     ?? .debug
 
   LoggingSystem.bootstrap { label in
@@ -40,104 +42,38 @@ func buildApplication(
   var logger = Logger(label: "Blindlog")
   logger.logLevel = logLevel
 
-  let valkeyAuthentication: ValkeyClientConfiguration.Authentication? =
-    switch arguments.env {
-    case .develop:
-      nil
-    case .production:
-      try ValkeyClientConfiguration.Authentication(
-        username: environment.require("VALKEY_USERNAME"),
-        password: environment.require("VALKEY_PASSWORD")
-      )
-    }
-
-  let valkeyTLS: ValkeyClientConfiguration.TLS =
-    switch arguments.env {
-    case .develop:
-      .disable
-    case .production:
-      try .enable(
-        .clientDefault,
-        tlsServerName: environment.require("VALKEY_HOSTNAME")
-      )
-    }
-
-  let cache = try ValkeyClient(
-    .hostname(environment.require("VALKEY_HOSTNAME")),
-    configuration: .init(
-      authentication: valkeyAuthentication,
-      tls: valkeyTLS
-    ),
+  let cache = try makeCache(
+    arguments: arguments,
+    config: config,
     logger: logger
   )
 
-  let postgresTLS: PostgresClient.Configuration.TLS =
-    switch arguments.env {
-    case .develop:
-      .disable
-    case .production:
-      .require(.clientDefault)
-    }
-
-  let config = try PostgresClient.Configuration(
-    host: environment.get("POSTGRES_HOSTNAME")!,
-    username: environment.require("POSTGRES_USER"),
-    password: environment.require("POSTGRES_PASSWORD"),
-    database: environment.require("POSTGRES_DB"),
-    tls: postgresTLS
-  )
-
-  let databaseClient = PostgresClient(
-    configuration: config,
-    backgroundLogger: logger
-  )
-
-  let migrations = DatabaseMigrations()
-
-  let database = await PostgresPersistDriver(
-    client: databaseClient,
-    migrations: migrations,
+  let (databaseClient, database, migrations) = try await makeDatabase(
+    arguments: arguments,
+    config: config,
     logger: logger
   )
 
   let router = Router()
 
   let jwtKeyCollection = JWTKeyCollection()
-
   let privateKey = try EdDSA.PrivateKey(
-    d: environment.require("EdDSA_PRIVATE_KEY"),
+    d: config.requiredString(forKey: "eddsa.private.key"),
     curve: .ed25519
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
-  let api = API(
+  let (awsCredential, awsRegion) = try makeAWSConfig(config: config)
+
+  let api = try API(
     cache: cache,
     database: databaseClient,
     jwtKeyCollection: jwtKeyCollection,
-    webAuthn: WebAuthnManager(
-      configuration: .init(
-        relyingPartyID: try environment.require("RELYING_PARTY_ID"),
-        relyingPartyName: try environment.require("RELYING_PARTY_NAME"),
-        relyingPartyOrigin: try environment.require("RELYING_PARTY_ORIGIN")
-      ),
-      challengeGenerator: .init {
-        // https://www.w3.org/TR/webauthn-3/#sctn-appid-exclude-extension
-        // challenge parameter 32 random bytes
-        // 36 bytes
-        Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce()))
-      }
-    ),
-    appleAppSiteAssociation: .init(
-      webcredentials: .init(apps: [try environment.require("APPLE_APP_ID")]),
-      appclips: .init(apps: []),
-      applinks: .init(details: [])
-    ),
-    awsCredentail: .init(
-      .init(
-        accessKey: try environment.require("AWS_ACCESS_KEY_ID"),
-        secret: try environment.require("AWS_SECRET_ACCESS_KEY")
-      )),
-    awsRegion: try environment.require("AWS_REGION")
+    webAuthn: makeWebAuth(config: config),
+    appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
+    awsCredentail: awsCredential,
+    awsRegion: awsRegion,
+    otpSecretKey: makeOTPSecretKey(config: config)
   )
 
   router.add(middleware: TracingMiddleware())
@@ -175,4 +111,128 @@ func buildApplication(
   }
 
   return app
+}
+
+func makeCache(
+  arguments: some AppArguments,
+  config: ConfigReader,
+  logger: Logger
+) throws -> ValkeyClient {
+  let valkeyAuthentication: ValkeyClientConfiguration.Authentication? =
+    switch arguments.env {
+    case .develop:
+      nil
+    case .production:
+      try ValkeyClientConfiguration.Authentication(
+        username: config.requiredString(forKey: "valkey.username"),
+        password: config.requiredString(forKey: "valkey.password")
+      )
+    }
+
+  let valkeyTLS: ValkeyClientConfiguration.TLS =
+    switch arguments.env {
+    case .develop:
+      .disable
+    case .production:
+      try .enable(
+        .clientDefault,
+        tlsServerName: config.requiredString(forKey: "valkey.hostname")
+      )
+    }
+
+  return try ValkeyClient(
+    .hostname(config.requiredString(forKey: "valkey.hostname")),
+    configuration: .init(
+      authentication: valkeyAuthentication,
+      tls: valkeyTLS
+    ),
+    logger: logger
+  )
+}
+
+func makeDatabase(
+  arguments: some AppArguments,
+  config: ConfigReader,
+  logger: Logger
+) async throws -> (PostgresClient, PostgresPersistDriver, DatabaseMigrations) {
+  let postgresTLS: PostgresClient.Configuration.TLS =
+    switch arguments.env {
+    case .develop:
+      .disable
+    case .production:
+      .require(.clientDefault)
+    }
+  let databaseClient: PostgresClient
+
+  do {
+    let config = config.scoped(to: "postgres")
+    let postgresConfig = try PostgresClient.Configuration(
+      host: config.requiredString(forKey: "hostname"),
+      username: config.requiredString(forKey: "user"),
+      password: config.requiredString(forKey: "password"),
+      database: config.requiredString(forKey: "db"),
+      tls: postgresTLS
+    )
+
+    databaseClient = PostgresClient(
+      configuration: postgresConfig,
+      backgroundLogger: logger
+    )
+  }
+
+  let migrations = DatabaseMigrations()
+
+  let database = await PostgresPersistDriver(
+    client: databaseClient,
+    migrations: migrations,
+    logger: logger
+  )
+
+  return (databaseClient, database, migrations)
+}
+
+func makeWebAuth(config: ConfigReader) throws -> WebAuthnManager {
+  let config = config.scoped(to: "relying.party")
+
+  return try WebAuthnManager(
+    configuration: .init(
+      relyingPartyID: config.requiredString(forKey: "id"),
+      relyingPartyName: config.requiredString(forKey: "name"),
+      relyingPartyOrigin: config.requiredString(forKey: "origin")
+    ),
+    challengeGenerator: .init {
+      // https://www.w3.org/TR/webauthn-3/#sctn-appid-exclude-extension
+      // challenge parameter 32 random bytes
+      // 36 bytes
+      Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce()))
+    }
+  )
+}
+
+func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAssociation {
+  try AppleAppSiteAssociation(
+    webcredentials: .init(apps: [config.requiredString(forKey: "apple.app.id")]),
+    appclips: .init(apps: []),
+    applinks: .init(details: [])
+  )
+}
+
+func makeAWSConfig(config: ConfigReader) throws -> (StaticAWSCredentialIdentityResolver, String) {
+  let config = config.scoped(to: "aws")
+
+  let credential = try StaticAWSCredentialIdentityResolver(
+    AWSCredentialIdentity(
+      accessKey: config.requiredString(forKey: "access.key.id"),
+      secret: config.requiredString(forKey: "secret.access.key")
+    ))
+
+  let region = try config.requiredString(forKey: "region")
+
+  return (credential, region)
+}
+
+func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
+  let secretKey = try config.requiredString(forKey: "otp.secret.key")
+  let secretKeyData = Data(base64Encoded: secretKey)!
+  return SymmetricKey(data: secretKeyData)
 }

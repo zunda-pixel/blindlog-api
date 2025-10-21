@@ -9,6 +9,7 @@ import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
+import Valkey
 
 extension API {
   func sendConfirmEmail(
@@ -32,7 +33,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     let normalizedEmail = normalizeEmail(input.query.email)
@@ -43,15 +44,10 @@ extension API {
 
     let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
-    let totpPassword = HummingbirdOTP.TOTP(
-      secret: String(decoding: Data(AES.GCM.Nonce()), as: UTF8.self),
-      length: 6,
-      timeStep: 60,
-      hashFunction: .sha256
-    ).compute()
+    let otpPassword = generateOTP()
 
     let body = SESv2ClientTypes.Body(
-      html: SESv2ClientTypes.Content(data: "\(totpPassword)"),
+      html: SESv2ClientTypes.Content(data: otpPassword),
     )
 
     let simple = SESv2ClientTypes.Message(body: body, subject: subject)
@@ -66,28 +62,35 @@ extension API {
       fromEmailAddress: "support@blindlog.me"
     )
 
-    // 1. Save TOTP to db
+    // 1. Save OTP to db
     do {
-      try await database.write { db in
-        try await TOTP.insert {
-          TOTP(
-            password: Data(SHA256.hash(data: Data(String(totpPassword).utf8))),
-            userID: userID,
-            email: normalizedEmail
-          )
-        }.execute(db)
-      }
+      let message = Data(otpPassword.utf8)
+      let hashedOTP = HMAC<SHA256>.authenticationCode(for: message, using: otpSecretKey)
+
+      let otp = OTPEmailRegistration(
+        hashedPassword: Data(hashedOTP),
+        userID: userID,
+        email: normalizedEmail
+      )
+
+      let otpData = try JSONEncoder().encode(otp)
+
+      try await cache.set(
+        ValkeyKey("OTPEmailRegistration:\(userID)"),
+        value: otpData,
+        expiration: .seconds(60 * 1)
+      )
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
-        "Failed to save TOTP to db",
+        "Failed to save OTP to db",
         metadata: [
           "userID": .string(userID.uuidString),
           "email": .string(normalizedEmail),
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 2. Send email
@@ -103,7 +106,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     return .ok
@@ -111,5 +114,19 @@ extension API {
 
   func normalizeEmail(_ email: String) -> String {
     email.trimming(while: \.isWhitespace).lowercased()
+  }
+
+  func generateOTP() -> String {
+    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()))
+      .base64EncodedString()
+
+    let totpPassword = TOTP(
+      secret: secret,
+      length: 6,
+      timeStep: 60,
+      hashFunction: .sha256
+    ).compute()
+
+    return String(totpPassword)
   }
 }

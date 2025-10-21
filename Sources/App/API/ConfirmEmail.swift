@@ -6,6 +6,7 @@ import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
+import Valkey
 
 extension API {
   func confirmEmail(
@@ -13,35 +14,36 @@ extension API {
   ) async throws -> Operations.ConfirmEmail.Output {
     guard let userID = User.currentUserID else { return .unauthorized }
     let email = normalizeEmail(input.query.email)
-    let hashedPassword = Data(SHA256.hash(data: Data(input.query.password.utf8)))
-    // 1. Verify totp
+    // 1. Verify otp
     do {
-      let row = try await database.write { db in
-        try await TOTP
-          .delete()
-          .where {
-            $0.userID.eq(userID)
-              .and($0.email.eq(email))
-              .and($0.password.eq(hashedPassword))
-          }
-          .returning(\.self)
-          .fetchOne(db)
+      let otpData = try await cache.get(ValkeyKey("OTPEmailRegistration:\(userID.uuidString)"))
+      guard let otpData else {
+        return .badRequest
       }
 
-      guard row != nil else {
-        return .badRequest(.init())
+      let otp = try JSONDecoder().decode(OTPEmailRegistration.self, from: otpData)
+
+      guard otp.userID == userID && otp.email == email else {
+        return .badRequest
+      }
+      let message = Data(input.query.password.utf8)
+      guard
+        HMAC<SHA256>.isValidAuthenticationCode(
+          otp.hashedPassword, authenticating: message, using: otpSecretKey)
+      else {
+        return .unauthorized
       }
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,
-        "Failed to verify totp",
+        "Failed to verify otp",
         metadata: [
           "userID": .string(userID.uuidString),
           "email": .string(email),
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 2. Save email to db
@@ -64,7 +66,21 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
+    }
+
+    do {
+      try await cache.del(keys: [ValkeyKey("user:\(userID.uuidString)")])
+    } catch {
+      BasicRequestContext.current?.logger.log(
+        level: .error,
+        "Failed to delete old user from cache",
+        metadata: [
+          "userID": .string(userID.uuidString),
+          "error": .string(String(describing: error)),
+        ]
+      )
+      return .badRequest
     }
 
     return .ok

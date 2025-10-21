@@ -2,7 +2,6 @@ import Foundation
 import Hummingbird
 import OpenAPIRuntime
 import Records
-import StructuredQueriesPostgresCore
 import Valkey
 import WebAuthn
 
@@ -50,7 +49,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     return .ok(.init(body: .json(.init(challenge))))

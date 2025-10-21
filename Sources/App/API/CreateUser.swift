@@ -25,7 +25,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     let userToken: Components.Schemas.UserToken
@@ -40,7 +40,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
     return .ok(.init(body: .json(userToken)))
   }

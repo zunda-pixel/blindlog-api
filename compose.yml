@@ -4,7 +4,7 @@ services:
     restart: always
 
   postgres:
-    image: postgres:18rc1
+    image: postgres:latest
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -28,10 +28,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-test_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      EdDSA_PRIVATE_KEY: ${EdDSA_PRIVATE_KEY}
+      EDDSA_PRIVATE_KEY: ${EDDSA_PRIVATE_KEY}
       RELYING_PARTY_ORIGIN: ${RELYING_PARTY_ORIGIN}
       RELYING_PARTY_ID: ${RELYING_PARTY_ID}
       RELYING_PARTY_NAME: ${RELYING_PARTY_NAME}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION}
+      OTP_SECRET_KEY: ${OTP_SECRET_KEY}

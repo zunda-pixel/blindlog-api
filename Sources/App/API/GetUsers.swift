@@ -27,7 +27,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
     // 2. Get Users from DB that is not in Cache
@@ -46,7 +46,7 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
     // 3. Set new users data to cache
     do {
@@ -62,17 +62,14 @@ extension API {
           "error": .string(String(describing: error)),
         ]
       )
-      return .badRequest(.init())
+      return .badRequest
     }
 
-    let users = cacheUsers + dbUsers
+    let users: [Components.Schemas.User] = (cacheUsers + dbUsers).map {
+      .init(id: $0.id.uuidString)
+    }
 
-    return .ok(
-      .init(
-        body: .json(
-          users.map {
-            .init(id: $0.id.uuidString)
-          })))
+    return .ok(.init(body: .json(users)))
   }
 
   fileprivate func addUsersToCache(
