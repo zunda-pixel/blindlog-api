@@ -22,9 +22,11 @@ services:
 
   swift:
     image: swift:latest
+    restart: always
     depends_on:
       - postgres
       - valkey
+      - otel
     working_dir: /workspace
     volumes:
       - .:/workspace
