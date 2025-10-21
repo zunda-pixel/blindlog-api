@@ -23,7 +23,7 @@ let package = Package(
     .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
-    .package(url: "https://github.com/coenttb/swift-records.git", from: "0.0.1"),
+    .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-dependencies"),
     .package(url: "https://github.com/pointfreeco/swift-tagged.git", from: "0.10.0"),
     .package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.5.0"),
     .package(url: "https://github.com/mhayes853/swift-uuidv7.git", from: "0.3.0"),
