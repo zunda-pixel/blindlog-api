@@ -13,6 +13,13 @@ services:
     volumes:
       - ./Database/init:/docker-entrypoint-initdb.d
 
+  otel:
+    otel/opentelemetry-collector:latest
+    ports:
+      - "4317:4317"
+    environment:
+      - OTEL_LOG_LEVEL=debug
+
   swift:
     image: swift:latest
     depends_on:
