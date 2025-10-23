@@ -13,11 +13,21 @@ services:
     volumes:
       - ./Database/init:/docker-entrypoint-initdb.d
 
+  otel:
+    image: otel/opentelemetry-collector:latest
+    restart: always
+    ports:
+      - "4317:4317"
+    environment:
+      - OTEL_LOG_LEVEL=debug
+
   swift:
     image: swift:latest
+    restart: always
     depends_on:
       - postgres
       - valkey
+      - otel
     working_dir: /workspace
     volumes:
       - .:/workspace
