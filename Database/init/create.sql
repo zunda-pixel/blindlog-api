@@ -6,12 +6,13 @@ CREATE TABLE public.users (
 );
 
 CREATE TABLE public.passkey_credentials (
-  id varchar NOT NULL,
+  id text NOT NULL,
   user_id uuid NOT NULL,
   public_key bytea NOT NULL,
   sign_count bigint NOT NULL,
   CONSTRAINT passkey_credentials_pk PRIMARY KEY (id),
-  CONSTRAINT passkey_credentials_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id)
+  CONSTRAINT passkey_credentials_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE CASCADE,
+  CONSTRAINT sign_count_non_negative CHECK (sign_count >= 0)
 );
 
 CREATE INDEX passkey_credentials_user_id_idx ON public.passkey_credentials(user_id);
