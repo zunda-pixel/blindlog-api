@@ -40,6 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: docker image build
+      - run: docker build .
     
   
