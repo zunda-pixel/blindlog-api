@@ -36,3 +36,8 @@ jobs:
         run: docker compose run --rm swift bash -lc "apt-get update && apt-get install -y libssl-dev && swift test --parallel"
       - name: Shutdown
         run: docker compose down -v
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build .
