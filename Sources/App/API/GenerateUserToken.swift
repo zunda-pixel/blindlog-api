@@ -1,6 +1,5 @@
 import Foundation
 import JWTKit
-import UUIDV7
 
 extension API {
   func generateUserToken(

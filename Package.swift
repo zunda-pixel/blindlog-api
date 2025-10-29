@@ -24,9 +24,9 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
     .package(url: "https://github.com/awslabs/aws-sdk-swift.git", from: "1.5.0"),
-    .package(url: "https://github.com/mhayes853/swift-uuidv7.git", from: "0.3.0"),
     .package(url: "https://github.com/apple/swift-configuration.git", from: "0.1.1"),
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
+    .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
     .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-dependencies"),
     // https://github.com/swift-server/swift-webauthn/pull/107
     .package(
@@ -50,7 +50,7 @@ let package = Package(
         .product(name: "JWTKit", package: "jwt-kit"),
         .product(name: "Records", package: "swift-records"),
         .product(name: "AWSSESv2", package: "aws-sdk-swift"),
-        .product(name: "UUIDV7", package: "swift-uuidv7"),
+        .product(name: "UUIDV7", package: "UUIDV7"),
         .product(name: "Configuration", package: "swift-configuration"),
       ],
       swiftSettings: [
