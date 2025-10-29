@@ -1,5 +1,5 @@
 {
-  "originHash" : "0e0103cbd60019791434067df3e5bb9b0f5767efac48f52bfc143df30a2075bd",
+  "originHash" : "18717328fc755ca17dcb534b10094474de1b6daab6ef0626d6ff8059142640d5",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -506,15 +506,6 @@
       }
     },
     {
-      "identity" : "swift-uuidv7",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mhayes853/swift-uuidv7.git",
-      "state" : {
-        "revision" : "02c3e05095347a2649846c199adbde756f0c2e90",
-        "version" : "0.3.0"
-      }
-    },
-    {
       "identity" : "swift-webauthn",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/zunda-pixel/swift-webauthn.git",
@@ -539,6 +530,15 @@
       "state" : {
         "revision" : "18ff09e6b30e589ed38f90a1af23e193b8ecef8e",
         "version" : "1.1.2"
+      }
+    },
+    {
+      "identity" : "uuidv7",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/zunda-pixel/UUIDV7.git",
+      "state" : {
+        "branch" : "replace-to-swift-testing",
+        "revision" : "f9340a6f666e794a035d15df5be36bc091b60028"
       }
     },
     {
