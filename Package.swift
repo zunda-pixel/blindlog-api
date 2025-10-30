@@ -41,7 +41,6 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
         .product(name: "Hummingbird", package: "hummingbird"),
         .product(name: "HummingbirdAuth", package: "hummingbird-auth"),
-        .product(name: "HummingbirdOTP", package: "hummingbird-auth"),
         .product(name: "HummingbirdPostgres", package: "hummingbird-postgres"),
         .product(name: "PostgresKit", package: "postgres-kit"),
         .product(name: "Valkey", package: "valkey-swift"),
