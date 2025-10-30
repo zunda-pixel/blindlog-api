@@ -4,7 +4,6 @@ import Algorithms
 import Crypto
 import Foundation
 import Hummingbird
-import HummingbirdOTP
 import PostgresNIO
 import Records
 import SQLKit
@@ -44,7 +43,7 @@ extension API {
 
     let subject = SESv2ClientTypes.Content(data: "Confirm your email")
 
-    let otpPassword = generateOTP()
+    let otpPassword = OTPGenerator().generate(length: 6)
 
     let body = SESv2ClientTypes.Body(
       html: SESv2ClientTypes.Content(data: otpPassword),
@@ -114,19 +113,5 @@ extension API {
 
   func normalizeEmail(_ email: String) -> String {
     email.trimming(while: \.isWhitespace).lowercased()
-  }
-
-  func generateOTP() -> String {
-    let secret = (Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()) + Data(AES.GCM.Nonce()))
-      .base64EncodedString()
-
-    let totpPassword = TOTP(
-      secret: secret,
-      length: 6,
-      timeStep: 60,
-      hashFunction: .sha256
-    ).compute()
-
-    return String(totpPassword)
   }
 }

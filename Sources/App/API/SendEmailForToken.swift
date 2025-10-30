@@ -4,7 +4,6 @@ import Crypto
 import ExtrasBase64
 import Foundation
 import Hummingbird
-import HummingbirdOTP
 import OpenAPIRuntime
 import PostgresNIO
 import Records
@@ -45,7 +44,7 @@ extension API {
     }
 
     // 2. Generate OTP
-    let otpPassword = generateOTP()
+    let otpPassword = OTPGenerator().generate(length: 6)
     let message = Data(otpPassword.utf8)
     let hashedOTP = HMAC<SHA256>.authenticationCode(for: message, using: otpSecretKey)
 
@@ -55,7 +54,7 @@ extension API {
       hashedPassword: Data(hashedOTP)
     )
 
-    // 3. Save TOTP to cache
+    // 3. Save OTP to cache
     do {
       let key = ValkeyKey("OTPEmailAuthentication:\(otp.challenge.base64EncodedString())")
       let otpData = try JSONEncoder().encode(otp)
