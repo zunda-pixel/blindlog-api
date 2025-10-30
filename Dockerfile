@@ -19,14 +19,18 @@ WORKDIR /build
 # This creates a cached layer that can be reused
 # as long as your Package.swift/Package.resolved
 # files do not change.
-COPY ./Package.* ./
-RUN swift package resolve
+COPY Package.swift Package.resolved ./
+RUN --mount=type=cache,target=/root/.swiftpm \
+    --mount=type=cache,target=/root/.cache \
+    swift package resolve
 
 # Copy entire repo into container
 COPY . .
 
 # Build the application, with optimizations, with static linking, and using jemalloc
-RUN swift build -c release \
+RUN --mount=type=cache,target=/root/.build \
+    --mount=type=cache,target=/root/.swiftpm \
+    swift build -c release \
     --product "App" \
     --static-swift-stdlib \
     -Xlinker -ljemalloc
