@@ -1,15 +1,14 @@
-import Foundation
 import Crypto
+import Foundation
 
 @inline(__always)
-fileprivate func cryptoRandomBytes(_ count: Int) -> [UInt8] {
+private func cryptoRandomBytes(_ count: Int) -> [UInt8] {
   precondition(count > 0)
   var out: [UInt8] = []
   out.reserveCapacity(count)
-  
-  // 32バイトずつ（bits256）を生成して詰める
+
   while out.count < count {
-    let key = SymmetricKey(size: .bits256) // 32 bytes of secure randomness
+    let key = SymmetricKey(size: .bits256)
     key.withUnsafeBytes { rawBuf in
       let buf = rawBuf.bindMemory(to: UInt8.self)
       let needed = min(buf.count, count - out.count)
@@ -21,27 +20,27 @@ fileprivate func cryptoRandomBytes(_ count: Int) -> [UInt8] {
 
 /// ASCIIのみのアルファベットから安全にOTPを生成
 struct OTPGenerator {
-  var alphabet: [UInt8] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".utf8)
-  
-  /// length文字のOTPを生成（modulo bias回避の拒否サンプリング）
+  var alphabet: [UInt8] = Array(
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".utf8)
+
   func generate(length: Int) -> String {
     precondition(length > 0, "length must be > 0")
     let n = alphabet.count
-    let threshold = (256 / n) * n // 256未満のnの最大倍数
-    
+    let threshold = (256 / n) * n
+
     var out = [UInt8]()
     out.reserveCapacity(length)
-    
-    // 余裕を持ってまとめて確保
+
     var pool = cryptoRandomBytes(max(length * 2, 32))
     var i = 0
-    
+
     while out.count < length {
       if i >= pool.count {
         pool = cryptoRandomBytes(max(length, 32))
         i = 0
       }
-      let b = pool[i]; i += 1
+      let b = pool[i]
+      i += 1
       if b < threshold {
         out.append(alphabet[Int(b) % n])
       }
