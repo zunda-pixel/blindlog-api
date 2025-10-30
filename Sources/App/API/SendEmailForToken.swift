@@ -18,10 +18,7 @@ extension API {
     _ input: Operations.SendEmailForToken.Input
   ) async throws -> Operations.SendEmailForToken.Output {
     let email: String = normalizeEmail(input.query.email)
-    let challenge: [UInt8] =
-      Array(Data(AES.GCM.Nonce()))
-      + Array(Data(AES.GCM.Nonce()))
-      + Array(Data(AES.GCM.Nonce()))
+    let challenge = SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
 
     // 1. initialize SES Client
     let ses: SESv2Client
