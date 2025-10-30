@@ -184,8 +184,7 @@ func makeWebAuth(config: ConfigReader) throws -> WebAuthnManager {
     challengeGenerator: .init {
       // https://www.w3.org/TR/webauthn-3/#sctn-appid-exclude-extension
       // challenge parameter 32 random bytes
-      // 36 bytes
-      Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce()))
+      SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
     }
   )
 }
