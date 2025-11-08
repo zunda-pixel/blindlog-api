@@ -180,12 +180,7 @@ func makeWebAuth(config: ConfigReader) throws -> WebAuthnManager {
       relyingPartyID: config.requiredString(forKey: "id"),
       relyingPartyName: config.requiredString(forKey: "name"),
       relyingPartyOrigin: config.requiredString(forKey: "origin")
-    ),
-    challengeGenerator: .init {
-      // https://www.w3.org/TR/webauthn-3/#sctn-appid-exclude-extension
-      // challenge parameter 32 random bytes
-      SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
-    }
+    )
   )
 }
 

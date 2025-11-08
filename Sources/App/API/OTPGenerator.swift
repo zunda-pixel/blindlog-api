@@ -1,22 +1,6 @@
 import Crypto
 import Foundation
-
-@inline(__always)
-private func cryptoRandomBytes(_ count: Int) -> [UInt8] {
-  precondition(count > 0)
-  var out: [UInt8] = []
-  out.reserveCapacity(count)
-
-  while out.count < count {
-    let key = SymmetricKey(size: .bits256)
-    key.withUnsafeBytes { rawBuf in
-      let buf = rawBuf.bindMemory(to: UInt8.self)
-      let needed = min(buf.count, count - out.count)
-      out.append(contentsOf: buf.prefix(needed))
-    }
-  }
-  return out
-}
+import WebAuthn
 
 /// ASCIIのみのアルファベットから安全にOTPを生成
 struct OTPGenerator {
@@ -31,12 +15,12 @@ struct OTPGenerator {
     var out = [UInt8]()
     out.reserveCapacity(length)
 
-    var pool = cryptoRandomBytes(max(length * 2, 32))
+    var pool = [UInt8].random(count: max(length * 2, 32))
     var i = 0
 
     while out.count < length {
       if i >= pool.count {
-        pool = cryptoRandomBytes(max(length, 32))
+        pool = [UInt8].random(count: max(length, 32))
         i = 0
       }
       let b = pool[i]

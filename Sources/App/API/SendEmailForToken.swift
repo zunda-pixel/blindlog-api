@@ -17,7 +17,7 @@ extension API {
     _ input: Operations.SendEmailForToken.Input
   ) async throws -> Operations.SendEmailForToken.Output {
     let email: String = normalizeEmail(input.query.email)
-    let challenge = SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
+    let challenge = [UInt8].random(count: 32)
 
     // 1. initialize SES Client
     let ses: SESv2Client
