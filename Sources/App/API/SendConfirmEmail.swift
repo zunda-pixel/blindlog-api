@@ -14,7 +14,7 @@ extension API {
   func sendConfirmEmail(
     _ input: Operations.SendConfirmEmail.Input
   ) async throws -> Operations.SendConfirmEmail.Output {
-    guard let userID = User.currentUserID else { return .unauthorized }
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     let ses: SESv2Client
 
     do {

@@ -12,7 +12,7 @@ extension API {
   func addPasskey(
     _ input: Operations.AddPasskey.Input
   ) async throws -> Operations.AddPasskey.Output {
-    guard let userID = User.currentUserID else {
+    guard let userID = UserTokenContext.currentUserID else {
       return .unauthorized
     }
     // 1. Parse request payload

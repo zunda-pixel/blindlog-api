@@ -10,7 +10,7 @@ extension API {
     _ input: Operations.CreateChallenge.Input
   ) async throws -> Operations.CreateChallenge.Output {
     // 1. Generate Challenge
-    let userID = User.currentUserID
+    let userID = UserTokenContext.currentUserID
 
     let challenge: [UInt8] =
       if let userID {

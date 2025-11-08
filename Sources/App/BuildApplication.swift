@@ -63,7 +63,7 @@ func buildApplication(
   router.add(middleware: LogRequestsMiddleware(.info))
   router.add(middleware: FileMiddleware(searchForIndexHtml: true))
   router.add(
-    middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+    middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
   )
   router.add(middleware: OpenAPIRequestContextMiddleware())
 
