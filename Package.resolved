@@ -1,5 +1,5 @@
 {
-  "originHash" : "6a9020cbacef759584bc2cbae5e14933679bc97a7e4f25fbdbb3bd83ff721df8",
+  "originHash" : "7882d35aefab2cbf3758e51b8714113b2cb487dba0ec7c870d9981e203e8ad8d",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -439,7 +439,7 @@
       "location" : "https://github.com/zunda-pixel/swift-records.git",
       "state" : {
         "branch" : "fix-dependencies",
-        "revision" : "d414aea338fceb8c660b0346be9110fe4f03b5d5"
+        "revision" : "a6d18b9dea8d03a3572e2650d8bad684632e936d"
       }
     },
     {
