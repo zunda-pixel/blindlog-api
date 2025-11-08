@@ -4,7 +4,7 @@ import HummingbirdAuth
 import JWTKit
 import PostgresNIO
 
-struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
+struct UserTokenMiddleware<Context: RequestContext>: RouterMiddleware {
   var jwtKeyCollection: JWTKeyCollection
 
   func userID(
@@ -50,12 +50,12 @@ struct BearerTokenMiddleware<Context: RequestContext>: RouterMiddleware {
       return try await next(request, context)
     }
 
-    return try await User.$currentUserID.withValue(userID) {
+    return try await UserTokenContext.$currentUserID.withValue(userID) {
       try await next(request, context)
     }
   }
 }
 
-extension User {
+enum UserTokenContext {
   @TaskLocal static var currentUserID: UUID?
 }
