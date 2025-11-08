@@ -29,7 +29,10 @@ extension API {
       let message = Data(input.query.password.utf8)
       guard
         HMAC<SHA256>.isValidAuthenticationCode(
-          otp.hashedPassword, authenticating: message, using: otpSecretKey)
+          otp.hashedPassword,
+          authenticating: message,
+          using: otpSecretKey
+        )
       else {
         return .unauthorized
       }

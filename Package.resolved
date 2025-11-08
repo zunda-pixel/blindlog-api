@@ -1,13 +1,13 @@
 {
-  "originHash" : "18717328fc755ca17dcb534b10094474de1b6daab6ef0626d6ff8059142640d5",
+  "originHash" : "7882d35aefab2cbf3758e51b8714113b2cb487dba0ec7c870d9981e203e8ad8d",
   "pins" : [
     {
       "identity" : "async-http-client",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swift-server/async-http-client.git",
       "state" : {
-        "revision" : "8430dd49d4e2b417f472141805c9691ec2923cb8",
-        "version" : "1.29.0"
+        "revision" : "efb14fec9f79f3f8d4f2a6c0530303efb6fe6533",
+        "version" : "1.29.1"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/awslabs/aws-crt-swift",
       "state" : {
-        "revision" : "2f4f02595a25a43f9ca9acdc9f4d4a8ff6e5d3ac",
-        "version" : "0.54.0"
+        "revision" : "8241ad06622f7351e8843dfab6bbce14fe6bce5d",
+        "version" : "0.54.2"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/awslabs/aws-sdk-swift.git",
       "state" : {
-        "revision" : "d471dd8e93def59ee0d7e43b6545716660f7b645",
-        "version" : "1.5.70"
+        "revision" : "e073ad9275dd43f53c95c6caf69dc72a91df630a",
+        "version" : "1.5.80"
       }
     },
     {
@@ -87,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/jwt-kit.git",
       "state" : {
-        "revision" : "2033b3e661238dda3d30e36a2d40987499d987de",
-        "version" : "5.2.0"
+        "revision" : "b5f82fb9dc238f2fcac53d721a222513a152613c",
+        "version" : "5.3.0"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/postgres-kit.git",
       "state" : {
-        "revision" : "d2fd3172c2e318bd292a4c1297e4c65a418cf6f3",
-        "version" : "2.14.1"
+        "revision" : "fe44bbe35a6852730e76891b1fb36c533ecec3f6",
+        "version" : "2.15.0"
       }
     },
     {
@@ -150,8 +150,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/smithy-lang/smithy-swift",
       "state" : {
-        "revision" : "6b0f48b291fdeceef861d8900306706336b56fdc",
-        "version" : "0.166.0"
+        "revision" : "f4fcab3cac32049848055015fcfabda7fee8988c",
+        "version" : "0.170.0"
       }
     },
     {
@@ -213,8 +213,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-certificates.git",
       "state" : {
-        "revision" : "f4cd9e78a1ec209b27e426a5f5c693675f95e75a",
-        "version" : "1.15.0"
+        "revision" : "c399f90e7bbe8874f6cbfda1d5f9023d1f5ce122",
+        "version" : "1.15.1"
       }
     },
     {
@@ -258,8 +258,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "revision" : "bcd2b89f2a4446395830b82e4e192765edd71e18",
-        "version" : "4.0.0"
+        "revision" : "e8ed8867ec23bccf5f3bb9342148fa8deaff9b49",
+        "version" : "4.1.0"
       }
     },
     {
@@ -348,8 +348,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio.git",
       "state" : {
-        "revision" : "4e8f4b1c9adaa59315c523540c1ff2b38adc20a9",
-        "version" : "2.87.0"
+        "revision" : "a24771a4c228ff116df343c85fcf3dcfae31a06c",
+        "version" : "2.88.0"
       }
     },
     {
@@ -357,8 +357,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio-extras.git",
       "state" : {
-        "revision" : "a55c3dd3a81d035af8a20ce5718889c0dcab073d",
-        "version" : "1.29.0"
+        "revision" : "7ee281d816fa8e5f3967a2c294035a318ea551c7",
+        "version" : "1.31.0"
       }
     },
     {
@@ -375,8 +375,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio-ssl.git",
       "state" : {
-        "revision" : "d3bad3847c53015fe8ec1e6c3ab54e53a5b6f15f",
-        "version" : "2.35.0"
+        "revision" : "173cc69a058623525a58ae6710e2f5727c663793",
+        "version" : "2.36.0"
       }
     },
     {
@@ -429,8 +429,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
       "state" : {
-        "revision" : "c6fe6442e6a64250495669325044052e113e990c",
-        "version" : "1.32.0"
+        "revision" : "c169a5744230951031770e27e475ff6eefe51f9d",
+        "version" : "1.33.3"
       }
     },
     {
@@ -439,7 +439,7 @@
       "location" : "https://github.com/zunda-pixel/swift-records.git",
       "state" : {
         "branch" : "fix-dependencies",
-        "revision" : "d414aea338fceb8c660b0346be9110fe4f03b5d5"
+        "revision" : "a6d18b9dea8d03a3572e2650d8bad684632e936d"
       }
     },
     {
@@ -454,10 +454,10 @@
     {
       "identity" : "swift-service-lifecycle",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swift-server/swift-service-lifecycle",
+      "location" : "https://github.com/swift-server/swift-service-lifecycle.git",
       "state" : {
-        "revision" : "0fcc4c9c2d58dd98504c06f7308c86de775396ff",
-        "version" : "2.9.0"
+        "revision" : "1de37290c0ab3c5a96028e0f02911b672fd42348",
+        "version" : "2.9.1"
       }
     },
     {
@@ -475,7 +475,7 @@
       "location" : "https://github.com/coenttb/swift-structured-queries-postgres",
       "state" : {
         "branch" : "main",
-        "revision" : "d3b199c8c94622471773a7e85af3b0df8e63304d"
+        "revision" : "ec616450e7c73fc718344a6a6c8e4fb198c1ed92"
       }
     },
     {
@@ -508,10 +508,10 @@
     {
       "identity" : "swift-webauthn",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zunda-pixel/swift-webauthn.git",
+      "location" : "https://github.com/brokenhandsio/swift-webauthn",
       "state" : {
-        "branch" : "custom-ChallengeGenerator",
-        "revision" : "cbf064e4d181ee656386935cd12c1e210390c9de"
+        "revision" : "909cf4193cde7d64196553c4245ab647a68aaaca",
+        "version" : "1.0.0-beta.1"
       }
     },
     {
