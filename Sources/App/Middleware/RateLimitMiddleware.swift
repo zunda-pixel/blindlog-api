@@ -48,11 +48,14 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
 
     if allCount == 0 {
       try await cache.expire(
-        ValkeyKey("AccessCount:\(ipAddress):\(timeID)"), seconds: config.durationSeconds)
+        ValkeyKey("AccessCount:\(ipAddress):\(timeID)"),
+        seconds: config.durationSeconds
+      )
     }
     if perEndpointCount == 0 {
       try await cache.expire(
-        ValkeyKey("AccessCount:\(ipAddress):\(endpoint):\(timeID)"), seconds: config.durationSeconds
+        ValkeyKey("AccessCount:\(ipAddress):\(endpoint):\(timeID)"),
+        seconds: config.durationSeconds
       )
     }
 
@@ -71,11 +74,15 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
 
     if allCount == 0 {
       try await cache.expire(
-        ValkeyKey("AccessCount:\(userID):\(timeID)"), seconds: config.durationSeconds)
+        ValkeyKey("AccessCount:\(userID):\(timeID)"),
+        seconds: config.durationSeconds
+      )
     }
     if perEndpointCount == 0 {
       try await cache.expire(
-        ValkeyKey("AccessCount:\(userID):\(endpoint):\(timeID)"), seconds: config.durationSeconds)
+        ValkeyKey("AccessCount:\(userID):\(endpoint):\(timeID)"),
+        seconds: config.durationSeconds
+      )
     }
 
     return AccessCount(
@@ -94,7 +101,7 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
     else {
       throw HTTPError(.badRequest)
     }
-    let timeID = Int(Date.now.timeIntervalSinceReferenceDate / 3600)
+    let timeID = Int(Date.now.timeIntervalSinceReferenceDate) / config.durationSeconds
     let ipAddressAccessCount = try await ipAddressAccessCount(
       ipAddress: ipAddress,
       endpoint: endpointPath,

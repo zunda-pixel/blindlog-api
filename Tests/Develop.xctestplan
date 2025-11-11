@@ -15,6 +15,18 @@
         "value" : "localhost"
       },
       {
+        "key" : "RATELIMIT_DURATION_SECONDS",
+        "value" : "3600"
+      },
+      {
+        "key" : "RATELIMIT_IP_ADDRESS_MAX_COUNT",
+        "value" : "300"
+      },
+      {
+        "key" : "RATELIMIT_USER_TOKEN_MAX_COUNT",
+        "value" : "300"
+      },
+      {
         "key" : "OTP_SECRET_KEY",
         "value" : "14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE="
       },
