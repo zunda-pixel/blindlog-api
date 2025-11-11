@@ -11,7 +11,7 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
     headerFields: HTTPFields
   ) -> String? {
     // https://github.com/upstash/ratelimit-jsを参照して修正
-    
+
     // ex) 203.0.113.5, 198.51.100.7, 192.0.2.10
     if let xForwardedFor = headerFields[.xForwardedFor],
       let ipAddress = xForwardedFor.split(separator: ",").first
@@ -39,36 +39,45 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
     return nil
   }
 
-  func ipAddressAccessCount(ipAddress: String, endpoint: String, timeID: Int) async throws -> AccessCount {
+  func ipAddressAccessCount(ipAddress: String, endpoint: String, timeID: Int) async throws
+    -> AccessCount
+  {
     let allCount: Int = try await cache.incr(ValkeyKey("AccessCount:\(ipAddress):\(timeID)")) - 1
-    let perEndpointCount: Int = try await cache.incr(ValkeyKey("AccessCount:\(ipAddress):\(endpoint):\(timeID)")) - 1
+    let perEndpointCount: Int =
+      try await cache.incr(ValkeyKey("AccessCount:\(ipAddress):\(endpoint):\(timeID)")) - 1
 
     if allCount == 0 {
-      try await cache.expire(ValkeyKey("AccessCount:\(ipAddress):\(timeID)"), seconds: config.durationSeconds)
+      try await cache.expire(
+        ValkeyKey("AccessCount:\(ipAddress):\(timeID)"), seconds: config.durationSeconds)
     }
     if perEndpointCount == 0 {
-      try await cache.expire(ValkeyKey("AccessCount:\(ipAddress):\(endpoint):\(timeID)"), seconds: config.durationSeconds)
+      try await cache.expire(
+        ValkeyKey("AccessCount:\(ipAddress):\(endpoint):\(timeID)"), seconds: config.durationSeconds
+      )
     }
-    
+
     return AccessCount(
-      allCount: allCount - 1,
-      perEndpointCount: perEndpointCount - 1
+      allCount: allCount,
+      perEndpointCount: perEndpointCount
     )
   }
 
   func userTokenAccessCount(endpoint: String, timeID: Int) async throws -> AccessCount? {
     guard let userID = UserTokenContext.currentUserID else { return nil }
-    
+
     let allCount: Int = try await cache.incr(ValkeyKey("AccessCount:\(userID):\(timeID)")) - 1
-    let perEndpointCount: Int = try await cache.incr(ValkeyKey("AccessCount:\(userID):\(endpoint):\(timeID)")) - 1
+    let perEndpointCount: Int =
+      try await cache.incr(ValkeyKey("AccessCount:\(userID):\(endpoint):\(timeID)")) - 1
 
     if allCount == 0 {
-      try await cache.expire(ValkeyKey("AccessCount:\(userID):\(timeID)"), seconds: config.durationSeconds)
+      try await cache.expire(
+        ValkeyKey("AccessCount:\(userID):\(timeID)"), seconds: config.durationSeconds)
     }
     if perEndpointCount == 0 {
-      try await cache.expire(ValkeyKey("AccessCount:\(userID):\(endpoint):\(timeID)"), seconds: config.durationSeconds)
+      try await cache.expire(
+        ValkeyKey("AccessCount:\(userID):\(endpoint):\(timeID)"), seconds: config.durationSeconds)
     }
-    
+
     return AccessCount(
       allCount: allCount,
       perEndpointCount: perEndpointCount
@@ -91,22 +100,26 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
       endpoint: endpointPath,
       timeID: timeID
     )
-    
-    guard ipAddressAccessCount.allCount < config.ipAddressMaxCount else {
-      throw HTTPError(.tooManyRequests)
-    }
-    
+
     let userTokenAccessCount: AccessCount? = try await userTokenAccessCount(
       endpoint: endpointPath,
       timeID: timeID
     )
-    
-    if let userTokenAllCount = userTokenAccessCount?.allCount, userTokenAllCount < config.userTokenMaxCount {
+
+    if let userTokenAllCount = userTokenAccessCount?.allCount,
+      userTokenAllCount < config.userTokenMaxCount
+    {
+      throw HTTPError(.tooManyRequests)
+    } else if config.ipAddressMaxCount < ipAddressAccessCount.allCount {
       throw HTTPError(.tooManyRequests)
     }
-    
-    return try await RateLimitContext.$ipAddressAccessCount.withValue(ipAddressAccessCount.perEndpointCount) {
-      try await RateLimitContext.$userTokenAccessCount.withValue(userTokenAccessCount?.perEndpointCount) {
+
+    return try await RateLimitContext.$ipAddressAccessCount.withValue(
+      ipAddressAccessCount.perEndpointCount
+    ) {
+      try await RateLimitContext.$userTokenAccessCount.withValue(
+        userTokenAccessCount?.perEndpointCount
+      ) {
         try await next(request, context)
       }
     }
