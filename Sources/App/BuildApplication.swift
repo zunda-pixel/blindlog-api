@@ -65,14 +65,11 @@ func buildApplication(
   router.add(
     middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
   )
-  router.add(middleware: RateLimitMiddleware(
-    cache: cache,
-    config: RateLimitConfig(
-      durationSeconds: 3600,
-      ipAddressMaxCount: 300,
-      userTokenMaxCount: 300
-    )
-  ))
+  router.add(
+    middleware: RateLimitMiddleware(
+      cache: cache,
+      config: try makeRateLimitConfig(config: config)
+    ))
   router.add(middleware: OpenAPIRequestContextMiddleware())
 
   try api.registerHandlers(on: router)
@@ -100,6 +97,17 @@ func buildApplication(
   }
 
   return app
+}
+
+func makeRateLimitConfig(
+  config: ConfigReader
+) throws -> RateLimitConfig {
+  let config = config.scoped(to: "ratelimit")
+  return try RateLimitConfig(
+    durationSeconds: config.requiredInt(forKey: "duration.seconds"),
+    ipAddressMaxCount: config.requiredInt(forKey: "ip.address.max.count"),
+    userTokenMaxCount: config.requiredInt(forKey: "user.token.max.count")
+  )
 }
 
 func makeCache(
