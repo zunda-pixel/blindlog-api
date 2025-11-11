@@ -65,6 +65,14 @@ func buildApplication(
   router.add(
     middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
   )
+  router.add(middleware: RateLimitMiddleware(
+    cache: cache,
+    config: RateLimitConfig(
+      durationSeconds: 3600,
+      ipAddressMaxCount: 300,
+      userTokenMaxCount: 300
+    )
+  ))
   router.add(middleware: OpenAPIRequestContextMiddleware())
 
   try api.registerHandlers(on: router)
