@@ -88,7 +88,7 @@ struct RateLimitTests {
   }
 
   @Test
-  func userTokenRateLimitPerEndpoint() async throws {
+  func ipAddressRateLimitPerEndpoint() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
     let ipAddress = UUID().uuidString
