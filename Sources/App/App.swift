@@ -18,13 +18,13 @@ struct AppCommand: AsyncParsableCommand, AppArguments {
 
   @Option(name: .shortAndLong)
   var rateLimitDurationSeconds: Int?
-  
+
   @Option(name: .shortAndLong)
   var rateLimitIPAddressMaxCount: Int?
-  
+
   @Option(name: .shortAndLong)
   var rateLimitUserTokenMaxCount: Int?
-  
+
   func run() async throws {
     let app = try await buildApplication(self)
     try await app.runService()
