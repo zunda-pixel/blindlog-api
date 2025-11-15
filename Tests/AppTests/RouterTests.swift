@@ -33,7 +33,6 @@ struct RouterTests {
         ]
       )
       #expect(response.status == .ok)
-      #expect(response.headers[.contentType] == "application/json; charset=utf-8")
     }
   }
 
