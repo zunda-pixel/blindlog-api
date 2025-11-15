@@ -12,7 +12,7 @@ extension API {
     // 1. Generate Challenge
     let userID = UserTokenContext.currentUserID
 
-    if let userID {
+    if userID != nil {
       guard let userTokenAccessCount = RateLimitContext.userTokenAccessCount,
         userTokenAccessCount < 30
       else {
