@@ -20,26 +20,19 @@ struct TestArguments: AppArguments {
 struct RouterTests {
   @Test
   func wellKnownAppleAppSiteAssociation() async throws {
-    do {
-      let arguments = TestArguments()
-      let app = try await buildApplication(arguments)
-      let ipAddress = UUID().uuidString
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
-      try await app.test(.router) { client in
-        let response = try await client.execute(
-          uri: "/.well-known/apple-app-site-association",
-          method: .get,
-          headers: [
-            .xForwardedFor: ipAddress
-          ]
-        )
-        #expect(response.status == .ok)
-      }
-    } catch {
-      print("❤️❤️❤️❤️❤️❤️❤️")
-      print(error)
-      print(String(reflecting: error))
-      throw error
+    try await app.test(.router) { client in
+      let response = try await client.execute(
+        uri: "/.well-known/apple-app-site-association",
+        method: .get,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
+      )
+      #expect(response.status == .ok)
     }
   }
 
