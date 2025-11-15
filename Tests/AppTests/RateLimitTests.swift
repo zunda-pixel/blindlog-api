@@ -16,7 +16,7 @@ struct RateLimitTests {
     let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
-      for _ in 0..<100 {
+      for _ in 0..<arguments.rateLimitIPAddressMaxCount! {
         let response = try await client.execute(
           uri: "/.well-known/apple-app-site-association",
           method: .get,
@@ -58,7 +58,7 @@ struct RateLimitTests {
         Components.Schemas.UserToken.self,
         from: newUserResponse.body
       )
-      for _ in 0..<200 {
+      for _ in 0..<arguments.rateLimitUserTokenMaxCount! {
         // 2. Get User to DB
         let getResponse = try await client.execute(
           uri: "/me",
