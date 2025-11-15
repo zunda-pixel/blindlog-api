@@ -13,6 +13,10 @@ extension API {
   func createTokenFromEmail(
     _ input: Operations.CreateTokenFromEmail.Input
   ) async throws -> Operations.CreateTokenFromEmail.Output {
+    guard let ipAddressCount = RateLimitContext.ipAddressAccessCount, ipAddressCount < 30 else {
+      throw HTTPError(.tooManyRequests)
+    }
+
     // 1. Parse request payload
     guard case .json(let bodyData) = input.body else {
       return .badRequest

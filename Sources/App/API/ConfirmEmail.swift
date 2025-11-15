@@ -12,7 +12,14 @@ extension API {
   func confirmEmail(
     _ input: Operations.ConfirmEmail.Input
   ) async throws -> Operations.ConfirmEmail.Output {
-    guard let userID = User.currentUserID else { return .unauthorized }
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
+
+    guard let userTokenAccessCount = RateLimitContext.userTokenAccessCount,
+      userTokenAccessCount < 30
+    else {
+      throw HTTPError(.tooManyRequests)
+    }
+
     let email = normalizeEmail(input.query.email)
     // 1. Verify otp
     do {

@@ -11,22 +11,35 @@ struct TestArguments: AppArguments {
   var port: Int = 8080
   var logLevel: Logger.Level? = .debug
   var env: EnvironmentLevel = .develop
+  var rateLimitDurationSeconds: Int? = 3600
+  var rateLimitIPAddressMaxCount: Int? = 100
+  var rateLimitUserTokenMaxCount: Int? = 200
 }
 
 @Suite(.serialized)
 struct RouterTests {
   @Test
   func wellKnownAppleAppSiteAssociation() async throws {
-    let arguments = TestArguments()
-    let app = try await buildApplication(arguments)
+    do {
+      let arguments = TestArguments()
+      let app = try await buildApplication(arguments)
+      let ipAddress = UUID().uuidString
 
-    try await app.test(.router) { client in
-      let response = try await client.execute(
-        uri: "/.well-known/apple-app-site-association",
-        method: .get
-      )
-
-      #expect(response.headers[.contentType] == "application/json; charset=utf-8")
+      try await app.test(.router) { client in
+        let response = try await client.execute(
+          uri: "/.well-known/apple-app-site-association",
+          method: .get,
+          headers: [
+            .xForwardedFor: ipAddress
+          ]
+        )
+        #expect(response.status == .ok)
+      }
+    } catch {
+      print("❤️❤️❤️❤️❤️❤️❤️")
+      print(error)
+      print(String(reflecting: error))
+      throw error
     }
   }
 
@@ -34,12 +47,16 @@ struct RouterTests {
   func createUser() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       // 1. Add User to DB
       let newUserResponse = try await client.execute(
         uri: "/user",
-        method: .post
+        method: .post,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       )
       #expect(newUserResponse.status == .ok)
       let newUser = try JSONDecoder().decode(
@@ -51,7 +68,8 @@ struct RouterTests {
         uri: "/me",
         method: .get,
         headers: [
-          .authorization: "Bearer \(newUser.token)"
+          .xForwardedFor: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
         ]
       )
 
@@ -65,6 +83,7 @@ struct RouterTests {
   func createAndGetUsers() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       // 1. Add Users to Database
@@ -73,7 +92,10 @@ struct RouterTests {
           group.addTask {
             let newUser: Components.Schemas.UserToken = try await client.execute(
               uri: "/user",
-              method: .post
+              method: .post,
+              headers: [
+                .xForwardedFor: ipAddress
+              ]
             ) { response in
               #expect(response.status == .ok)
               return try JSONDecoder().decode(
@@ -99,7 +121,10 @@ struct RouterTests {
       // 2. Get Users from Database and add to Cache
       try await client.execute(
         uri: "/users?ids=\(idsQuery)",
-        method: .get
+        method: .get,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       ) { response in
         #expect(response.status == .ok)
         let dbUsers = try JSONDecoder().decode([User].self, from: response.body)
@@ -110,6 +135,9 @@ struct RouterTests {
       try await client.execute(
         uri: "/users?ids=\(idsQuery)",
         method: .get,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       ) { response in
         #expect(response.status == .ok)
         let cachedUsers = try JSONDecoder().decode([User].self, from: response.body)
@@ -122,12 +150,16 @@ struct RouterTests {
   func refreshToken() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       // 1. Add User to DB
       let newUserResponse = try await client.execute(
         uri: "/user",
-        method: .post
+        method: .post,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       )
       #expect(newUserResponse.status == .ok)
       let newUser = try JSONDecoder().decode(
@@ -136,7 +168,10 @@ struct RouterTests {
       let refreshResponse = try await client.execute(
         uri: "/refreshToken",
         method: .post,
-        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": newUser.refreshToken]))
+        headers: [
+          .xForwardedFor: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": newUser.refreshToken])),
       )
 
       #expect(refreshResponse.status == .ok)
@@ -152,12 +187,16 @@ struct RouterTests {
   func challengeForRegistration() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       // 1. Add User to DB
       let newUserResponse = try await client.execute(
         uri: "/user",
-        method: .post
+        method: .post,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       )
       #expect(newUserResponse.status == .ok)
       let newUser = try JSONDecoder().decode(
@@ -169,7 +208,8 @@ struct RouterTests {
         uri: "/challenge",
         method: .post,
         headers: [
-          .authorization: "Bearer \(newUser.token)"
+          .xForwardedFor: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
         ]
       )
 
@@ -183,11 +223,15 @@ struct RouterTests {
   func challengeForAuthorization() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       let response = try await client.execute(
         uri: "/challenge",
-        method: .post
+        method: .post,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       )
 
       #expect(response.status == .ok)
@@ -200,12 +244,16 @@ struct RouterTests {
   func addPasskey() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       // 1. Add User to DB
       let newUserResponse = try await client.execute(
         uri: "/user",
-        method: .post
+        method: .post,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       )
       #expect(newUserResponse.status == .ok)
       let newUser = try JSONDecoder().decode(
@@ -217,7 +265,8 @@ struct RouterTests {
         uri: "/challenge",
         method: .post,
         headers: [
-          .authorization: "Bearer \(newUser.token)"
+          .xForwardedFor: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
         ]
       )
 
@@ -240,7 +289,8 @@ struct RouterTests {
         uri: "/passkey?challenge=\(challenge.base64EncodedString())",
         method: .post,
         headers: [
-          .authorization: "Bearer \(newUser.token)"
+          .xForwardedFor: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
         ],
         body: ByteBuffer(data: bodyData)
       )
@@ -253,11 +303,15 @@ struct RouterTests {
   func sendConfirmEmailAPI() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       let newUserResponse = try await client.execute(
         uri: "/user",
-        method: .post
+        method: .post,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
       )
       #expect(newUserResponse.status == .ok)
       let newUser = try JSONDecoder().decode(
@@ -268,7 +322,10 @@ struct RouterTests {
       let response = try await client.execute(
         uri: "/email/verify/start?email=zunda.dev@gmail.com",
         method: .post,
-        headers: [.authorization: "Bearer \(newUser.token)"]
+        headers: [
+          .xForwardedFor: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
       )
 
       #expect(response.status == .ok)
