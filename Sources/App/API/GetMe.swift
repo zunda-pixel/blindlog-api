@@ -7,7 +7,7 @@ import Valkey
 
 extension API {
   func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
-    guard let userID = User.currentUserID else {
+    guard let userID = UserTokenContext.currentUserID else {
       return .unauthorized
     }
     let user: UserProfile?
