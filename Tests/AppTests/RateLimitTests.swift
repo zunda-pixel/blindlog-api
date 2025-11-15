@@ -113,7 +113,7 @@ struct RateLimitTests {
           .xForwardedFor: ipAddress
         ]
       )
-      #expect(newUserResponse.status == .internalServerError)
+      #expect(newUserResponse.status == .tooManyRequests)
     }
   }
 }
