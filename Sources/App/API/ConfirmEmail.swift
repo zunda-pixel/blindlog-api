@@ -12,7 +12,14 @@ extension API {
   func confirmEmail(
     _ input: Operations.ConfirmEmail.Input
   ) async throws -> Operations.ConfirmEmail.Output {
-    guard let userID = User.currentUserID else { return .unauthorized }
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
+
+    guard let userTokenAccessCount = RateLimitContext.userTokenAccessCount,
+      userTokenAccessCount < 30
+    else {
+      throw HTTPError(.tooManyRequests)
+    }
+
     let email = normalizeEmail(input.query.email)
     // 1. Verify otp
     do {
@@ -29,7 +36,10 @@ extension API {
       let message = Data(input.query.password.utf8)
       guard
         HMAC<SHA256>.isValidAuthenticationCode(
-          otp.hashedPassword, authenticating: message, using: otpSecretKey)
+          otp.hashedPassword,
+          authenticating: message,
+          using: otpSecretKey
+        )
       else {
         return .unauthorized
       }

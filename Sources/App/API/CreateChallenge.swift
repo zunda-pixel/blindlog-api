@@ -10,7 +10,19 @@ extension API {
     _ input: Operations.CreateChallenge.Input
   ) async throws -> Operations.CreateChallenge.Output {
     // 1. Generate Challenge
-    let userID = User.currentUserID
+    let userID = UserTokenContext.currentUserID
+
+    if userID != nil {
+      guard let userTokenAccessCount = RateLimitContext.userTokenAccessCount,
+        userTokenAccessCount < 30
+      else {
+        throw HTTPError(.tooManyRequests)
+      }
+    } else {
+      guard let ipAddressCount = RateLimitContext.ipAddressAccessCount, ipAddressCount < 30 else {
+        throw HTTPError(.tooManyRequests)
+      }
+    }
 
     let challenge: [UInt8] =
       if let userID {

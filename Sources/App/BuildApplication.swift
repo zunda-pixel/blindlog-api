@@ -80,8 +80,13 @@ func buildApplication(
   router.add(middleware: LogRequestsMiddleware(.info))
   router.add(middleware: FileMiddleware(searchForIndexHtml: true))
   router.add(
-    middleware: BearerTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+    middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
   )
+  router.add(
+    middleware: RateLimitMiddleware(
+      cache: cache,
+      config: try makeRateLimitConfig(arguments: arguments, config: config)
+    ))
   router.add(middleware: OpenAPIRequestContextMiddleware())
 
   try api.registerHandlers(on: router)
@@ -110,6 +115,21 @@ func buildApplication(
   }
 
   return app
+}
+
+func makeRateLimitConfig(
+  arguments: some AppArguments,
+  config: ConfigReader
+) throws -> RateLimitConfig {
+  let config = config.scoped(to: "ratelimit")
+  return try RateLimitConfig(
+    durationSeconds: arguments.rateLimitDurationSeconds
+      ?? config.requiredInt(forKey: "duration.seconds"),
+    ipAddressMaxCount: arguments.rateLimitIPAddressMaxCount
+      ?? config.requiredInt(forKey: "ip.address.max.count"),
+    userTokenMaxCount: arguments.rateLimitUserTokenMaxCount
+      ?? config.requiredInt(forKey: "user.token.max.count")
+  )
 }
 
 func makeCache(
@@ -198,13 +218,7 @@ func makeWebAuth(config: ConfigReader) throws -> WebAuthnManager {
       relyingPartyID: config.requiredString(forKey: "id"),
       relyingPartyName: config.requiredString(forKey: "name"),
       relyingPartyOrigin: config.requiredString(forKey: "origin")
-    ),
-    challengeGenerator: .init {
-      // https://www.w3.org/TR/webauthn-3/#sctn-appid-exclude-extension
-      // challenge parameter 32 random bytes
-      // 36 bytes
-      Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce())) + Array(Data(AES.GCM.Nonce()))
-    }
+    )
   )
 }
 
