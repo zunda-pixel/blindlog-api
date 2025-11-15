@@ -12,8 +12,11 @@ extension API {
   func addPasskey(
     _ input: Operations.AddPasskey.Input
   ) async throws -> Operations.AddPasskey.Output {
-    guard let userID = UserTokenContext.currentUserID else {
-      return .unauthorized
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
+    guard let userTokenAccessCount = RateLimitContext.userTokenAccessCount,
+      userTokenAccessCount < 30
+    else {
+      throw HTTPError(.tooManyRequests)
     }
     // 1. Parse request payload
     guard case .json(let body) = input.body else { return .badRequest }

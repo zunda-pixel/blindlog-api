@@ -15,6 +15,11 @@ extension API {
     _ input: Operations.SendConfirmEmail.Input
   ) async throws -> Operations.SendConfirmEmail.Output {
     guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
+    guard let userTokenAccessCount = RateLimitContext.userTokenAccessCount,
+      userTokenAccessCount < 30
+    else {
+      throw HTTPError(.tooManyRequests)
+    }
     let ses: SESv2Client
 
     do {

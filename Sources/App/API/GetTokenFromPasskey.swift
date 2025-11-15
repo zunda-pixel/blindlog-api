@@ -12,6 +12,10 @@ extension API {
   func createTokenFromPasskey(
     _ input: Operations.CreateTokenFromPasskey.Input
   ) async throws -> Operations.CreateTokenFromPasskey.Output {
+    guard let ipAddressCount = RateLimitContext.ipAddressAccessCount, ipAddressCount < 30 else {
+      throw HTTPError(.tooManyRequests)
+    }
+
     // 1. Parse request payload
     guard case .json(let bodyData) = input.body else {
       return .badRequest
