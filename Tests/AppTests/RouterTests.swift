@@ -24,7 +24,7 @@ struct RouterTests {
       let arguments = TestArguments()
       let app = try await buildApplication(arguments)
       let ipAddress = UUID().uuidString
-      
+
       try await app.test(.router) { client in
         let response = try await client.execute(
           uri: "/.well-known/apple-app-site-association",
