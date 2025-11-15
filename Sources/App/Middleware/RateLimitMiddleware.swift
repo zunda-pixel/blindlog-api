@@ -112,12 +112,11 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
       endpoint: endpointPath,
       timeID: timeID
     )
-
-    if let userTokenAllCount = userTokenAccessCount?.allCount,
-      userTokenAllCount < config.userTokenMaxCount
-    {
-      throw HTTPError(.tooManyRequests)
-    } else if config.ipAddressMaxCount < ipAddressAccessCount.allCount {
+    if let userTokenAllCount = userTokenAccessCount?.allCount {
+      if config.userTokenMaxCount <= userTokenAllCount {
+        throw HTTPError(.tooManyRequests)
+      }
+    } else if config.ipAddressMaxCount <= ipAddressAccessCount.allCount {
       throw HTTPError(.tooManyRequests)
     }
 
