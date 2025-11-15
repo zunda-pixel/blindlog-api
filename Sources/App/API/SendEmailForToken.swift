@@ -16,6 +16,11 @@ extension API {
   func sendEmailForToken(
     _ input: Operations.SendEmailForToken.Input
   ) async throws -> Operations.SendEmailForToken.Output {
+    guard let ipAddressAccessCount = RateLimitContext.ipAddressAccessCount,
+      ipAddressAccessCount < 30
+    else {
+      throw HTTPError(.tooManyRequests)
+    }
     let email: String = normalizeEmail(input.query.email)
     let challenge = [UInt8].random(count: 32)
 

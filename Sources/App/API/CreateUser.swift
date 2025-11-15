@@ -10,6 +10,9 @@ extension API {
   func createUser(
     _ input: Operations.CreateUser.Input
   ) async throws -> Operations.CreateUser.Output {
+    guard let ipAddressCount = RateLimitContext.ipAddressAccessCount, ipAddressCount < 30 else {
+      throw HTTPError(.tooManyRequests)
+    }
     let user = User(id: UUID(uuidString: UUID.uuidV7String())!)
 
     do {
