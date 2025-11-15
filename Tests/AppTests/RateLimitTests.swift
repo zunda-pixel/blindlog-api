@@ -26,7 +26,7 @@ struct RateLimitTests {
           )
           #expect(response.status == .ok)
         }
-        
+
         let response = try await client.execute(
           uri: "/.well-known/apple-app-site-association",
           method: .get,
