@@ -14,9 +14,19 @@ struct RateLimitTests {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
     let ipAddress = UUID().uuidString
-
-    try await app.test(.router) { client in
-      for _ in 0..<arguments.rateLimitIPAddressMaxCount! {
+    do {
+      try await app.test(.router) { client in
+        for _ in 0..<arguments.rateLimitIPAddressMaxCount! {
+          let response = try await client.execute(
+            uri: "/.well-known/apple-app-site-association",
+            method: .get,
+            headers: [
+              .xForwardedFor: ipAddress
+            ]
+          )
+          #expect(response.status == .ok)
+        }
+        
         let response = try await client.execute(
           uri: "/.well-known/apple-app-site-association",
           method: .get,
@@ -24,17 +34,12 @@ struct RateLimitTests {
             .xForwardedFor: ipAddress
           ]
         )
-        #expect(response.status == .ok)
+        #expect(response.status == .tooManyRequests)
       }
-
-      let response = try await client.execute(
-        uri: "/.well-known/apple-app-site-association",
-        method: .get,
-        headers: [
-          .xForwardedFor: ipAddress
-        ]
-      )
-      #expect(response.status == .tooManyRequests)
+    } catch {
+      print(error)
+      print(String(reflecting: error))
+      throw error
     }
   }
 
