@@ -68,7 +68,7 @@ func buildApplication(
   router.add(
     middleware: RateLimitMiddleware(
       cache: cache,
-      config: try makeRateLimitConfig(config: config)
+      config: try makeRateLimitConfig(arguments: arguments, config: config)
     ))
   router.add(middleware: OpenAPIRequestContextMiddleware())
 
@@ -100,13 +100,14 @@ func buildApplication(
 }
 
 func makeRateLimitConfig(
+  arguments: some AppArguments,
   config: ConfigReader
 ) throws -> RateLimitConfig {
   let config = config.scoped(to: "ratelimit")
   return try RateLimitConfig(
-    durationSeconds: config.requiredInt(forKey: "duration.seconds"),
-    ipAddressMaxCount: config.requiredInt(forKey: "ip.address.max.count"),
-    userTokenMaxCount: config.requiredInt(forKey: "user.token.max.count")
+    durationSeconds: arguments.rateLimitDurationSeconds ??  config.requiredInt(forKey: "duration.seconds"),
+    ipAddressMaxCount: arguments.rateLimitIPAddressMaxCount ?? config.requiredInt(forKey: "ip.address.max.count"),
+    userTokenMaxCount: arguments.rateLimitUserTokenMaxCount ?? config.requiredInt(forKey: "user.token.max.count")
   )
 }
 

@@ -11,6 +11,9 @@ struct TestArguments: AppArguments {
   var port: Int = 8080
   var logLevel: Logger.Level? = .debug
   var env: EnvironmentLevel = .develop
+  var rateLimitDurationSeconds: Int? = 3600
+  var rateLimitIPAddressMaxCount: Int? = 100
+  var rateLimitUserTokenMaxCount: Int? = 200
 }
 
 @Suite(.serialized)
