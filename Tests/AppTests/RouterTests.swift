@@ -63,7 +63,7 @@ struct RouterTests {
         method: .get,
         headers: [
           .xForwardedFor: ipAddress,
-          .authorization: "Bearer \(newUser.token)"
+          .authorization: "Bearer \(newUser.token)",
         ]
       )
 
