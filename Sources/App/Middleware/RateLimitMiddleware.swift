@@ -10,7 +10,7 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
   func ipAddress(
     headerFields: HTTPFields
   ) -> String? {
-    // https://github.com/upstash/ratelimit-jsを参照して修正
+    // Refer to https://github.com/upstash/ratelimit-js for reference and modifications
 
     // ex) 203.0.113.5, 198.51.100.7, 192.0.2.10
     if let xForwardedFor = headerFields[.xForwardedFor],

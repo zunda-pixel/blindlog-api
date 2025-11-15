@@ -10,7 +10,7 @@ extension API {
     _ input: Operations.RefreshToken.Input
   ) async throws -> Operations.RefreshToken.Output {
     guard case .json(let body) = input.body else {
-      return .badRequest
+      return .unauthorized
     }
 
     let payload = try await jwtKeyCollection.verify(body.refreshToken, as: JWTPayloadData.self)
