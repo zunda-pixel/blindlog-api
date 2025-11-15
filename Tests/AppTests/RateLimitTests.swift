@@ -86,4 +86,34 @@ struct RateLimitTests {
       #expect(getResponse.status == .tooManyRequests)
     }
   }
+
+  @Test
+  func userTokenRateLimitPerEndpoint() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+    
+    try await app.test(.router) { client in
+      // 1. Add User to DB
+      for _ in 0..<30 {
+        let newUserResponse = try await client.execute(
+          uri: "/user",
+          method: .post,
+          headers: [
+            .xForwardedFor: ipAddress
+          ]
+        )
+        #expect(newUserResponse.status == .ok)
+      }
+      
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
+      )
+      #expect(newUserResponse.status == .internalServerError)
+    }
+  }
 }
