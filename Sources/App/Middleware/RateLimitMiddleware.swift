@@ -37,9 +37,11 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
     return nil
   }
 
-  func ipAddressAccessCount(ipAddress: String, endpoint: String, timeID: Int) async throws
-    -> AccessCount
-  {
+  func ipAddressAccessCount(
+    ipAddress: String,
+    endpoint: String,
+    timeID: Int
+  ) async throws -> AccessCount {
     let allCount: Int = try await cache.incr(ValkeyKey("AccessCount:\(ipAddress):\(timeID)")) - 1
     let perEndpointCount: Int =
       try await cache.incr(ValkeyKey("AccessCount:\(ipAddress):\(endpoint):\(timeID)")) - 1
