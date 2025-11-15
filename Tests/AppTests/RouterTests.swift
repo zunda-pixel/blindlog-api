@@ -32,7 +32,7 @@ struct RouterTests {
           .xForwardedFor: ipAddress
         ]
       )
-
+      #expect(response.status == .ok)
       #expect(response.headers[.contentType] == "application/json; charset=utf-8")
     }
   }
@@ -62,6 +62,7 @@ struct RouterTests {
         uri: "/me",
         method: .get,
         headers: [
+          .xForwardedFor: ipAddress,
           .authorization: "Bearer \(newUser.token)"
         ]
       )
