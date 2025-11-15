@@ -15,10 +15,6 @@
         "value" : "localhost"
       },
       {
-        "key" : "OTP_SECRET_KEY",
-        "value" : "14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE="
-      },
-      {
         "key" : "EDDSA_PRIVATE_KEY",
         "value" : "T8s3Xh9Aulyq0UqIkggCgDyyXQKzPgIWH0w4Cb1O3Yg="
       },
