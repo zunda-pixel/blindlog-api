@@ -1,5 +1,5 @@
 {
-  "originHash" : "7882d35aefab2cbf3758e51b8714113b2cb487dba0ec7c870d9981e203e8ad8d",
+  "originHash" : "34243fc2ffc1790efd4279760dd76548ba3cef8997e052adb796bc63cd1610f8",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -436,10 +436,10 @@
     {
       "identity" : "swift-records",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zunda-pixel/swift-records.git",
+      "location" : "https://github.com/coenttb/swift-records.git",
       "state" : {
-        "branch" : "fix-dependencies",
-        "revision" : "a6d18b9dea8d03a3572e2650d8bad684632e936d"
+        "revision" : "e8b6187165301a569b62d36ac4e5c4a834adbe5f",
+        "version" : "0.1.1"
       }
     },
     {
@@ -474,8 +474,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/coenttb/swift-structured-queries-postgres",
       "state" : {
-        "branch" : "main",
-        "revision" : "ec616450e7c73fc718344a6a6c8e4fb198c1ed92"
+        "revision" : "c360c3a4c577fe4e72f66c44f00851bf1c965f9c",
+        "version" : "0.2.1"
       }
     },
     {
