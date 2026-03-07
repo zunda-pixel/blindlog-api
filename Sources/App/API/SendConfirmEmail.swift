@@ -23,7 +23,7 @@ extension API {
     let ses: SESv2Client
 
     do {
-      let config = try await SESv2Client.SESv2ClientConfiguration(
+      let config = try await SESv2Client.SESv2ClientConfig(
         awsCredentialIdentityResolver: awsCredentail,
         region: awsRegion,
       )
