@@ -28,7 +28,7 @@ extension API {
         return .badRequest
       }
 
-      let otp = try JSONDecoder().decode(OTPEmailRegistration.self, from: otpData)
+      let otp = try JSONDecoder().decode(OTPEmailRegistration.self, from: Data(otpData))
 
       guard otp.userID == userID && otp.email == email else {
         return .badRequest

@@ -44,7 +44,7 @@ extension API {
       let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
 
       let data = try await cache.get(key)
-      let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: $0) }
+      let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
 
       guard let challenge else {
         return .badRequest
