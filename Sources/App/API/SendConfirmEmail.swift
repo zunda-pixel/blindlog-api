@@ -1,5 +1,3 @@
-import AWSSDKIdentity
-import AWSSESv2
 import Algorithms
 import Crypto
 import Foundation
@@ -7,6 +5,7 @@ import Hummingbird
 import PostgresNIO
 import Records
 import SQLKit
+import SotoSESv2
 import StructuredQueriesPostgres
 import Valkey
 
@@ -20,47 +19,29 @@ extension API {
     else {
       throw HTTPError(.tooManyRequests)
     }
-    let ses: SESv2Client
-
-    do {
-      let config = try await SESv2Client.SESv2ClientConfig(
-        awsCredentialIdentityResolver: awsCredentail,
-        region: awsRegion,
-      )
-      ses = SESv2Client(config: config)
-    } catch {
-      BasicRequestContext.current?.logger.log(
-        level: .error,
-        "Failed to initialize SESv2Client",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
-      )
-      return .badRequest
-    }
+    let ses = SESv2(client: awsClient, region: awsRegion)
 
     let normalizedEmail = normalizeEmail(input.query.email)
 
-    let destination = SESv2ClientTypes.Destination(
+    let destination = SESv2.Destination(
       toAddresses: [normalizedEmail]
     )
 
-    let subject = SESv2ClientTypes.Content(data: "Confirm your email")
+    let subject = SESv2.Content(data: "Confirm your email")
 
     let otpPassword = OTPGenerator().generate(length: 6)
 
-    let body = SESv2ClientTypes.Body(
-      html: SESv2ClientTypes.Content(data: otpPassword),
+    let body = SESv2.Body(
+      html: SESv2.Content(data: otpPassword),
     )
 
-    let simple = SESv2ClientTypes.Message(body: body, subject: subject)
+    let simple = SESv2.Message(body: body, subject: subject)
 
-    let content = SESv2ClientTypes.EmailContent(
+    let content = SESv2.EmailContent(
       simple: simple
     )
 
-    let input = SendEmailInput(
+    let request = SESv2.SendEmailRequest(
       content: content,
       destination: destination,
       fromEmailAddress: "support@blindlog.me"
@@ -99,7 +80,7 @@ extension API {
 
     // 2. Send email
     do {
-      _ = try await ses.sendEmail(input: input)
+      _ = try await ses.sendEmail(request)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,

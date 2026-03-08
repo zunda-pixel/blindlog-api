@@ -8,7 +8,7 @@ import Logging
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
-import SmithyIdentity
+import SotoCore
 import Valkey
 import WebAuthn
 
@@ -45,7 +45,7 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
-  let (awsCredential, awsRegion) = try makeAWSConfig(config: config)
+  let (awsClient, awsRegion) = try makeAWSConfig(config: config)
 
   let api = try API(
     cache: cache,
@@ -53,7 +53,7 @@ func buildApplication(
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
-    awsCredentail: awsCredential,
+    awsClient: awsClient,
     awsRegion: awsRegion,
     otpSecretKey: makeOTPSecretKey(config: config)
   )
@@ -83,6 +83,7 @@ func buildApplication(
       databaseClient,
       database,
       cache,
+      awsClient,
     ],
     logger: logger
   )
@@ -212,18 +213,19 @@ func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAss
   )
 }
 
-func makeAWSConfig(config: ConfigReader) throws -> (StaticAWSCredentialIdentityResolver, String) {
+func makeAWSConfig(config: ConfigReader) throws -> (AWSClient, Region) {
   let config = config.scoped(to: "aws")
 
-  let credential = try StaticAWSCredentialIdentityResolver(
-    AWSCredentialIdentity(
-      accessKey: config.requiredString(forKey: "access.key.id"),
-      secret: config.requiredString(forKey: "secret.access.key")
-    ))
+  let client = AWSClient(
+    credentialProvider: .static(
+      accessKeyId: try config.requiredString(forKey: "access.key.id"),
+      secretAccessKey: try config.requiredString(forKey: "secret.access.key")
+    )
+  )
 
-  let region = try config.requiredString(forKey: "region")
+  let region = Region(rawValue: try config.requiredString(forKey: "region"))
 
-  return (credential, region)
+  return (client, region)
 }
 
 func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
