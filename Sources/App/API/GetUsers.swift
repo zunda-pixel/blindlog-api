@@ -118,7 +118,7 @@ extension API {
             )
 
             if let userData {
-              return try decoder.decode(User.self, from: userData)
+              return try decoder.decode(User.self, from: Data(userData))
             } else {
               return nil
             }

@@ -93,7 +93,7 @@ extension API {
     )
 
     if let userData {
-      return try JSONDecoder().decode(UserProfile.self, from: userData)
+      return try JSONDecoder().decode(UserProfile.self, from: Data(userData))
     } else {
       return nil
     }
