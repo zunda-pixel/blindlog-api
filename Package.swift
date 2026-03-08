@@ -52,7 +52,7 @@ let package = Package(
         .enableUpcomingFeature("MemberImportVisibility"),
         .enableUpcomingFeature("InferIsolatedConformances"),
         .enableUpcomingFeature("ImmutableWeakCaptures"),
-        //.enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+        .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .defaultIsolation(nil),
         .strictMemorySafety(),
       ],

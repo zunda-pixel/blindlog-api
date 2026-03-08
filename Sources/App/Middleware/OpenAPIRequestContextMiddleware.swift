@@ -14,7 +14,7 @@ struct OpenAPIRequestContextMiddleware: RouterMiddleware {
   func handle(
     _ request: Request,
     context: Context,
-    next: (Request, Context) async throws -> Response
+    next: @concurrent (Request, Context) async throws -> Response
   ) async throws -> Response {
     try await BasicRequestContext.$current.withValue(context) {
       try await next(request, context)
