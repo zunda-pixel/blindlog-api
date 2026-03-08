@@ -54,7 +54,7 @@ let package = Package(
         .enableUpcomingFeature("ImmutableWeakCaptures"),
         //.enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .defaultIsolation(nil),
-        .strictMemorySafety()
+        .strictMemorySafety(),
       ],
       plugins: [
         .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
