@@ -94,7 +94,7 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
   func handle(
     _ request: Request,
     context: Context,
-    next: (Request, Context) async throws -> Response
+    next: @concurrent (Request, Context) async throws -> Response
   ) async throws -> Response {
     guard let ipAddress = ipAddress(headerFields: request.headers),
       let endpointPath = request.head.path.flatMap({ URL(string: $0) })?.relativePath

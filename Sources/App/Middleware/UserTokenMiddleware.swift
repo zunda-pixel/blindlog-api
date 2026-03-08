@@ -43,7 +43,7 @@ struct UserTokenMiddleware<Context: RequestContext>: RouterMiddleware {
   func handle(
     _ request: Request,
     context: Context,
-    next: (Request, Context) async throws -> Response
+    next: @concurrent (Request, Context) async throws -> Response
   ) async throws -> Response {
     let userID = try await userID(request, context: context)
     guard let userID else {
