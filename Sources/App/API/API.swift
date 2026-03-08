@@ -1,7 +1,7 @@
-import AWSSDKIdentity
 import Crypto
 import JWTKit
 import PostgresNIO
+import SotoCore
 import Valkey
 import WebAuthn
 
@@ -11,7 +11,7 @@ struct API: APIProtocol {
   var jwtKeyCollection: JWTKeyCollection
   var webAuthn: WebAuthnManager
   var appleAppSiteAssociation: AppleAppSiteAssociation
-  var awsCredentail: StaticAWSCredentialIdentityResolver
-  var awsRegion: String
+  var awsClient: AWSClient
+  var awsRegion: Region
   var otpSecretKey: SymmetricKey
 }
