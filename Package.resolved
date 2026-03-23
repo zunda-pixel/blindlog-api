@@ -1,5 +1,5 @@
 {
-  "originHash" : "44337e1fb07641b776d347d43097da45b8c260599f5d7bf75d064921110a4794",
+  "originHash" : "f601cb99fdeb36ea4ee0892e86627be5c19aaecf4172cd89bed1be6dff5e096f",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hummingbird-project/hummingbird.git",
       "state" : {
-        "revision" : "282f55d605bf9324d2da7cbebbf30112a0ae575d",
-        "version" : "2.21.0"
+        "revision" : "d1ce7bbd2f1b17f22031ca4c0daeb39eff07a92e",
+        "version" : "2.21.1"
       }
     },
     {
@@ -80,6 +80,15 @@
       "state" : {
         "revision" : "343b2c1793058fcc53c1bd7e2907f8e3a4d640fb",
         "version" : "3.9.0"
+      }
+    },
+    {
+      "identity" : "opencombine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenCombine/OpenCombine.git",
+      "state" : {
+        "revision" : "8576f0d579b27020beccbccc3ea6844f3ddfc2c2",
+        "version" : "0.14.0"
       }
     },
     {
