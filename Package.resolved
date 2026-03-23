@@ -1,5 +1,5 @@
 {
-  "originHash" : "44337e1fb07641b776d347d43097da45b8c260599f5d7bf75d064921110a4794",
+  "originHash" : "f601cb99fdeb36ea4ee0892e86627be5c19aaecf4172cd89bed1be6dff5e096f",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -83,6 +83,15 @@
       }
     },
     {
+      "identity" : "opencombine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenCombine/OpenCombine.git",
+      "state" : {
+        "revision" : "8576f0d579b27020beccbccc3ea6844f3ddfc2c2",
+        "version" : "0.14.0"
+      }
+    },
+    {
       "identity" : "postgres-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/postgres-kit.git",
@@ -150,8 +159,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser.git",
       "state" : {
-        "revision" : "c5d11a805e765f52ba34ec7284bd4fcd6ba68615",
-        "version" : "1.7.0"
+        "revision" : "626b5b7b2f45e1b0b1c6f4a309296d1d21d7311b",
+        "version" : "1.7.1"
       }
     },
     {
