@@ -1,5 +1,5 @@
 {
-  "originHash" : "cea364fd510914416f3daeccb8849cf61a531efb855bb35009a59b3189af3f59",
+  "originHash" : "28277ebec3bfd00c0b152cbf37d0a3702055edf4cc860e238db21167d56be8c2",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -40,7 +40,7 @@
     {
       "identity" : "http-client",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zunda-pixel/http-client",
+      "location" : "https://github.com/zunda-pixel/http-client.git",
       "state" : {
         "revision" : "0d115da7b3746bad0c6c8856087651e19d4bbaba",
         "version" : "0.4.0"
@@ -85,7 +85,7 @@
     {
       "identity" : "multipart-kit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/multipart-kit",
+      "location" : "https://github.com/vapor/multipart-kit.git",
       "state" : {
         "revision" : "481a44661dae96a609fc30f6ddad8d6f35c51947",
         "version" : "5.0.0-alpha.5"
@@ -510,8 +510,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/valkey-io/valkey-swift.git",
       "state" : {
-        "revision" : "e4bbdd13c71f98dc66c176a776152268fd44a929",
-        "version" : "0.5.0"
+        "revision" : "05fee0e5d2b570b34db1501cf688291ba9e7f2f6",
+        "version" : "1.3.0"
       }
     },
     {
