@@ -1,6 +1,7 @@
 import ExtrasBase64
 import Foundation
 import Hummingbird
+import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
@@ -96,27 +97,13 @@ extension API {
     let userID = storedPasskeyCredential.userID
     let signCount = storedPasskeyCredential.signCount
 
-    guard let credentialPublicKey = storedPasskeyCredential.publicKey else {
-      AppRequestContext.current?.logger.log(
-        level: .error,
-        "Failed to decode stored passkey public key",
-        metadata: [
-          "credentialID": .string(credential.id.asString()),
-          "publicKeyBase64Length": .stringConvertible(
-            storedPasskeyCredential.publicKeyBase64.count
-          ),
-        ]
-      )
-      return .badRequest
-    }
-
     // 4. Verify assertion with WebAuthn
     let verifiedAuthentication: VerifiedAuthentication
     do {
       verifiedAuthentication = try webAuthn.finishAuthentication(
         credential: credential,
         expectedChallenge: bodyData.challenge.base64decoded(),
-        credentialPublicKey: Array(credentialPublicKey),
+        credentialPublicKey: Array(storedPasskeyCredential.publicKey),
         credentialCurrentSignCount: UInt32(signCount)
       )
     } catch {
