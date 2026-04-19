@@ -102,7 +102,9 @@ extension API {
         "Failed to decode stored passkey public key",
         metadata: [
           "credentialID": .string(credential.id.asString()),
-          "publicKeyBase64Length": .stringConvertible(storedPasskeyCredential.publicKeyBase64.count),
+          "publicKeyBase64Length": .stringConvertible(
+            storedPasskeyCredential.publicKeyBase64.count
+          ),
         ]
       )
       return .badRequest
