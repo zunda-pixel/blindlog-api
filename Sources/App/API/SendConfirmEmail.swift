@@ -49,7 +49,7 @@ extension API {
         expiration: .seconds(60 * 1)
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save OTP to db",
         metadata: [
@@ -65,7 +65,7 @@ extension API {
     do {
       _ = try await self.emailService.send(message)
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to send email",
         metadata: [

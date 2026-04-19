@@ -38,7 +38,7 @@ func buildApplication(
     logger: logger
   )
 
-  let router = Router()
+  let router = Router(context: AppRequestContext.self)
 
   let jwtKeyCollection = JWTKeyCollection()
   let privateKey = try EdDSA.PrivateKey(
@@ -62,17 +62,21 @@ func buildApplication(
   router.add(middleware: MetricsMiddleware())
   router.add(middleware: LogRequestsMiddleware(.info))
   router.add(middleware: FileMiddleware(searchForIndexHtml: true))
-  router.add(
-    middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
-  )
-  router.add(
-    middleware: RateLimitMiddleware(
-      cache: cache,
-      config: try makeRateLimitConfig(arguments: arguments, config: config)
-    ))
-  router.add(middleware: OpenAPIRequestContextMiddleware())
 
-  try api.registerHandlers(on: router)
+  let apiRouter = router
+    .group()
+    .add(
+      middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+    )
+    .add(
+      middleware: RateLimitMiddleware(
+        cache: cache,
+        config: try makeRateLimitConfig(arguments: arguments, config: config)
+      )
+    )
+    .add(middleware: OpenAPIRequestContextMiddleware())
+
+  try api.registerHandlers(on: apiRouter)
 
   var app = Application(
     router: router,

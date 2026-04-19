@@ -20,7 +20,7 @@ extension API {
         try await User.insert { user }.execute(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to persist user",
         metadata: [
@@ -35,7 +35,7 @@ extension API {
     do {
       userToken = try await generateUserToken(userID: user.id)
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to sign user tokens",
         metadata: [

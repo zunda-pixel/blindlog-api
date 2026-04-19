@@ -55,7 +55,7 @@ extension API {
 
       try await cache.del(keys: [key])
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete authentication challenge",
         metadata: [
@@ -77,7 +77,7 @@ extension API {
           .fetchOne(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch user",
         metadata: [
@@ -100,7 +100,7 @@ extension API {
         userID: userID
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue application tokens",
         metadata: [

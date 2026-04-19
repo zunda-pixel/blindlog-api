@@ -45,7 +45,7 @@ extension API {
         expiration: .seconds(60 * 1)  // 1 minutes
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to update stored sign counter",
         metadata: [
@@ -68,7 +68,7 @@ extension API {
     do {
       _ = try await emailService.send(emailMessage)
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to send email",
         metadata: [
