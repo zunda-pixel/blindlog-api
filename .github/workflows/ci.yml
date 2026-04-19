@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: swift format lint -r -p -s .
   test:
     runs-on: ubuntu-latest
@@ -23,13 +23,12 @@ jobs:
       RELYING_PARTY_ORIGIN: http://localhost:8080
       RELYING_PARTY_ID: localhost
       RELYING_PARTY_NAME: Local Host Relying Party
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       OTP_SECRET_KEY: 14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE=
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Start DB & Cache & OTEL (wait for health)
         run: docker compose up -d --wait postgres valkey otel
       - name: Run tests (Swift in Docker)
@@ -39,5 +38,5 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: docker build .

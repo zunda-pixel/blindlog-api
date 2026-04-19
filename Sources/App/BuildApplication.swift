@@ -1,6 +1,9 @@
+import AsyncHTTPClient
 import Configuration
 import Crypto
+import EmailService
 import Foundation
+import HTTPClient
 import Hummingbird
 import HummingbirdPostgres
 import JWTKit
@@ -9,7 +12,6 @@ import OTel
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
-import SmithyIdentity
 import Valkey
 import WebAuthn
 
@@ -62,7 +64,6 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
-  let (awsCredential, awsRegion) = try makeAWSConfig(config: config)
 
   let api = try API(
     cache: cache,
@@ -70,8 +71,7 @@ func buildApplication(
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
-    awsCredentail: awsCredential,
-    awsRegion: awsRegion,
+    emailService: makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)
   )
 
@@ -230,22 +230,19 @@ func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAss
   )
 }
 
-func makeAWSConfig(config: ConfigReader) throws -> (StaticAWSCredentialIdentityResolver, String) {
-  let config = config.scoped(to: "aws")
-
-  let credential = try StaticAWSCredentialIdentityResolver(
-    AWSCredentialIdentity(
-      accessKey: config.requiredString(forKey: "access.key.id"),
-      secret: config.requiredString(forKey: "secret.access.key")
-    ))
-
-  let region = try config.requiredString(forKey: "region")
-
-  return (credential, region)
-}
-
 func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
   let secretKey = try config.requiredString(forKey: "otp.secret.key")
   let secretKeyData = Data(base64Encoded: secretKey)!
   return SymmetricKey(data: secretKeyData)
+}
+
+func makeCloudflareEmailService(
+  config: ConfigReader
+) throws -> EmailService.Client<AsyncHTTPClient.HTTPClient> {
+  let config = config.scoped(to: "cloudflare")
+  return try .init(
+    accountId: config.requiredString(forKey: "account.id"),
+    apiToken: config.requiredString(forKey: "api.token"),
+    httpClient: .asyncHTTPClient(.shared)
+  )
 }

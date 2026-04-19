@@ -4,8 +4,7 @@ import WebAuthn
 
 /// ASCIIのみのアルファベットから安全にOTPを生成
 struct OTPGenerator {
-  var alphabet: [UInt8] = Array(
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".utf8)
+  var alphabet: [UInt8] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".utf8)
 
   func generate(length: Int) -> String {
     precondition(length > 0, "length must be > 0")

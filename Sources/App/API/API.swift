@@ -1,5 +1,7 @@
-import AWSSDKIdentity
+import AsyncHTTPClient
 import Crypto
+import EmailService
+import Foundation
 import JWTKit
 import PostgresNIO
 import Valkey
@@ -11,7 +13,6 @@ struct API: APIProtocol {
   var jwtKeyCollection: JWTKeyCollection
   var webAuthn: WebAuthnManager
   var appleAppSiteAssociation: AppleAppSiteAssociation
-  var awsCredentail: StaticAWSCredentialIdentityResolver
-  var awsRegion: String
+  var emailService: EmailService.Client<AsyncHTTPClient.HTTPClient>
   var otpSecretKey: SymmetricKey
 }

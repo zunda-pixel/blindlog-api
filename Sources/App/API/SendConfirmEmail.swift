@@ -1,7 +1,6 @@
-import AWSSDKIdentity
-import AWSSESv2
 import Algorithms
 import Crypto
+import EmailService
 import Foundation
 import Hummingbird
 import PostgresNIO
@@ -20,50 +19,15 @@ extension API {
     else {
       throw HTTPError(.tooManyRequests)
     }
-    let ses: SESv2Client
-
-    do {
-      let config = try await SESv2Client.SESv2ClientConfiguration(
-        awsCredentialIdentityResolver: awsCredentail,
-        region: awsRegion,
-      )
-      ses = SESv2Client(config: config)
-    } catch {
-      BasicRequestContext.current?.logger.log(
-        level: .error,
-        "Failed to initialize SESv2Client",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
-      )
-      return .badRequest
-    }
 
     let normalizedEmail = normalizeEmail(input.query.email)
-
-    let destination = SESv2ClientTypes.Destination(
-      toAddresses: [normalizedEmail]
-    )
-
-    let subject = SESv2ClientTypes.Content(data: "Confirm your email")
-
     let otpPassword = OTPGenerator().generate(length: 6)
 
-    let body = SESv2ClientTypes.Body(
-      html: SESv2ClientTypes.Content(data: otpPassword),
-    )
-
-    let simple = SESv2ClientTypes.Message(body: body, subject: subject)
-
-    let content = SESv2ClientTypes.EmailContent(
-      simple: simple
-    )
-
-    let input = SendEmailInput(
-      content: content,
-      destination: destination,
-      fromEmailAddress: "support@blindlog.me"
+    let message = EmailMessage(
+      to: normalizedEmail,
+      from: "support@blindlog.me",
+      subject: "Confirm your email",
+      text: otpPassword
     )
 
     // 1. Save OTP to db
@@ -99,7 +63,7 @@ extension API {
 
     // 2. Send email
     do {
-      _ = try await ses.sendEmail(input: input)
+      _ = try await self.emailService.send(message)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,

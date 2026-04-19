@@ -30,7 +30,7 @@ extension API {
 
       let data = try await cache.get(key)
       let challenge = try data.map {
-        try JSONDecoder().decode(OTPEmailAuthentication.self, from: $0)
+        try JSONDecoder().decode(OTPEmailAuthentication.self, from: Data($0))
       }
 
       guard let challenge else {
