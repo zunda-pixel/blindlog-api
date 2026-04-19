@@ -14,7 +14,7 @@ extension API {
     do {
       user = try await getUser(id: userID)
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch user profile",
         metadata: [

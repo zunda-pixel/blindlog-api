@@ -30,7 +30,7 @@ extension API {
         from: data
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to parse token request payload",
         metadata: [
@@ -59,7 +59,7 @@ extension API {
 
       try await cache.del(keys: [key])
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete authentication challenge",
         metadata: [
@@ -81,7 +81,7 @@ extension API {
           .fetchOne(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to load stored passkey credential",
         metadata: [
@@ -106,7 +106,7 @@ extension API {
         credentialCurrentSignCount: UInt32(passkeyCredential.signCount)
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify WebAuthn assertion",
         metadata: [
@@ -132,7 +132,7 @@ extension API {
           .execute(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to update stored sign counter",
         metadata: [
@@ -152,7 +152,7 @@ extension API {
         userID: passkeyCredential.userID
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue application tokens",
         metadata: [

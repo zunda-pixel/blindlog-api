@@ -8,7 +8,8 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
   var config: RateLimitConfig
 
   func ipAddress(
-    headerFields: HTTPFields
+    headerFields: HTTPFields,
+    context: Context
   ) -> String? {
     // ex) 203.0.113.5, 198.51.100.7, 192.0.2.10
     if let xForwardedFor = headerFields[.xForwardedFor],
@@ -31,6 +32,12 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
     }
 
     if let ipAddress = headerFields[.cfConnectingIP] {
+      return ipAddress
+    }
+
+    if let remoteAddress = (context as? any RemoteAddressRequestContext)?.remoteAddress,
+      let ipAddress = remoteAddress.ipAddress
+    {
       return ipAddress
     }
 
@@ -96,7 +103,7 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
     context: Context,
     next: @concurrent (Request, Context) async throws -> Response
   ) async throws -> Response {
-    guard let ipAddress = ipAddress(headerFields: request.headers),
+    guard let ipAddress = ipAddress(headerFields: request.headers, context: context),
       let endpointPath = request.head.path.flatMap({ URL(string: $0) })?.relativePath
     else {
       throw HTTPError(.badRequest)
