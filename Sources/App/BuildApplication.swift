@@ -223,7 +223,7 @@ func makeCloudflareEmailService(
 ) throws -> EmailService.Client<AsyncHTTPClient.HTTPClient> {
   let config = config.scoped(to: "cloudflare")
   return try .init(
-    accountId: config.requiredString(forKey: "acocunt.id"),
+    accountId: config.requiredString(forKey: "account.id"),
     apiToken: config.requiredString(forKey: "api.token"),
     httpClient: .asyncHTTPClient(.shared)
   )
