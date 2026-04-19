@@ -8,7 +8,7 @@ CREATE TABLE public.users (
 CREATE TABLE public.passkey_credentials (
   id text NOT NULL,
   user_id uuid NOT NULL,
-  public_key bytea NOT NULL,
+  public_key text NOT NULL,
   sign_count bigint NOT NULL,
   CONSTRAINT passkey_credentials_pk PRIMARY KEY (id),
   CONSTRAINT passkey_credentials_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE CASCADE,
