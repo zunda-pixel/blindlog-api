@@ -5,7 +5,7 @@ import Hummingbird
 import PostgresNIO
 import Records
 import SQLKit
-import SotoSESv2
+import EmailService
 import StructuredQueriesPostgres
 import Valkey
 
@@ -19,32 +19,15 @@ extension API {
     else {
       throw HTTPError(.tooManyRequests)
     }
-    let ses = SESv2(client: awsClient, region: awsRegion)
 
     let normalizedEmail = normalizeEmail(input.query.email)
-
-    let destination = SESv2.Destination(
-      toAddresses: [normalizedEmail]
-    )
-
-    let subject = SESv2.Content(data: "Confirm your email")
-
     let otpPassword = OTPGenerator().generate(length: 6)
 
-    let body = SESv2.Body(
-      html: SESv2.Content(data: otpPassword),
-    )
-
-    let simple = SESv2.Message(body: body, subject: subject)
-
-    let content = SESv2.EmailContent(
-      simple: simple
-    )
-
-    let request = SESv2.SendEmailRequest(
-      content: content,
-      destination: destination,
-      fromEmailAddress: "support@blindlog.me"
+    let message = EmailMessage(
+      to: normalizedEmail,
+      from: "support@blindlog.me",
+      subject:  "Confirm your email",
+      text: otpPassword
     )
 
     // 1. Save OTP to db
@@ -80,7 +63,7 @@ extension API {
 
     // 2. Send email
     do {
-      _ = try await ses.sendEmail(request)
+      _ = try await self.emailService.send(message)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,

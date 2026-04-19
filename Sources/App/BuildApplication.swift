@@ -8,7 +8,8 @@ import Logging
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
-import SotoCore
+import EmailService
+import AsyncHTTPClient
 import Valkey
 import WebAuthn
 
@@ -45,7 +46,6 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
-  let (awsClient, awsRegion) = try makeAWSConfig(config: config)
 
   let api = try API(
     cache: cache,
@@ -53,8 +53,11 @@ func buildApplication(
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
-    awsClient: awsClient,
-    awsRegion: awsRegion,
+    emailService: EmailService.Client(
+      apiToken: "",
+      accountId: "",
+      httpClient: AsyncHTTPClient.HTTPClient()
+    ),
     otpSecretKey: makeOTPSecretKey(config: config)
   )
 
@@ -83,7 +86,6 @@ func buildApplication(
       databaseClient,
       database,
       cache,
-      awsClient,
     ],
     logger: logger
   )
@@ -211,21 +213,6 @@ func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAss
     appclips: .init(apps: []),
     applinks: .init(details: [])
   )
-}
-
-func makeAWSConfig(config: ConfigReader) throws -> (AWSClient, Region) {
-  let config = config.scoped(to: "aws")
-
-  let client = AWSClient(
-    credentialProvider: .static(
-      accessKeyId: try config.requiredString(forKey: "access.key.id"),
-      secretAccessKey: try config.requiredString(forKey: "secret.access.key")
-    )
-  )
-
-  let region = Region(rawValue: try config.requiredString(forKey: "region"))
-
-  return (client, region)
 }
 
 func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {

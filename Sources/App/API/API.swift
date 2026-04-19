@@ -1,9 +1,11 @@
 import Crypto
 import JWTKit
 import PostgresNIO
-import SotoCore
+import EmailService
+import AsyncHTTPClient
 import Valkey
 import WebAuthn
+import Foundation
 
 struct API: APIProtocol {
   var cache: ValkeyClient
@@ -11,7 +13,6 @@ struct API: APIProtocol {
   var jwtKeyCollection: JWTKeyCollection
   var webAuthn: WebAuthnManager
   var appleAppSiteAssociation: AppleAppSiteAssociation
-  var awsClient: AWSClient
-  var awsRegion: Region
+  var emailService: EmailService.Client<AsyncHTTPClient.HTTPClient>
   var otpSecretKey: SymmetricKey
 }
