@@ -12,6 +12,7 @@ import EmailService
 import AsyncHTTPClient
 import Valkey
 import WebAuthn
+import HTTPClient
 
 func buildApplication(
   _ arguments: some AppArguments
@@ -53,11 +54,7 @@ func buildApplication(
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
-    emailService: EmailService.Client(
-      apiToken: "",
-      accountId: "",
-      httpClient: AsyncHTTPClient.HTTPClient()
-    ),
+    emailService: makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)
   )
 
@@ -219,4 +216,15 @@ func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
   let secretKey = try config.requiredString(forKey: "otp.secret.key")
   let secretKeyData = Data(base64Encoded: secretKey)!
   return SymmetricKey(data: secretKeyData)
+}
+
+func makeCloudflareEmailService(
+  config: ConfigReader
+) throws -> EmailService.Client<AsyncHTTPClient.HTTPClient> {
+  let config = config.scoped(to: "cloudflare")
+  return try .init(
+    accountId: config.requiredString(forKey: "acocunt.id"),
+    apiToken: config.requiredString(forKey: "api.token"),
+    httpClient: .asyncHTTPClient(.shared)
+  )
 }
