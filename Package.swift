@@ -24,7 +24,7 @@ let package = Package(
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
     .package(url: "https://github.com/zunda-pixel/cloudflare-swift.git", from: "0.8.2"),
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
-    .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "0.2.0"),
+    .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
     .package(url: "https://github.com/brokenhandsio/swift-webauthn.git", from: "1.0.0-beta.1"),
     .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),

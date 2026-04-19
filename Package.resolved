@@ -1,5 +1,5 @@
 {
-  "originHash" : "cea364fd510914416f3daeccb8849cf61a531efb855bb35009a59b3189af3f59",
+  "originHash" : "28277ebec3bfd00c0b152cbf37d0a3702055edf4cc860e238db21167d56be8c2",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -98,6 +98,15 @@
       "state" : {
         "revision" : "343b2c1793058fcc53c1bd7e2907f8e3a4d640fb",
         "version" : "3.9.0"
+      }
+    },
+    {
+      "identity" : "opencombine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenCombine/OpenCombine.git",
+      "state" : {
+        "revision" : "8576f0d579b27020beccbccc3ea6844f3ddfc2c2",
+        "version" : "0.14.0"
       }
     },
     {
@@ -510,8 +519,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/valkey-io/valkey-swift.git",
       "state" : {
-        "revision" : "e4bbdd13c71f98dc66c176a776152268fd44a929",
-        "version" : "0.5.0"
+        "revision" : "05fee0e5d2b570b34db1501cf688291ba9e7f2f6",
+        "version" : "1.3.0"
       }
     },
     {
