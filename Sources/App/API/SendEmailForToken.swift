@@ -1,4 +1,5 @@
 import Crypto
+import EmailService
 import ExtrasBase64
 import Foundation
 import Hummingbird
@@ -6,8 +7,6 @@ import OpenAPIRuntime
 import PostgresNIO
 import Records
 import SQLKit
-import SotoCore
-import SotoSESv2
 import StructuredQueriesPostgres
 import Valkey
 import WebAuthn
@@ -23,8 +22,6 @@ extension API {
     }
     let email: String = normalizeEmail(input.query.email)
     let challenge = [UInt8].random(count: 32)
-
-    let ses = SESv2(client: awsClient, region: awsRegion)
 
     // 2. Generate OTP
     let otpPassword = OTPGenerator().generate(length: 6)
@@ -61,30 +58,15 @@ extension API {
 
     // 4. Send Email
 
-    let destination = SESv2.Destination(
-      toAddresses: [email]
-    )
-
-    let subject = SESv2.Content(data: "Confirm your email")
-
-    let body = SESv2.Body(
-      html: SESv2.Content(data: otpPassword),
-    )
-
-    let simple = SESv2.Message(body: body, subject: subject)
-
-    let content = SESv2.EmailContent(
-      simple: simple
-    )
-
-    let request = SESv2.SendEmailRequest(
-      content: content,
-      destination: destination,
-      fromEmailAddress: "support@blindlog.me"
+    let emailMessage = EmailMessage(
+      to: email,
+      from: "support@blindlog.me",
+      subject: "Confirm your email",
+      text: otpPassword
     )
 
     do {
-      _ = try await ses.sendEmail(request)
+      _ = try await emailService.send(emailMessage)
     } catch {
       BasicRequestContext.current?.logger.log(
         level: .error,

@@ -23,9 +23,8 @@ jobs:
       RELYING_PARTY_ORIGIN: http://localhost:8080
       RELYING_PARTY_ID: localhost
       RELYING_PARTY_NAME: Local Host Relying Party
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       OTP_SECRET_KEY: 14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE=
     steps:
       - name: Checkout

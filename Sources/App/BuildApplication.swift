@@ -1,6 +1,9 @@
+import AsyncHTTPClient
 import Configuration
 import Crypto
+import EmailService
 import Foundation
+import HTTPClient
 import Hummingbird
 import HummingbirdPostgres
 import JWTKit
@@ -8,7 +11,6 @@ import Logging
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
-import SotoCore
 import Valkey
 import WebAuthn
 
@@ -45,7 +47,6 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
-  let (awsClient, awsRegion) = try makeAWSConfig(config: config)
 
   let api = try API(
     cache: cache,
@@ -53,8 +54,7 @@ func buildApplication(
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
-    awsClient: awsClient,
-    awsRegion: awsRegion,
+    emailService: makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)
   )
 
@@ -83,7 +83,6 @@ func buildApplication(
       databaseClient,
       database,
       cache,
-      awsClient,
     ],
     logger: logger
   )
@@ -213,23 +212,19 @@ func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAss
   )
 }
 
-func makeAWSConfig(config: ConfigReader) throws -> (AWSClient, Region) {
-  let config = config.scoped(to: "aws")
-
-  let client = AWSClient(
-    credentialProvider: .static(
-      accessKeyId: try config.requiredString(forKey: "access.key.id"),
-      secretAccessKey: try config.requiredString(forKey: "secret.access.key")
-    )
-  )
-
-  let region = Region(rawValue: try config.requiredString(forKey: "region"))
-
-  return (client, region)
-}
-
 func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
   let secretKey = try config.requiredString(forKey: "otp.secret.key")
   let secretKeyData = Data(base64Encoded: secretKey)!
   return SymmetricKey(data: secretKeyData)
+}
+
+func makeCloudflareEmailService(
+  config: ConfigReader
+) throws -> EmailService.Client<AsyncHTTPClient.HTTPClient> {
+  let config = config.scoped(to: "cloudflare")
+  return try .init(
+    accountId: config.requiredString(forKey: "account.id"),
+    apiToken: config.requiredString(forKey: "api.token"),
+    httpClient: .asyncHTTPClient(.shared)
+  )
 }

@@ -16,13 +16,13 @@ struct AppCommand: AsyncParsableCommand, AppArguments {
   @Option(name: .shortAndLong)
   var env: EnvironmentLevel = .develop
 
-  @Option(name: .shortAndLong)
+  @Option(name: .long)
   var rateLimitDurationSeconds: Int?
 
-  @Option(name: .shortAndLong)
+  @Option(name: .long)
   var rateLimitIPAddressMaxCount: Int?
 
-  @Option(name: .shortAndLong)
+  @Option(name: .long)
   var rateLimitUserTokenMaxCount: Int?
 
   func run() async throws {
