@@ -1,6 +1,9 @@
+import AsyncHTTPClient
 import Configuration
 import Crypto
+import EmailService
 import Foundation
+import HTTPClient
 import Hummingbird
 import HummingbirdPostgres
 import JWTKit
@@ -8,11 +11,8 @@ import Logging
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
-import EmailService
-import AsyncHTTPClient
 import Valkey
 import WebAuthn
-import HTTPClient
 
 func buildApplication(
   _ arguments: some AppArguments

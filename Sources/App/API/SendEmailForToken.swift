@@ -1,4 +1,5 @@
 import Crypto
+import EmailService
 import ExtrasBase64
 import Foundation
 import Hummingbird
@@ -6,7 +7,6 @@ import OpenAPIRuntime
 import PostgresNIO
 import Records
 import SQLKit
-import EmailService
 import StructuredQueriesPostgres
 import Valkey
 import WebAuthn
@@ -57,7 +57,7 @@ extension API {
     }
 
     // 4. Send Email
-    
+
     let emailMessage = EmailMessage(
       to: email,
       from: "support@blindlog.me",

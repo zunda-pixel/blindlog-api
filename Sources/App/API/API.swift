@@ -1,11 +1,11 @@
+import AsyncHTTPClient
 import Crypto
+import EmailService
+import Foundation
 import JWTKit
 import PostgresNIO
-import EmailService
-import AsyncHTTPClient
 import Valkey
 import WebAuthn
-import Foundation
 
 struct API: APIProtocol {
   var cache: ValkeyClient

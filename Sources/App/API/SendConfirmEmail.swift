@@ -1,11 +1,11 @@
 import Algorithms
 import Crypto
+import EmailService
 import Foundation
 import Hummingbird
 import PostgresNIO
 import Records
 import SQLKit
-import EmailService
 import StructuredQueriesPostgres
 import Valkey
 
@@ -26,7 +26,7 @@ extension API {
     let message = EmailMessage(
       to: normalizedEmail,
       from: "support@blindlog.me",
-      subject:  "Confirm your email",
+      subject: "Confirm your email",
       text: otpPassword
     )
 
