@@ -1,7 +1,6 @@
 import ExtrasBase64
 import Foundation
 import Hummingbird
-import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
@@ -75,9 +74,7 @@ extension API {
     do {
       passkeyCredential = try await database.read { db in
         try await PasskeyCredential
-          .select(\.self)
           .where { $0.id.eq(credential.id.asString()) }
-          .limit(1)
           .fetchOne(db)
       }
     } catch {
@@ -96,6 +93,9 @@ extension API {
       return .badRequest
     }
 
+    let userID = passkeyCredential.userID
+    let signCount = passkeyCredential.signCount
+
     // 4. Verify assertion with WebAuthn
     let verifiedAuthentication: VerifiedAuthentication
     do {
@@ -103,7 +103,7 @@ extension API {
         credential: credential,
         expectedChallenge: bodyData.challenge.base64decoded(),
         credentialPublicKey: Array(passkeyCredential.publicKey),
-        credentialCurrentSignCount: UInt32(passkeyCredential.signCount)
+        credentialCurrentSignCount: UInt32(signCount)
       )
     } catch {
       AppRequestContext.current?.logger.log(
@@ -112,7 +112,8 @@ extension API {
         metadata: [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "userID": .string(userID.uuidString),
+          "signCount": .stringConvertible(signCount),
           "error": .string(String(describing: error)),
         ]
       )
@@ -138,7 +139,8 @@ extension API {
         metadata: [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "userID": .string(userID.uuidString),
+          "signCount": .stringConvertible(signCount),
           "error": .string(String(describing: error)),
         ]
       )
@@ -149,7 +151,7 @@ extension API {
     let userToken: Components.Schemas.UserToken
     do {
       userToken = try await generateUserToken(
-        userID: passkeyCredential.userID
+        userID: userID
       )
     } catch {
       AppRequestContext.current?.logger.log(
@@ -158,7 +160,8 @@ extension API {
         metadata: [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "userID": .string(userID.uuidString),
+          "signCount": .stringConvertible(signCount),
           "error": .string(String(describing: error)),
         ]
       )

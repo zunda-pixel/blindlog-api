@@ -412,7 +412,7 @@
       "location" : "https://github.com/zunda-pixel/swift-records.git",
       "state" : {
         "branch" : "fix-build-error",
-        "revision" : "f2231d1df9b1c5f81c5e66fea43014b522ed9c9d"
+        "revision" : "95384b90a40f44c8cf6babccca259a49cf2ea986"
       }
     },
     {
