@@ -3,8 +3,8 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 CREATE TABLE public.users (
   id uuid NOT NULL,
-  CONSTRAINT users_pk PRIMARY KEY (id)
   created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT users_pk PRIMARY KEY (id),
 );
 
 CREATE TABLE public.passkey_credentials (
