@@ -1,6 +1,4 @@
 import Foundation
-import NIOCore
-import PostgresNIO
 import StructuredQueriesPostgres
 
 @Table("passkey_credentials")
