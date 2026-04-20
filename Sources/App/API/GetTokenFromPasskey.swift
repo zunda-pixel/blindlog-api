@@ -70,9 +70,9 @@ extension API {
     }
 
     // 3. Load stored credential
-    let storedPasskeyCredential: PasskeyCredential?
+    let passkeyCredential: PasskeyCredential?
     do {
-      storedPasskeyCredential = try await database.read { db in
+      passkeyCredential = try await database.read { db in
         try await PasskeyCredential
           .where { $0.id.eq(credential.id.asString()) }
           .fetchOne(db)
@@ -89,12 +89,12 @@ extension API {
       return .badRequest
     }
 
-    guard let storedPasskeyCredential else {
+    guard let passkeyCredential else {
       return .badRequest
     }
 
-    let userID = storedPasskeyCredential.userID
-    let signCount = storedPasskeyCredential.signCount
+    let userID = passkeyCredential.userID
+    let signCount = passkeyCredential.signCount
 
     // 4. Verify assertion with WebAuthn
     let verifiedAuthentication: VerifiedAuthentication
@@ -102,7 +102,7 @@ extension API {
       verifiedAuthentication = try webAuthn.finishAuthentication(
         credential: credential,
         expectedChallenge: bodyData.challenge.base64decoded(),
-        credentialPublicKey: Array(storedPasskeyCredential.publicKey),
+        credentialPublicKey: Array(passkeyCredential.publicKey),
         credentialCurrentSignCount: UInt32(signCount)
       )
     } catch {
