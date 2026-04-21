@@ -67,7 +67,7 @@
     {
       "identity" : "http-client",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zunda-pixel/http-client",
+      "location" : "https://github.com/zunda-pixel/http-client.git",
       "state" : {
         "revision" : "0d115da7b3746bad0c6c8856087651e19d4bbaba",
         "version" : "0.4.0"
@@ -112,7 +112,7 @@
     {
       "identity" : "multipart-kit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/vapor/multipart-kit",
+      "location" : "https://github.com/vapor/multipart-kit.git",
       "state" : {
         "revision" : "481a44661dae96a609fc30f6ddad8d6f35c51947",
         "version" : "5.0.0-alpha.5"
@@ -447,8 +447,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
       "state" : {
-        "revision" : "a008af1a102ff3dd6cc3764bb69bf63226d0f5f6",
-        "version" : "1.36.1"
+        "revision" : "81558271e243f8f47dfe8e9fdd55f3c2b5413f68",
+        "version" : "1.37.0"
       }
     },
     {
@@ -457,7 +457,7 @@
       "location" : "https://github.com/zunda-pixel/swift-records.git",
       "state" : {
         "branch" : "fix-build-error",
-        "revision" : "f2231d1df9b1c5f81c5e66fea43014b522ed9c9d"
+        "revision" : "95384b90a40f44c8cf6babccca259a49cf2ea986"
       }
     },
     {
