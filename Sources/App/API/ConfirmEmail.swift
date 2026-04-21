@@ -64,6 +64,8 @@ extension API {
             userID: userID,
             email: email
           )
+        } onConflict: { columns in
+          (columns.userID, columns.email)
         }.execute(db)
       }
     } catch {

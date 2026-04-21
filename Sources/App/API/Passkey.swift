@@ -107,6 +107,8 @@ extension API {
             publicKey: Data(credential.publicKey),
             signCount: Int64(credential.signCount)
           )
+        } onConflict: {
+          $0.id
         }
         .execute(db)
       }
