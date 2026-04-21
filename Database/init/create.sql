@@ -13,12 +13,26 @@ CREATE TABLE public.passkey_credentials (
   public_key bytea NOT NULL,
   sign_count bigint NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT passkey_credentials_pk PRIMARY KEY (id),
   CONSTRAINT passkey_credentials_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE CASCADE,
   CONSTRAINT sign_count_non_negative CHECK (sign_count >= 0)
 );
 
 CREATE INDEX passkey_credentials_user_id_idx ON public.passkey_credentials(user_id);
+
+CREATE FUNCTION public.set_updated_at() RETURNS trigger
+  LANGUAGE plpgsql AS
+$$
+BEGIN
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER passkey_credentials_set_updated_at
+  BEFORE UPDATE ON public.passkey_credentials
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 CREATE TABLE public.user_email (
   user_id uuid NOT NULL,
