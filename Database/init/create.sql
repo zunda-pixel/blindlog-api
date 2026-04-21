@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE TABLE public.users (
   id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT users_pk PRIMARY KEY (id),
+  CONSTRAINT users_pk PRIMARY KEY (id)
 );
 
 CREATE TABLE public.passkey_credentials (
