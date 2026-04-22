@@ -13,11 +13,18 @@ services:
     volumes:
       - ./Database/init:/docker-entrypoint-initdb.d
 
+  otel-collector:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./Deploy/local/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+
   swift:
     image: swift:6.3.1-noble
     depends_on:
       - postgres
       - valkey
+      - otel-collector
     working_dir: /workspace
     volumes:
       - .:/workspace
@@ -35,3 +42,5 @@ services:
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
       OTP_SECRET_KEY: ${OTP_SECRET_KEY}
+      # Override default http://localhost:4318 since the collector is a sibling container.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318

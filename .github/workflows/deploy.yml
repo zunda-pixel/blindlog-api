@@ -57,4 +57,5 @@ jobs:
           gcloud run services update "$SERVICE" \
             --project="$PROJECT_ID" \
             --region="$REGION" \
+            --container=app \
             --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}:${{ github.sha }}"

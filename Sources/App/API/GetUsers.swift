@@ -19,13 +19,14 @@ extension API {
         ids: ids
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.cache_read_failed",
         "Failed to fetch users from cache and update expiration",
         metadata: [
-          "userIDs": .array(ids.map { .string($0.uuidString) }),
-          "error": .string(String(describing: error)),
-        ]
+          "cache.operation": .string("getex"),
+          "user.ids": .array(ids.map { .string($0.uuidString) }),
+        ],
+        error: error
       )
       return .badRequest
     }
@@ -38,13 +39,14 @@ extension API {
         ids: Array(leftUserIDs)
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.db_read_failed",
         "Failed to fetch users from database",
         metadata: [
-          "userIDs": .array(ids.map { .string($0.uuidString) }),
-          "error": .string(String(describing: error)),
-        ]
+          "db.operation": .string("select"),
+          "user.ids": .array(ids.map { .string($0.uuidString) }),
+        ],
+        error: error
       )
       return .badRequest
     }
@@ -54,13 +56,16 @@ extension API {
         users: dbUsers
       )
     } catch {
-      AppRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.appLog(
         level: .warning,
+        eventName: "user.cache_write_failed",
         "Failed to write users to cache",
         metadata: [
-          "users": .array(dbUsers.map { .string(String(describing: $0)) }),
-          "error": .string(String(describing: error)),
-        ]
+          "cache.operation": .string("set"),
+          "user.count": .stringConvertible(dbUsers.count),
+          "user.ids": .array(dbUsers.map { .string($0.id.uuidString) }),
+        ],
+        error: error
       )
       return .badRequest
     }

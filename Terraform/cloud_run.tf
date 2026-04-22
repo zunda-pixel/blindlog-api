@@ -1,6 +1,8 @@
 resource "google_cloud_run_v2_service" "api" {
   depends_on = [
     google_project_service.required,
+    google_secret_manager_secret_iam_member.otel_collector_config_runtime_access,
+    google_secret_manager_secret_version.otel_collector_config,
     google_secret_manager_secret_iam_member.runtime_access,
   ]
 
@@ -18,6 +20,8 @@ resource "google_cloud_run_v2_service" "api" {
     }
 
     containers {
+      depends_on = ["collector"]
+
       name  = "app"
       image = local.image_url
 
@@ -30,11 +34,11 @@ resource "google_cloud_run_v2_service" "api" {
           cpu    = var.cpu
           memory = var.memory
         }
-        cpu_idle          = true
+        cpu_idle          = var.cpu_idle
         startup_cpu_boost = true
       }
 
-      # Non-sensitive env vars (CLOUD_RUN_REGION is auto-injected from var.region).
+      # Non-sensitive env vars, including Terraform-controlled Cloud Run/OTel settings.
       dynamic "env" {
         for_each = local.plain_env
         content {
@@ -66,6 +70,57 @@ resource "google_cloud_run_v2_service" "api" {
         timeout_seconds   = 240
         period_seconds    = 240
         failure_threshold = 1
+      }
+    }
+
+    containers {
+      name  = "collector"
+      image = var.otel_collector_image
+      args  = ["--config=/etc/otelcol-google/config.yaml"]
+
+      resources {
+        limits = {
+          cpu    = var.otel_collector_cpu
+          memory = var.otel_collector_memory
+        }
+        cpu_idle          = var.cpu_idle
+        startup_cpu_boost = true
+      }
+
+      startup_probe {
+        http_get {
+          path = "/"
+          port = 13133
+        }
+        timeout_seconds = 30
+        period_seconds  = 30
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/"
+          port = 13133
+        }
+        timeout_seconds = 30
+        period_seconds  = 30
+      }
+
+      volume_mounts {
+        name       = "otel-collector-config"
+        mount_path = "/etc/otelcol-google/"
+      }
+    }
+
+    volumes {
+      name = "otel-collector-config"
+
+      secret {
+        secret = google_secret_manager_secret.otel_collector_config.secret_id
+
+        items {
+          version = "latest"
+          path    = "config.yaml"
+        }
       }
     }
   }

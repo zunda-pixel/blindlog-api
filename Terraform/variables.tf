@@ -21,6 +21,12 @@ variable "cpu" {
   default     = "1"
 }
 
+variable "cpu_idle" {
+  description = "Whether Cloud Run should allocate CPU only while requests are active."
+  type        = bool
+  default     = false
+}
+
 variable "deploy_branch" {
   description = "Git ref allowed to mint deployer tokens via Workload Identity Federation."
   type        = string
@@ -75,6 +81,30 @@ variable "min_instance_count" {
     condition     = var.min_instance_count >= 0
     error_message = "min_instance_count must be non-negative."
   }
+}
+
+variable "otel_collector_config_secret_id" {
+  description = "Secret Manager secret ID that stores the OpenTelemetry Collector config."
+  type        = string
+  default     = "blindlog-otel-collector-config"
+}
+
+variable "otel_collector_cpu" {
+  description = "Cloud Run CPU limit for the OpenTelemetry Collector sidecar."
+  type        = string
+  default     = "1"
+}
+
+variable "otel_collector_image" {
+  description = "Container image for the Google-built OpenTelemetry Collector sidecar."
+  type        = string
+  default     = "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google:0.144.0"
+}
+
+variable "otel_collector_memory" {
+  description = "Cloud Run memory limit for the OpenTelemetry Collector sidecar."
+  type        = string
+  default     = "256Mi"
 }
 
 variable "project_id" {

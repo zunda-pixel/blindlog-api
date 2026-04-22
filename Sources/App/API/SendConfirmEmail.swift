@@ -49,14 +49,13 @@ extension API {
         expiration: .seconds(60 * 1)
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
-        "Failed to save OTP to db",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "email": .string(normalizedEmail),
-          "error": .string(String(describing: error)),
-        ]
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.email.verification_cache_write_failed",
+        "Failed to store email verification OTP",
+        metadata: AppLogMetadata.userID(userID)
+          .merging(AppLogMetadata.emailSHA256(normalizedEmail)) { _, new in new }
+          .merging(["cache.operation": .string("set")]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -65,14 +64,12 @@ extension API {
     do {
       _ = try await self.emailService.send(message)
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.email.send_failed",
         "Failed to send email",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "email": .string(normalizedEmail),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID)
+          .merging(AppLogMetadata.emailSHA256(normalizedEmail)) { _, new in new },
+        error: error
       )
       return .badRequest
     }

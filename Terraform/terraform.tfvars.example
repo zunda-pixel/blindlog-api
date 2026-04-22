@@ -9,7 +9,12 @@ region         = "asia-northeast1"
 # min_instance_count = 0
 # max_instance_count = 10
 # cpu                = "1"
+# cpu_idle           = false
 # memory             = "512Mi"
+# otel_collector_config_secret_id = "blindlog-otel-collector-config"
+# otel_collector_cpu              = "1"
+# otel_collector_image            = "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google:0.144.0"
+# otel_collector_memory           = "256Mi"
 # allow_unauthenticated = true
 
 # First `terraform apply` uses this tag. After that, GitHub Actions overrides
@@ -23,6 +28,9 @@ image_tag = "bootstrap"
 # upload versions with `gcloud secrets versions add <id> --data-file=-`.
 #
 # CLOUD_RUN_REGION is auto-injected from `region` above; do NOT set it here.
+# OTel SDK transport settings (exporter, protocol, endpoint) are not injected:
+# the swift-otel defaults match the Cloud Run sidecar collector setup, and
+# OTel resource attributes live in the app code.
 # RELYING_PARTY_ORIGIN should be the public-facing origin (custom domain or
 # Cloud Run URL), NOT a placeholder.
 app_env = {

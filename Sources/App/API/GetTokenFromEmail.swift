@@ -55,13 +55,14 @@ extension API {
 
       try await cache.del(keys: [key])
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.email.challenge.verify_failed",
         "Failed to verify and delete authentication challenge",
         metadata: [
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "error": .string(String(describing: error)),
-        ]
+          "cache.operation": .string("get_delete"),
+          "auth.flow": .string("email_token"),
+        ],
+        error: error
       )
       return .badRequest
     }
@@ -77,14 +78,13 @@ extension API {
           .fetchOne(db)
       }
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.email.lookup_failed",
         "Failed to fetch user",
-        metadata: [
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.emailSHA256(email).merging([
+          "db.operation": .string("select")
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -100,14 +100,12 @@ extension API {
         userID: userID
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.token.issue_failed",
         "Failed to issue application tokens",
-        metadata: [
-          "email": .string(bodyData.email),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.emailSHA256(email)
+          .merging(AppLogMetadata.userID(userID)) { _, new in new },
+        error: error
       )
       return .badRequest
     }

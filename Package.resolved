@@ -1,5 +1,5 @@
 {
-  "originHash" : "170ee3cee01bf97fcb399415b8559c6679b9fa511876ff3a64eb1c300eaf845a",
+  "originHash" : "8aa61df61bd41898792ce354b7e9009ee6e65a6a08835a1cfa107621ff42e56c",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -407,6 +407,24 @@
       }
     },
     {
+      "identity" : "swift-otel",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-otel/swift-otel.git",
+      "state" : {
+        "revision" : "1a56b3a854ac9c1dfd5517f39ca3408cc4461afa",
+        "version" : "1.0.5"
+      }
+    },
+    {
+      "identity" : "swift-protobuf",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-protobuf.git",
+      "state" : {
+        "revision" : "81558271e243f8f47dfe8e9fdd55f3c2b5413f68",
+        "version" : "1.37.0"
+      }
+    },
+    {
       "identity" : "swift-records",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/zunda-pixel/swift-records.git",
@@ -476,6 +494,15 @@
       "state" : {
         "revision" : "3907a9438f5b57d317001dc99f3f11b46882272b",
         "version" : "0.10.0"
+      }
+    },
+    {
+      "identity" : "swift-w3c-trace-context",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-otel/swift-w3c-trace-context.git",
+      "state" : {
+        "revision" : "5da9b143ba6046734de3fa51dafea28290174e4e",
+        "version" : "1.0.0-beta.5"
       }
     },
     {
