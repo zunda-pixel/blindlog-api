@@ -22,20 +22,12 @@ func buildApplication(
 
   let logLevel =
     arguments.logLevel ?? config.string(forKey: "log.level").flatMap { Logger.Level(rawValue: $0) }
-    ?? .debug
-
-  LoggingSystem.bootstrap { label in
-    var handler = StreamLogHandler.standardOutput(
-      label: label,
-      metadataProvider: OTel.makeLoggingMetadataProvider()
-    )
-    handler.logLevel = logLevel
-    return handler
-  }
+    ?? .info
 
   var otelConfig = OTel.Configuration.default
   otelConfig.serviceName = "Blindlog"
-  otelConfig.logs.enabled = false
+  otelConfig.diagnosticLogLevel = .warning
+  otelConfig.logs.otlpExporter.protocol = .grpc
   otelConfig.metrics.otlpExporter.protocol = .grpc
   otelConfig.traces.otlpExporter.protocol = .grpc
   let observability = try OTel.bootstrap(configuration: otelConfig)

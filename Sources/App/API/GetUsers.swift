@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import Logging
 import PostgresNIO
 import Records
 import SQLKit
@@ -22,10 +23,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch users from cache and update expiration",
-        metadata: [
-          "userIDs": .array(ids.map { .string($0.uuidString) }),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.ids": .array(ids.map { .stringConvertible($0) }),
+        ])
       )
       return .badRequest
     }
@@ -41,10 +41,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch users from database",
-        metadata: [
-          "userIDs": .array(ids.map { .string($0.uuidString) }),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.ids": .array(ids.map { .stringConvertible($0) }),
+        ])
       )
       return .badRequest
     }
@@ -57,10 +56,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .warning,
         "Failed to write users to cache",
-        metadata: [
-          "users": .array(dbUsers.map { .string(String(describing: $0)) }),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.ids": .array(dbUsers.map { .stringConvertible($0.id) }),
+        ])
       )
       return .badRequest
     }

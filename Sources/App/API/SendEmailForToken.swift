@@ -3,6 +3,7 @@ import EmailService
 import ExtrasBase64
 import Foundation
 import Hummingbird
+import Logging
 import OpenAPIRuntime
 import PostgresNIO
 import Records
@@ -48,10 +49,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to update stored sign counter",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -71,10 +71,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to send email",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }

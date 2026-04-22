@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import Logging
 import OpenAPIRuntime
 import Records
 import Valkey
@@ -55,11 +56,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save challenge with expiration",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "challenge": .string(Data(challenge).base64EncodedString()),
-          "userID": .string(userID?.uuidString ?? "nil"),
-          "error": .string(String(describing: error)),
-        ]
+          "user.id": .string(userID?.uuidString ?? "nil"),
+        ])
       )
       return .badRequest
     }

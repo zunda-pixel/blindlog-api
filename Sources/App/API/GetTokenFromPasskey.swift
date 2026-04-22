@@ -1,6 +1,7 @@
 import ExtrasBase64
 import Foundation
 import Hummingbird
+import Logging
 import Records
 import SQLKit
 import StructuredQueriesPostgres
@@ -32,10 +33,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to parse token request payload",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "bodyData": .string(String(describing: bodyData)),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -61,10 +61,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete authentication challenge",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "challenge": .string(String(describing: bodyData.challenge)),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -81,10 +80,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to load stored passkey credential",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "credentialID": .string(credential.id.asString()),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -109,13 +107,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify WebAuthn assertion",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "userID": .string(userID.uuidString),
+          "user.id": .stringConvertible(userID),
           "signCount": .stringConvertible(signCount),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -136,13 +133,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to update stored sign counter",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "userID": .string(userID.uuidString),
+          "user.id": .stringConvertible(userID),
           "signCount": .stringConvertible(signCount),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -157,13 +153,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue application tokens",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "userID": .string(userID.uuidString),
+          "user.id": .stringConvertible(userID),
           "signCount": .stringConvertible(signCount),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }

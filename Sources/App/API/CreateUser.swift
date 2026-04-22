@@ -1,6 +1,7 @@
 import Foundation
 import Hummingbird
 import JWTKit
+import Logging
 import PostgresNIO
 import Records
 import SQLKit
@@ -23,10 +24,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to persist user",
-        metadata: [
-          "user": .string(user.id.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(user.id),
+        ])
       )
       return .badRequest
     }
@@ -38,10 +38,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to sign user tokens",
-        metadata: [
-          "user": .string(String(describing: user)),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(user.id),
+        ])
       )
       return .badRequest
     }

@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import Logging
 import OpenAPIRuntime
 import PostgresNIO
 import Records
@@ -31,10 +32,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to decode WebAuthn registration",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "body": .string(String(describing: body)),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -59,11 +59,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete registration challenge",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "challenge": .string(challengeData.base64EncodedString()),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+          "user.id": .stringConvertible(userID),
+        ])
       )
       return .badRequest
     }
@@ -89,11 +88,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to validate WebAuthn registration",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "registrationCredential": .string(String(describing: registrationCredential)),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+          "user.id": .stringConvertible(userID),
+        ])
       )
       return .badRequest
     }
@@ -116,11 +114,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to persist passkey credential",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "credentialID": .string(registrationCredential.id.asString()),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+          "user.id": .stringConvertible(userID),
+        ])
       )
       return .badRequest
     }

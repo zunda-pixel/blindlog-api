@@ -13,11 +13,22 @@ services:
     volumes:
       - ./Database/init:/docker-entrypoint-initdb.d
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    restart: always
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+
   swift:
     image: swift:latest
     depends_on:
       - postgres
       - valkey
+      - otel-collector
     working_dir: /workspace
     volumes:
       - .:/workspace
@@ -35,3 +46,7 @@ services:
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
       OTP_SECRET_KEY: ${OTP_SECRET_KEY}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: Blindlog
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=develop
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-}

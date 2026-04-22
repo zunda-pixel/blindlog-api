@@ -3,6 +3,7 @@ import Crypto
 import EmailService
 import Foundation
 import Hummingbird
+import Logging
 import PostgresNIO
 import Records
 import SQLKit
@@ -52,11 +53,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save OTP to db",
-        metadata: [
-          "userID": .string(userID.uuidString),
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(userID),
           "email": .string(normalizedEmail),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -68,11 +68,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to send email",
-        metadata: [
-          "userID": .string(userID.uuidString),
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(userID),
           "email": .string(normalizedEmail),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }

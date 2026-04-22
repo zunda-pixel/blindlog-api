@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import Logging
 import PostgresKit
 import Records
 import SQLKit
@@ -17,10 +18,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch user profile",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(userID),
+        ])
       )
       return .badRequest
     }

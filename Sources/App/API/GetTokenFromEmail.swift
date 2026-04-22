@@ -2,6 +2,7 @@ import Crypto
 import ExtrasBase64
 import Foundation
 import Hummingbird
+import Logging
 import PostgresNIO
 import Records
 import SQLKit
@@ -58,10 +59,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete authentication challenge",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "challenge": .string(String(describing: bodyData.challenge)),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -80,11 +80,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch user",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "challenge": .string(String(describing: bodyData.challenge)),
           "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -103,11 +102,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue application tokens",
-        metadata: [
+        metadata: Logger.errorMetadata(error, [
           "email": .string(bodyData.email),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+          "user.id": .stringConvertible(userID),
+        ])
       )
       return .badRequest
     }

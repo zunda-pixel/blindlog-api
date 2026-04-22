@@ -2,6 +2,7 @@ import Algorithms
 import Crypto
 import Foundation
 import Hummingbird
+import Logging
 import PostgresNIO
 import Records
 import SQLKit
@@ -47,11 +48,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify otp",
-        metadata: [
-          "userID": .string(userID.uuidString),
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(userID),
           "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -72,11 +72,10 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save user email to db",
-        metadata: [
-          "userID": .string(userID.uuidString),
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(userID),
           "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        ])
       )
       return .badRequest
     }
@@ -87,10 +86,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to delete old user from cache",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(userID),
+        ])
       )
       return .badRequest
     }

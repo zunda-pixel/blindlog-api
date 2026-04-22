@@ -1,6 +1,7 @@
 import Foundation
 import Hummingbird
 import JWTKit
+import Logging
 import PostgresNIO
 import SQLKit
 import Valkey
@@ -37,10 +38,9 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue tokens from refresh token",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: Logger.errorMetadata(error, [
+          "user.id": .stringConvertible(userID),
+        ])
       )
       return .badRequest
     }
