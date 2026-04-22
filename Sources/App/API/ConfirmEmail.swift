@@ -44,7 +44,7 @@ extension API {
         return .unauthorized
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify otp",
         metadata: [
@@ -64,10 +64,12 @@ extension API {
             userID: userID,
             email: email
           )
+        } onConflict: { columns in
+          (columns.userID, columns.email)
         }.execute(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save user email to db",
         metadata: [
@@ -82,7 +84,7 @@ extension API {
     do {
       try await cache.del(keys: [ValkeyKey("user:\(userID.uuidString)")])
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to delete old user from cache",
         metadata: [

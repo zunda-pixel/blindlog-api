@@ -28,7 +28,7 @@ extension API {
         from: bodyData
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to decode WebAuthn registration",
         metadata: [
@@ -56,7 +56,7 @@ extension API {
 
       try await cache.del(keys: [key])
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete registration challenge",
         metadata: [
@@ -86,7 +86,7 @@ extension API {
         }
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to validate WebAuthn registration",
         metadata: [
@@ -107,11 +107,13 @@ extension API {
             publicKey: Data(credential.publicKey),
             signCount: Int64(credential.signCount)
           )
+        } onConflict: {
+          $0.id
         }
         .execute(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to persist passkey credential",
         metadata: [

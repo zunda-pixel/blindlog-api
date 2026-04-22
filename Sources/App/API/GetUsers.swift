@@ -19,7 +19,7 @@ extension API {
         ids: ids
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch users from cache and update expiration",
         metadata: [
@@ -38,7 +38,7 @@ extension API {
         ids: Array(leftUserIDs)
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch users from database",
         metadata: [
@@ -54,7 +54,7 @@ extension API {
         users: dbUsers
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .warning,
         "Failed to write users to cache",
         metadata: [

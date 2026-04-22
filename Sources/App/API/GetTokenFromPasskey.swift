@@ -1,7 +1,6 @@
 import ExtrasBase64
 import Foundation
 import Hummingbird
-import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
@@ -30,7 +29,7 @@ extension API {
         from: data
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to parse token request payload",
         metadata: [
@@ -59,7 +58,7 @@ extension API {
 
       try await cache.del(keys: [key])
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete authentication challenge",
         metadata: [
@@ -75,13 +74,11 @@ extension API {
     do {
       passkeyCredential = try await database.read { db in
         try await PasskeyCredential
-          .select(\.self)
           .where { $0.id.eq(credential.id.asString()) }
-          .limit(1)
           .fetchOne(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to load stored passkey credential",
         metadata: [
@@ -96,6 +93,9 @@ extension API {
       return .badRequest
     }
 
+    let userID = passkeyCredential.userID
+    let signCount = passkeyCredential.signCount
+
     // 4. Verify assertion with WebAuthn
     let verifiedAuthentication: VerifiedAuthentication
     do {
@@ -103,16 +103,17 @@ extension API {
         credential: credential,
         expectedChallenge: bodyData.challenge.base64decoded(),
         credentialPublicKey: Array(passkeyCredential.publicKey),
-        credentialCurrentSignCount: UInt32(passkeyCredential.signCount)
+        credentialCurrentSignCount: UInt32(signCount)
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify WebAuthn assertion",
         metadata: [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "userID": .string(userID.uuidString),
+          "signCount": .stringConvertible(signCount),
           "error": .string(String(describing: error)),
         ]
       )
@@ -132,13 +133,14 @@ extension API {
           .execute(db)
       }
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to update stored sign counter",
         metadata: [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "userID": .string(userID.uuidString),
+          "signCount": .stringConvertible(signCount),
           "error": .string(String(describing: error)),
         ]
       )
@@ -149,16 +151,17 @@ extension API {
     let userToken: Components.Schemas.UserToken
     do {
       userToken = try await generateUserToken(
-        userID: passkeyCredential.userID
+        userID: userID
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue application tokens",
         metadata: [
           "credential": .string(String(describing: credential)),
           "challenge": .string(String(describing: bodyData.challenge)),
-          "passkeyCredential": .string(String(describing: passkeyCredential)),
+          "userID": .string(userID.uuidString),
+          "signCount": .stringConvertible(signCount),
           "error": .string(String(describing: error)),
         ]
       )

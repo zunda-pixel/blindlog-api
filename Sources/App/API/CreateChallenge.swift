@@ -52,7 +52,7 @@ extension API {
         expiration: .seconds(60 * 10)  // 10 minutes
       )
     } catch {
-      BasicRequestContext.current?.logger.log(
+      AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save challenge with expiration",
         metadata: [
