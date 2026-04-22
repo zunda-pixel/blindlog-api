@@ -38,9 +38,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue tokens from refresh token",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(userID),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(userID)
+          ]
+        )
       )
       return .badRequest
     }

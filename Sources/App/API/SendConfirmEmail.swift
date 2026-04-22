@@ -53,10 +53,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save OTP to db",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(userID),
-          "email": .string(normalizedEmail),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(userID),
+            "email": .string(normalizedEmail),
+          ]
+        )
       )
       return .badRequest
     }
@@ -68,10 +71,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to send email",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(userID),
-          "email": .string(normalizedEmail),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(userID),
+            "email": .string(normalizedEmail),
+          ]
+        )
       )
       return .badRequest
     }

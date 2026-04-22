@@ -48,10 +48,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify otp",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(userID),
-          "email": .string(email),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(userID),
+            "email": .string(email),
+          ]
+        )
       )
       return .badRequest
     }
@@ -72,10 +75,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save user email to db",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(userID),
-          "email": .string(email),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(userID),
+            "email": .string(email),
+          ]
+        )
       )
       return .badRequest
     }
@@ -86,9 +92,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to delete old user from cache",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(userID),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(userID)
+          ]
+        )
       )
       return .badRequest
     }

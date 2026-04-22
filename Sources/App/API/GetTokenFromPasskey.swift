@@ -33,9 +33,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to parse token request payload",
-        metadata: Logger.errorMetadata(error, [
-          "bodyData": .string(String(describing: bodyData)),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "bodyData": .string(String(describing: bodyData))
+          ]
+        )
       )
       return .badRequest
     }
@@ -61,9 +64,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete authentication challenge",
-        metadata: Logger.errorMetadata(error, [
-          "challenge": .string(String(describing: bodyData.challenge)),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "challenge": .string(String(describing: bodyData.challenge))
+          ]
+        )
       )
       return .badRequest
     }
@@ -80,9 +86,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to load stored passkey credential",
-        metadata: Logger.errorMetadata(error, [
-          "credentialID": .string(credential.id.asString()),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "credentialID": .string(credential.id.asString())
+          ]
+        )
       )
       return .badRequest
     }
@@ -107,12 +116,15 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify WebAuthn assertion",
-        metadata: Logger.errorMetadata(error, [
-          "credential": .string(String(describing: credential)),
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "user.id": .stringConvertible(userID),
-          "signCount": .stringConvertible(signCount),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "credential": .string(String(describing: credential)),
+            "challenge": .string(String(describing: bodyData.challenge)),
+            "user.id": .stringConvertible(userID),
+            "signCount": .stringConvertible(signCount),
+          ]
+        )
       )
       return .badRequest
     }
@@ -133,12 +145,15 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to update stored sign counter",
-        metadata: Logger.errorMetadata(error, [
-          "credential": .string(String(describing: credential)),
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "user.id": .stringConvertible(userID),
-          "signCount": .stringConvertible(signCount),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "credential": .string(String(describing: credential)),
+            "challenge": .string(String(describing: bodyData.challenge)),
+            "user.id": .stringConvertible(userID),
+            "signCount": .stringConvertible(signCount),
+          ]
+        )
       )
       return .badRequest
     }
@@ -153,12 +168,15 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue application tokens",
-        metadata: Logger.errorMetadata(error, [
-          "credential": .string(String(describing: credential)),
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "user.id": .stringConvertible(userID),
-          "signCount": .stringConvertible(signCount),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "credential": .string(String(describing: credential)),
+            "challenge": .string(String(describing: bodyData.challenge)),
+            "user.id": .stringConvertible(userID),
+            "signCount": .stringConvertible(signCount),
+          ]
+        )
       )
       return .badRequest
     }

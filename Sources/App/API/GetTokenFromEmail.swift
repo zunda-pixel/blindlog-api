@@ -59,9 +59,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete authentication challenge",
-        metadata: Logger.errorMetadata(error, [
-          "challenge": .string(String(describing: bodyData.challenge)),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "challenge": .string(String(describing: bodyData.challenge))
+          ]
+        )
       )
       return .badRequest
     }
@@ -80,10 +83,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch user",
-        metadata: Logger.errorMetadata(error, [
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "email": .string(email),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "challenge": .string(String(describing: bodyData.challenge)),
+            "email": .string(email),
+          ]
+        )
       )
       return .badRequest
     }
@@ -102,10 +108,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to issue application tokens",
-        metadata: Logger.errorMetadata(error, [
-          "email": .string(bodyData.email),
-          "user.id": .stringConvertible(userID),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "email": .string(bodyData.email),
+            "user.id": .stringConvertible(userID),
+          ]
+        )
       )
       return .badRequest
     }

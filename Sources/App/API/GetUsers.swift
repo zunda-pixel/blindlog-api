@@ -23,9 +23,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch users from cache and update expiration",
-        metadata: Logger.errorMetadata(error, [
-          "user.ids": .array(ids.map { .stringConvertible($0) }),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.ids": .array(ids.map { .stringConvertible($0) })
+          ]
+        )
       )
       return .badRequest
     }
@@ -41,9 +44,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch users from database",
-        metadata: Logger.errorMetadata(error, [
-          "user.ids": .array(ids.map { .stringConvertible($0) }),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.ids": .array(ids.map { .stringConvertible($0) })
+          ]
+        )
       )
       return .badRequest
     }
@@ -56,9 +62,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .warning,
         "Failed to write users to cache",
-        metadata: Logger.errorMetadata(error, [
-          "user.ids": .array(dbUsers.map { .stringConvertible($0.id) }),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.ids": .array(dbUsers.map { .stringConvertible($0.id) })
+          ]
+        )
       )
       return .badRequest
     }

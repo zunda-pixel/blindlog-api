@@ -18,9 +18,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to fetch user profile",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(userID),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(userID)
+          ]
+        )
       )
       return .badRequest
     }

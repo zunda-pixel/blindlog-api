@@ -32,9 +32,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to decode WebAuthn registration",
-        metadata: Logger.errorMetadata(error, [
-          "body": .string(String(describing: body)),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "body": .string(String(describing: body))
+          ]
+        )
       )
       return .badRequest
     }
@@ -59,10 +62,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to verify and delete registration challenge",
-        metadata: Logger.errorMetadata(error, [
-          "challenge": .string(challengeData.base64EncodedString()),
-          "user.id": .stringConvertible(userID),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "challenge": .string(challengeData.base64EncodedString()),
+            "user.id": .stringConvertible(userID),
+          ]
+        )
       )
       return .badRequest
     }
@@ -88,10 +94,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to validate WebAuthn registration",
-        metadata: Logger.errorMetadata(error, [
-          "registrationCredential": .string(String(describing: registrationCredential)),
-          "user.id": .stringConvertible(userID),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "registrationCredential": .string(String(describing: registrationCredential)),
+            "user.id": .stringConvertible(userID),
+          ]
+        )
       )
       return .badRequest
     }
@@ -114,10 +123,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to persist passkey credential",
-        metadata: Logger.errorMetadata(error, [
-          "credentialID": .string(registrationCredential.id.asString()),
-          "user.id": .stringConvertible(userID),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "credentialID": .string(registrationCredential.id.asString()),
+            "user.id": .stringConvertible(userID),
+          ]
+        )
       )
       return .badRequest
     }

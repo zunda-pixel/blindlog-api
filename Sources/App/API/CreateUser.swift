@@ -24,9 +24,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to persist user",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(user.id),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(user.id)
+          ]
+        )
       )
       return .badRequest
     }
@@ -38,9 +41,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to sign user tokens",
-        metadata: Logger.errorMetadata(error, [
-          "user.id": .stringConvertible(user.id),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "user.id": .stringConvertible(user.id)
+          ]
+        )
       )
       return .badRequest
     }

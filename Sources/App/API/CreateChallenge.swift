@@ -56,10 +56,13 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to save challenge with expiration",
-        metadata: Logger.errorMetadata(error, [
-          "challenge": .string(Data(challenge).base64EncodedString()),
-          "user.id": .string(userID?.uuidString ?? "nil"),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "challenge": .string(Data(challenge).base64EncodedString()),
+            "user.id": .string(userID?.uuidString ?? "nil"),
+          ]
+        )
       )
       return .badRequest
     }

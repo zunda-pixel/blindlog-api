@@ -49,9 +49,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to update stored sign counter",
-        metadata: Logger.errorMetadata(error, [
-          "email": .string(email),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "email": .string(email)
+          ]
+        )
       )
       return .badRequest
     }
@@ -71,9 +74,12 @@ extension API {
       AppRequestContext.current?.logger.log(
         level: .error,
         "Failed to send email",
-        metadata: Logger.errorMetadata(error, [
-          "email": .string(email),
-        ])
+        metadata: Logger.errorMetadata(
+          error,
+          [
+            "email": .string(email)
+          ]
+        )
       )
       return .badRequest
     }
