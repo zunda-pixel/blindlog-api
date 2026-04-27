@@ -9,3 +9,9 @@ xcuserdata/
 .env.*
 .env
 DerivedData
+
+# Terraform
+**/.terraform/
+**/terraform.tfvars
+**/*.tfstate
+**/*.tfstate.*
