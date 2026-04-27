@@ -6,7 +6,7 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    container: swift:latest
+    container: swift:6.3.1-noble
     steps:
       - uses: actions/checkout@v6
       - run: swift format lint -r -p -s .

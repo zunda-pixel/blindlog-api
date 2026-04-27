@@ -14,7 +14,7 @@ services:
       - ./Database/init:/docker-entrypoint-initdb.d
 
   swift:
-    image: swift:latest
+    image: swift:6.3.1-noble
     depends_on:
       - postgres
       - valkey
