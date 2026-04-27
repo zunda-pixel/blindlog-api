@@ -28,13 +28,16 @@ jobs:
       - id: auth
         uses: google-github-actions/auth@v2
         with:
+          project_id: ${{ env.PROJECT_ID }}
           workload_identity_provider: ${{ vars.GOOGLE_CLOUD_WIF_PROVIDER }}
           service_account: ${{ vars.GOOGLE_CLOUD_DEPLOYER_SA }}
 
       - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
 
       - name: Configure Docker auth for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --project="$PROJECT_ID" --quiet
 
       - uses: docker/setup-buildx-action@v3
 
@@ -50,5 +53,6 @@ jobs:
       - name: Update Cloud Run service image
         run: |
           gcloud run services update "$SERVICE" \
+            --project="$PROJECT_ID" \
             --region="$REGION" \
             --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}:${{ github.sha }}"

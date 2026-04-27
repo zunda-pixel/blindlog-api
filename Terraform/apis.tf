@@ -8,6 +8,8 @@ resource "google_project_service" "required" {
     "monitoring.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
+    "serviceusage.googleapis.com",
+    "storage.googleapis.com",
     "sts.googleapis.com",
   ])
 

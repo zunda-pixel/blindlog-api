@@ -35,11 +35,11 @@ variable "deploy_branch" {
 variable "github_repo" {
   description = "GitHub repo allowed to assume the deployer service account, in `owner/name` form."
   type        = string
-  default     = "BlindLog/blindlog-api"
+  default     = "zunda-pixel/blindlog-api"
 
   validation {
     condition     = can(regex("^[^/]+/[^/]+$", var.github_repo))
-    error_message = "github_repo must be in `owner/name` form, e.g. \"BlindLog/blindlog-api\"."
+    error_message = "github_repo must be in `owner/name` form, e.g. \"zunda-pixel/blindlog-api\"."
   }
 }
 

@@ -10,6 +10,7 @@ Image のビルドと push、Cloud Run への反映は GitHub Actions が行う 
 - **認証**: Workload Identity Federation。長期鍵 (JSON) なし
 - **Terraform 実行**: 当面オペレータ手元から (GHA で terraform apply は回さない)
 - **環境**: prod のみ
+- **公開範囲**: `allow_unauthenticated = true` のため Cloud Run は **public endpoint** として公開される。アプリ層 (Hummingbird) の認証ミドルウェア + Valkey ベースのレートリミットで保護する前提。
 
 ## Bootstrap 手順 (初回のみ)
 
@@ -32,10 +33,11 @@ gcloud config set project "$PROJECT_ID"
 
 ### 2. 必要 API の先行有効化
 
-Terraform 自身が `google_project_service` で有効化するが、`cloudresourcemanager` と `iam` は API 未有効だと `terraform init` すら通らないので手で有効化しておく。
+Terraform 自身が `google_project_service` で残りを有効化するが、その前段で `serviceusage` (他 API を有効化するための API)、`cloudresourcemanager` (project lookup)、`iam` の 3 つは手で有効化しておく必要がある。これらが無効だと `terraform init` / 最初の `apply` が通らない。
 
 ```sh
 gcloud services enable \
+  serviceusage.googleapis.com \
   cloudresourcemanager.googleapis.com \
   iam.googleapis.com
 ```
@@ -69,6 +71,8 @@ terraform init \
 ### 6. 既存リソースを import
 
 現在 Google Cloud コンソールで動いている Cloud Run サービスを destroy/recreate すると本番が落ちる。以下を先に import する。
+
+> **ブラウンフィールド注意**: 過去に手動で作った同名リソース (例: `blindlog-api-runtime` SA、`github-pool` WIF pool、Artifact Registry repo) が残っている場合、初回 apply で `Already Exists` エラーになる。下記の Cloud Run / AR / Secret に加え、既存の SA や WIF pool/provider があれば同様に import する (resource address は `terraform plan` の create 計画から逆引き)。新規プロジェクトでの bootstrap なら不要。
 
 ```sh
 # 直前に手順 0 の env が export されていることを確認

@@ -5,7 +5,7 @@ region         = "asia-northeast1"
 # Optional overrides (defaults are fine for a single-service prod setup)
 # service_name       = "blindlog-api"
 # artifact_repo_id   = "blindlog-api"
-# github_repo        = "BlindLog/blindlog-api"
+# github_repo        = "zunda-pixel/blindlog-api"
 # min_instance_count = 0
 # max_instance_count = 10
 # cpu                = "1"
