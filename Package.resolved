@@ -1,5 +1,5 @@
 {
-  "originHash" : "28277ebec3bfd00c0b152cbf37d0a3702055edf4cc860e238db21167d56be8c2",
+  "originHash" : "170ee3cee01bf97fcb399415b8559c6679b9fa511876ff3a64eb1c300eaf845a",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -114,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hummingbird-project/postgres-migrations",
       "state" : {
-        "revision" : "d0d8ea2822cd7231e48c223648e01273a0d7bf64",
-        "version" : "1.1.0"
+        "revision" : "da959aa9f408b014e2af07ffc56797661e637bef",
+        "version" : "1.1.1"
       }
     },
     {
@@ -231,8 +231,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "revision" : "476538ccb827f2dd18efc5de754cc87d77127a47",
-        "version" : "4.4.0"
+        "revision" : "1b6b2e274e85105bfa155183145a1dcfd63331f1",
+        "version" : "4.5.0"
       }
     },
     {
@@ -292,7 +292,7 @@
     {
       "identity" : "swift-http-types",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-http-types",
+      "location" : "https://github.com/apple/swift-http-types.git",
       "state" : {
         "revision" : "45eb0224913ea070ec4fba17291b9e7ecf4749ca",
         "version" : "1.5.1"
@@ -321,8 +321,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-metrics.git",
       "state" : {
-        "revision" : "c6593dac9d65f2517280d88c430dadffdf259737",
-        "version" : "2.10.0"
+        "revision" : "d51c8d13fa366eec807eedb4e37daa60ff5bfdd5",
+        "version" : "2.10.1"
       }
     },
     {
@@ -330,8 +330,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio.git",
       "state" : {
-        "revision" : "cd6710454f25733900e133c6caf5188952763c36",
-        "version" : "2.98.0"
+        "revision" : "f71c8d2a5e74a2c6d11a0fbe324774b5d6084237",
+        "version" : "2.99.0"
       }
     },
     {
@@ -366,8 +366,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio-transport-services.git",
       "state" : {
-        "revision" : "9d4e67af1eea85967c7de778ad73e7776e5f1f22",
-        "version" : "1.27.0"
+        "revision" : "67787bb645a5e67d2edcdfbe48a216cc549222d5",
+        "version" : "1.28.0"
       }
     },
     {
@@ -384,8 +384,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-openapi-generator.git",
       "state" : {
-        "revision" : "73997cc62c2193d5046e431c9d546119dda14502",
-        "version" : "1.11.1"
+        "revision" : "83e8301d6d62c423f8e11d6fcb0c8276d4dbb032",
+        "version" : "1.12.0"
       }
     },
     {
