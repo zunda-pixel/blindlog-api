@@ -6,6 +6,12 @@ servers:
   - url: https://api.blindlog.me
     description: Blindlog API server
 paths:
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        '200':
+          description: A success response indicating the server is healthy.
   /.well-known/apple-app-site-association:
     get:
       operationId: getAppleAppSiteAssociation
@@ -449,4 +455,3 @@ components:
         - challenge
         - email
         - otp
-
