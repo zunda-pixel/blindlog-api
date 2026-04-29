@@ -15,7 +15,3 @@ DerivedData
 **/terraform.tfvars
 **/*.tfstate
 **/*.tfstate.*
-.agents
-.claude
-.derived-data-log-0CA5RPJ1
-dump.rdb
