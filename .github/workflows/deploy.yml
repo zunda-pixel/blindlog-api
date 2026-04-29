@@ -3,6 +3,8 @@ name: Deploy
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 21 * * *"
 
 # Serialize prod deploys but never cancel an in-flight one — overwriting an
 # image mid-rollout produces unpredictable revisions.
