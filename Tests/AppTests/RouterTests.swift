@@ -19,6 +19,24 @@ struct TestArguments: AppArguments {
 @Suite(.serialized)
 struct RouterTests {
   @Test
+  func health() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let response = try await client.execute(
+        uri: "/health",
+        method: .get,
+        headers: [
+          .xForwardedFor: ipAddress
+        ]
+      )
+      #expect(response.status == .ok)
+    }
+  }
+
+  @Test
   func wellKnownAppleAppSiteAssociation() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
