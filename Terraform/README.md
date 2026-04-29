@@ -112,13 +112,15 @@ terraform plan
 
 **重要**: `image_tag` は現在 prod で動いている image の tag を渡す (例: `image_tag = "<current-sha>"`)。ただし `ignore_changes = [template[0].containers[0].image]` を入れているため、ここで渡した値は実際には適用されず、現行の image タグはそのまま維持される。
 
-### 8. `terraform apply`
+### 8. Secret の入れ物だけ先に作る
 
 ```sh
-terraform apply
+terraform apply \
+  -target=google_project_service.required \
+  -target=google_secret_manager_secret.app
 ```
 
-WIF pool/provider, deployer SA, IAM bindings などの新規リソースが作成される。
+初回 bootstrap では、Secret Manager に `latest` version が存在しない状態で Cloud Run を作ると失敗する。ここでは API 有効化と secret の入れ物作成だけを先に済ませる。
 
 ### 9. Secret 値のアップロード
 
@@ -132,7 +134,15 @@ printf '%s' "<CLOUDFLARE_API_TOKEN_VALUE>" | gcloud secrets versions add CLOUDFL
 printf '%s' "<OTP_SECRET_KEY_VALUE>"       | gcloud secrets versions add OTP_SECRET_KEY       --data-file=-
 ```
 
-### 10. GitHub 側の設定
+### 10. 全体を `terraform apply`
+
+```sh
+terraform apply
+```
+
+Cloud Run service, WIF pool/provider, deployer SA, IAM bindings などの新規リソースが作成される。
+
+### 11. GitHub 側の設定
 
 `terraform output` で値を確認し、GitHub リポジトリの Settings → Secrets and variables → Actions → **Variables** に登録する (Secrets ではなく Variables で良い。WIF 構成値は機密ではない)。
 
@@ -145,7 +155,7 @@ printf '%s' "<OTP_SECRET_KEY_VALUE>"       | gcloud secrets versions add OTP_SEC
 | `GOOGLE_CLOUD_WIF_PROVIDER` | `terraform output -raw wif_provider` |
 | `GOOGLE_CLOUD_DEPLOYER_SA` | `terraform output -raw deployer_sa_email` |
 
-### 11. 既存の Cloud Build トリガーを無効化
+### 12. 既存の Cloud Build トリガーを無効化
 
 ```sh
 gcloud builds triggers list
