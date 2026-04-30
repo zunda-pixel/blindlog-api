@@ -8,11 +8,27 @@ import Hummingbird
 import HummingbirdPostgres
 import JWTKit
 import Logging
+import OTel
 import OpenAPIHummingbird
 import PostgresMigrations
 import PostgresNIO
+import ServiceLifecycle
+import Synchronization
 import Valkey
 import WebAuthn
+
+// LoggingSystem / MetricsSystem / InstrumentationSystem (called transitively
+// from OTel.bootstrap) can only be bootstrapped once per process. The test
+// suite calls buildApplication multiple times, so the first call performs the
+// real bootstrap and subsequent calls return a no-op Service that just waits
+// for graceful shutdown. Production only ever calls buildApplication once.
+private let observabilityBootstrapped: Mutex<Bool> = .init(false)
+
+private struct AlreadyBootstrappedObservabilityService: Service {
+  func run() async throws {
+    try await gracefulShutdown()
+  }
+}
 
 func buildApplication(
   _ arguments: some AppArguments
@@ -22,6 +38,26 @@ func buildApplication(
   let logLevel =
     arguments.logLevel ?? config.string(forKey: "log.level").flatMap { Logger.Level(rawValue: $0) }
     ?? .debug
+
+  // Bootstrap OTel before constructing any Logger: swift-log's `Logger(label:)`
+  // captures the LogHandler factory at init time, so a Logger created earlier
+  // would silently keep the default StreamLogHandler instead of OTel's handler.
+  let observability: any Service = try observabilityBootstrapped.withLock { wasBootstrapped in
+    if wasBootstrapped {
+      return AlreadyBootstrappedObservabilityService()
+    }
+    // Only flip the flag once OTel.bootstrap has actually returned a service.
+    // If it throws, leave the flag false so the next attempt can retry.
+    let service = try OTel.bootstrap(
+      configuration: makeOTelConfiguration(
+        arguments: arguments,
+        config: config,
+        logLevel: logLevel
+      )
+    )
+    wasBootstrapped = true
+    return service
+  }
 
   var logger = Logger(label: "Blindlog")
   logger.logLevel = logLevel
@@ -58,7 +94,19 @@ func buildApplication(
     otpSecretKey: makeOTPSecretKey(config: config)
   )
 
-  router.add(middleware: TracingMiddleware())
+  router.add(
+    middleware: TracingMiddleware(
+      redactingQueryParameters: [
+        "challenge",
+        "email",
+        "otp",
+        "password",
+        "refreshToken",
+        "token",
+      ]
+    )
+  )
+  router.add(middleware: ErrorLoggingMiddleware())
   router.add(middleware: MetricsMiddleware())
   router.add(middleware: LogRequestsMiddleware(.info))
   router.add(middleware: FileMiddleware(searchForIndexHtml: true))
@@ -85,6 +133,7 @@ func buildApplication(
       address: .hostname(arguments.hostname, port: arguments.port)
     ),
     services: [
+      observability,
       databaseClient,
       database,
       cache,

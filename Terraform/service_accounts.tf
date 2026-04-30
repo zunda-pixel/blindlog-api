@@ -18,6 +18,12 @@ resource "google_project_iam_member" "runtime_metric_writer" {
   member  = "serviceAccount:${google_service_account.runtime.email}"
 }
 
+resource "google_project_iam_member" "runtime_trace_agent" {
+  project = var.project_id
+  role    = "roles/cloudtrace.agent"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+}
+
 resource "google_service_account" "deployer" {
   depends_on = [google_project_service.required]
 

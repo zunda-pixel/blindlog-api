@@ -29,8 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
-      - name: Start DB & Cache (wait for health)
-        run: docker compose up -d --wait postgres valkey
+      - name: Start DB, Cache & OTel Collector (wait for health)
+        run: docker compose up -d --wait postgres valkey otel-collector
       - name: Run tests (Swift in Docker)
         run: docker compose run --rm swift bash -lc "apt-get update && apt-get install -y libssl-dev && swift test --parallel"
       - name: Shutdown

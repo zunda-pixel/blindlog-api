@@ -29,13 +29,10 @@ extension API {
         from: data
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.payload_decode_failed",
         "Failed to parse token request payload",
-        metadata: [
-          "bodyData": .string(String(describing: bodyData)),
-          "error": .string(String(describing: error)),
-        ]
+        error: error
       )
       return .badRequest
     }
@@ -58,13 +55,14 @@ extension API {
 
       try await cache.del(keys: [key])
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.challenge.verify_failed",
         "Failed to verify and delete authentication challenge",
         metadata: [
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "error": .string(String(describing: error)),
-        ]
+          "auth.flow": .string("passkey"),
+          "cache.operation": .string("get_delete"),
+        ],
+        error: error
       )
       return .badRequest
     }
@@ -78,13 +76,13 @@ extension API {
           .fetchOne(db)
       }
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.credential_load_failed",
         "Failed to load stored passkey credential",
         metadata: [
-          "credentialID": .string(credential.id.asString()),
-          "error": .string(String(describing: error)),
-        ]
+          "db.operation": .string("select")
+        ],
+        error: error
       )
       return .badRequest
     }
@@ -106,16 +104,13 @@ extension API {
         credentialCurrentSignCount: UInt32(signCount)
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.assertion_verify_failed",
         "Failed to verify WebAuthn assertion",
-        metadata: [
-          "credential": .string(String(describing: credential)),
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "userID": .string(userID.uuidString),
-          "signCount": .stringConvertible(signCount),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID).merging([
+          "webauthn.sign_count": .stringConvertible(signCount)
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -133,16 +128,15 @@ extension API {
           .execute(db)
       }
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.sign_count_update_failed",
         "Failed to update stored sign counter",
-        metadata: [
-          "credential": .string(String(describing: credential)),
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "userID": .string(userID.uuidString),
-          "signCount": .stringConvertible(signCount),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID).merging([
+          "db.operation": .string("update"),
+          "webauthn.sign_count": .stringConvertible(signCount),
+          "webauthn.new_sign_count": .stringConvertible(verifiedAuthentication.newSignCount),
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -154,16 +148,13 @@ extension API {
         userID: userID
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.token.issue_failed",
         "Failed to issue application tokens",
-        metadata: [
-          "credential": .string(String(describing: credential)),
-          "challenge": .string(String(describing: bodyData.challenge)),
-          "userID": .string(userID.uuidString),
-          "signCount": .stringConvertible(signCount),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID).merging([
+          "auth.flow": .string("passkey")
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }

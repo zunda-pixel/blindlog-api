@@ -15,3 +15,13 @@ DerivedData
 **/terraform.tfvars
 **/*.tfstate
 **/*.tfstate.*
+
+## AI Agents
+.agents
+.claude
+
+## Xcode Temporary File
+.derived-data-log-*
+
+## Postgres Temporary File
+dump.rdb

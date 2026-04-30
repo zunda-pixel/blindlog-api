@@ -28,6 +28,11 @@ let package = Package(
     .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
     .package(url: "https://github.com/brokenhandsio/swift-webauthn.git", from: "1.0.0-beta.1"),
     .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
+    .package(
+      url: "https://github.com/swift-otel/swift-otel.git",
+      from: "1.0.0",
+      traits: ["OTLPHTTP"]
+    ),
   ],
   targets: [
     .executableTarget(
@@ -45,6 +50,7 @@ let package = Package(
         .product(name: "Records", package: "swift-records"),
         .product(name: "CloudflareEmailService", package: "cloudflare-swift"),
         .product(name: "UUIDV7", package: "UUIDV7"),
+        .product(name: "OTel", package: "swift-otel"),
       ],
       swiftSettings: [
         .enableUpcomingFeature("ExistentialAny"),
@@ -65,6 +71,7 @@ let package = Package(
       dependencies: [
         .target(name: "App"),
         .product(name: "HummingbirdTesting", package: "hummingbird"),
+        .product(name: "OTel", package: "swift-otel"),
       ]
     ),
   ]

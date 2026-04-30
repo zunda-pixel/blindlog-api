@@ -28,13 +28,11 @@ extension API {
         from: bodyData
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.registration_decode_failed",
         "Failed to decode WebAuthn registration",
-        metadata: [
-          "body": .string(String(describing: body)),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID),
+        error: error
       )
       return .badRequest
     }
@@ -56,14 +54,13 @@ extension API {
 
       try await cache.del(keys: [key])
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.registration_challenge_verify_failed",
         "Failed to verify and delete registration challenge",
-        metadata: [
-          "challenge": .string(challengeData.base64EncodedString()),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID).merging([
+          "cache.operation": .string("get_delete")
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -86,14 +83,11 @@ extension API {
         }
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.registration_validate_failed",
         "Failed to validate WebAuthn registration",
-        metadata: [
-          "registrationCredential": .string(String(describing: registrationCredential)),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID),
+        error: error
       )
       return .badRequest
     }
@@ -113,14 +107,13 @@ extension API {
         .execute(db)
       }
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.credential_persist_failed",
         "Failed to persist passkey credential",
-        metadata: [
-          "credentialID": .string(registrationCredential.id.asString()),
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID).merging([
+          "db.operation": .string("insert")
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }

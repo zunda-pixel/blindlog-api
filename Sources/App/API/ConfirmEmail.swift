@@ -44,14 +44,13 @@ extension API {
         return .unauthorized
       }
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.email.otp_verify_failed",
         "Failed to verify otp",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID)
+          .merging(AppLogMetadata.emailSHA256(email)) { _, new in new }
+          .merging(["cache.operation": .string("get")]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -69,14 +68,13 @@ extension API {
         }.execute(db)
       }
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.email.persist_failed",
         "Failed to save user email to db",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID)
+          .merging(AppLogMetadata.emailSHA256(email)) { _, new in new }
+          .merging(["db.operation": .string("insert")]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -84,13 +82,13 @@ extension API {
     do {
       try await cache.del(keys: [ValkeyKey("user:\(userID.uuidString)")])
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.cache_delete_failed",
         "Failed to delete old user from cache",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID).merging([
+          "cache.operation": .string("delete")
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }

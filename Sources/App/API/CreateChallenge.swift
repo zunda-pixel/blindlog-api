@@ -52,14 +52,14 @@ extension API {
         expiration: .seconds(60 * 10)  // 10 minutes
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.challenge.cache_write_failed",
         "Failed to save challenge with expiration",
-        metadata: [
-          "challenge": .string(Data(challenge).base64EncodedString()),
-          "userID": .string(userID?.uuidString ?? "nil"),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID).merging([
+          "auth.purpose": .string(userID == nil ? "authentication" : "registration"),
+          "cache.operation": .string("set"),
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }

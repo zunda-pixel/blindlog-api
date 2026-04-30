@@ -20,13 +20,13 @@ extension API {
         try await User.insert { user }.execute(db)
       }
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.create_failed",
         "Failed to persist user",
-        metadata: [
-          "user": .string(user.id.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(user.id).merging([
+          "db.operation": .string("insert")
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -35,13 +35,11 @@ extension API {
     do {
       userToken = try await generateUserToken(userID: user.id)
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.token.issue_failed",
         "Failed to sign user tokens",
-        metadata: [
-          "user": .string(String(describing: user)),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(user.id),
+        error: error
       )
       return .badRequest
     }

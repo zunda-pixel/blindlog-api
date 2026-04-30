@@ -45,13 +45,13 @@ extension API {
         expiration: .seconds(60 * 1)  // 1 minutes
       )
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
-        "Failed to update stored sign counter",
-        metadata: [
-          "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.email.otp_cache_write_failed",
+        "Failed to store authentication OTP",
+        metadata: AppLogMetadata.emailSHA256(email).merging([
+          "cache.operation": .string("set")
+        ]) { _, new in new },
+        error: error
       )
       return .badRequest
     }
@@ -68,13 +68,11 @@ extension API {
     do {
       _ = try await emailService.send(emailMessage)
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.email.send_failed",
         "Failed to send email",
-        metadata: [
-          "email": .string(email),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.emailSHA256(email),
+        error: error
       )
       return .badRequest
     }

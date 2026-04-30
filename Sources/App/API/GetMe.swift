@@ -14,13 +14,11 @@ extension API {
     do {
       user = try await getUser(id: userID)
     } catch {
-      AppRequestContext.current?.logger.log(
-        level: .error,
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.profile_read_failed",
         "Failed to fetch user profile",
-        metadata: [
-          "userID": .string(userID.uuidString),
-          "error": .string(String(describing: error)),
-        ]
+        metadata: AppLogMetadata.userID(userID),
+        error: error
       )
       return .badRequest
     }

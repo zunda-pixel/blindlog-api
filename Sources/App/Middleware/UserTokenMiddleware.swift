@@ -18,22 +18,41 @@ struct UserTokenMiddleware<Context: RequestContext>: RouterMiddleware {
     do {
       payload = try await self.jwtKeyCollection.verify(jwtToken, as: JWTPayloadData.self)
     } catch {
-      context.logger.debug("couldn't verify token")
+      context.logger.appLog(
+        level: .debug,
+        eventName: "auth.user_token.verify_failed",
+        "Couldn't verify token",
+        error: error
+      )
       return nil
     }
     // get user id and name from payload
     guard let userID = UUID(uuidString: payload.subject.value) else {
-      context.logger.debug("Invalid JWT subject \(payload.subject.value)")
+      context.logger.appLog(
+        level: .debug,
+        eventName: "auth.user_token.invalid_subject",
+        "Invalid JWT subject"
+      )
       return nil
     }
     // verify expiration is not over
     guard payload.expiration.value > Date() else {
-      context.logger.debug("Token expired")
+      context.logger.appLog(
+        level: .debug,
+        eventName: "auth.user_token.expired",
+        "Token expired",
+        metadata: AppLogMetadata.userID(userID)
+      )
       return nil
     }
     // verify token type
     guard payload.tokenType == .token else {
-      context.logger.debug("Token type is not token")
+      context.logger.appLog(
+        level: .debug,
+        eventName: "auth.user_token.invalid_type",
+        "Token type is not token",
+        metadata: AppLogMetadata.userID(userID)
+      )
       return nil
     }
 
