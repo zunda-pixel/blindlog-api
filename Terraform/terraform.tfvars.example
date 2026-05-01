@@ -17,6 +17,13 @@ region         = "asia-northeast1"
 # otel_collector_memory           = "256Mi"
 # allow_unauthenticated = true
 
+# Grafana Cloud OTLP fan-out. Leave empty to disable.
+# Endpoint: get from Grafana Cloud Portal -> Stack -> Connections -> OpenTelemetry (OTLP) -> Configure.
+# Auth: upload `printf '%s' "$INSTANCE_ID:$API_TOKEN" | base64` as a Secret Manager
+# version of the secret named by grafana_otlp_auth_secret_id (default: GRAFANA_OTLP_AUTH).
+# grafana_otlp_endpoint        = "https://otlp-gateway-prod-ap-northeast-0.grafana.net/otlp"
+# grafana_otlp_auth_secret_id  = "GRAFANA_OTLP_AUTH"
+
 # First `terraform apply` uses this tag. After that, GitHub Actions overrides
 # the running image with `gcloud run services update --image=...:<sha>`, and
 # Terraform ignores image drift (see cloud_run.tf lifecycle block).

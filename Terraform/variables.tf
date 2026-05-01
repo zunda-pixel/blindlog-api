@@ -49,6 +49,18 @@ variable "github_repo" {
   }
 }
 
+variable "grafana_otlp_auth_secret_id" {
+  description = "Secret Manager secret ID storing the Basic-auth header value (base64(instanceID:apiToken)) for Grafana Cloud OTLP."
+  type        = string
+  default     = "GRAFANA_OTLP_AUTH"
+}
+
+variable "grafana_otlp_endpoint" {
+  description = "Grafana Cloud OTLP HTTP endpoint, e.g. \"https://otlp-gateway-prod-ap-northeast-0.grafana.net/otlp\". Set to an empty string to disable the Grafana exporter."
+  type        = string
+  default     = ""
+}
+
 variable "image_tag" {
   description = "Initial image tag used on `terraform apply`. After first apply, GitHub Actions updates the running tag; Terraform ignores image drift."
   type        = string

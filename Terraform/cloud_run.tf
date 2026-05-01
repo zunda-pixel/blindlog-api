@@ -1,6 +1,7 @@
 resource "google_cloud_run_v2_service" "api" {
   depends_on = [
     google_project_service.required,
+    google_secret_manager_secret_iam_member.grafana_otlp_auth_runtime_access,
     google_secret_manager_secret_iam_member.otel_collector_config_runtime_access,
     google_secret_manager_secret_version.otel_collector_config,
     google_secret_manager_secret_iam_member.runtime_access,
@@ -85,6 +86,24 @@ resource "google_cloud_run_v2_service" "api" {
         }
         cpu_idle          = var.cpu_idle
         startup_cpu_boost = true
+      }
+
+      # Grafana Cloud OTLP fan-out. The collector references both env vars
+      # via ${env:VAR} substitution in collector-config.yaml. Endpoint is
+      # plaintext; the auth header (Basic base64(instanceID:apiToken)) is a
+      # secret. Setting var.grafana_otlp_endpoint to "" disables the export.
+      env {
+        name  = "GRAFANA_OTLP_ENDPOINT"
+        value = var.grafana_otlp_endpoint
+      }
+      env {
+        name = "GRAFANA_OTLP_AUTH"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.grafana_otlp_auth.secret_id
+            version = "latest"
+          }
+        }
       }
 
       startup_probe {

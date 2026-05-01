@@ -45,3 +45,26 @@ resource "google_secret_manager_secret_iam_member" "otel_collector_config_runtim
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
+
+# Grafana Cloud OTLP Basic-auth header value, base64(instanceID:apiToken).
+# Versions are uploaded out-of-band (`gcloud secrets versions add ...`); Terraform
+# only manages the secret container and IAM binding.
+resource "google_secret_manager_secret" "grafana_otlp_auth" {
+  depends_on = [google_project_service.required]
+
+  secret_id = var.grafana_otlp_auth_secret_id
+
+  replication {
+    auto {}
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "google_secret_manager_secret_iam_member" "grafana_otlp_auth_runtime_access" {
+  secret_id = google_secret_manager_secret.grafana_otlp_auth.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.runtime.email}"
+}
