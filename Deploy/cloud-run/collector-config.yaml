@@ -64,12 +64,3 @@ service:
       receivers: [otlp]
       processors: [resourcedetection, memory_limiter, batch]
       exporters: [googlecloud]
-  telemetry:
-    metrics:
-      readers:
-        - periodic:
-            exporter:
-              otlp:
-                protocol: grpc
-                endpoint: http://localhost:4317
-                insecure: true
