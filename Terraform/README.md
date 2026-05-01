@@ -103,6 +103,10 @@ terraform import 'google_secret_manager_secret.app["OTP_SECRET_KEY"]' \
 # OTel Collector config secret (手動作成済みの場合のみ)
 terraform import google_secret_manager_secret.otel_collector_config \
   "projects/$PROJECT_ID/secrets/blindlog-otel-collector-config"
+
+# Grafana Cloud OTLP auth secret (手動作成済みの場合のみ)
+terraform import google_secret_manager_secret.grafana_otlp_auth \
+  "projects/$PROJECT_ID/secrets/GRAFANA_OTLP_AUTH"
 ```
 
 (既存の secret_id が上と違う場合は Google Cloud コンソールで確認して合わせる。)
@@ -140,6 +144,10 @@ printf '%s' "<VALKEY_PASSWORD_VALUE>"      | gcloud secrets versions add VALKEY_
 printf '%s' "<EDDSA_PRIVATE_KEY_VALUE>"    | gcloud secrets versions add EDDSA_PRIVATE_KEY    --data-file=-
 printf '%s' "<CLOUDFLARE_API_TOKEN_VALUE>" | gcloud secrets versions add CLOUDFLARE_API_TOKEN --data-file=-
 printf '%s' "<OTP_SECRET_KEY_VALUE>"       | gcloud secrets versions add OTP_SECRET_KEY       --data-file=-
+
+# Grafana Cloud OTLP Basic-auth header (only if grafana_otlp_endpoint is set)
+printf '%s' "$INSTANCE_ID:$API_TOKEN" | base64 | \
+  gcloud secrets versions add GRAFANA_OTLP_AUTH --data-file=-
 ```
 
 ### 10. 全体を `terraform apply`

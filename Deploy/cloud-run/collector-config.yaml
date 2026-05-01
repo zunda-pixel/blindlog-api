@@ -43,6 +43,10 @@ exporters:
     log:
       default_log_name: blindlog-api
   googlemanagedprometheus:
+  otlphttp/grafana:
+    endpoint: ${env:GRAFANA_OTLP_ENDPOINT}
+    headers:
+      authorization: "Basic ${env:GRAFANA_OTLP_AUTH}"
 
 extensions:
   health_check:
@@ -55,12 +59,12 @@ service:
     logs:
       receivers: [otlp]
       processors: [resourcedetection, memory_limiter, batch]
-      exporters: [googlecloud]
+      exporters: [googlecloud, otlphttp/grafana]
     metrics/otlp:
       receivers: [otlp]
       processors: [resourcedetection, transform/collision, memory_limiter, batch]
-      exporters: [googlemanagedprometheus]
+      exporters: [googlemanagedprometheus, otlphttp/grafana]
     traces:
       receivers: [otlp]
       processors: [resourcedetection, memory_limiter, batch]
-      exporters: [googlecloud]
+      exporters: [googlecloud, otlphttp/grafana]
