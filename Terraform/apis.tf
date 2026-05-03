@@ -1,7 +1,9 @@
 resource "google_project_service" "required" {
   for_each = toset([
     "artifactregistry.googleapis.com",
+    "certificatemanager.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "compute.googleapis.com",
     "cloudtrace.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",

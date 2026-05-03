@@ -2,7 +2,13 @@ project_id     = "your-gcp-project-id"
 project_number = "123456789012"
 region         = "asia-northeast1"
 
+# Cloudflare provider authentication is read from the CLOUDFLARE_API_TOKEN
+# environment variable when Terraform runs. The token needs DNS edit access
+# for this zone.
+cloudflare_zone_id = "0123456789abcdef0123456789abcdef"
+
 # Optional overrides (defaults are fine for a single-service prod setup)
+# api_hostname       = "api.blindlog.me"
 # service_name       = "blindlog-api"
 # artifact_repo_id   = "blindlog-api"
 # github_repo        = "zunda-pixel/blindlog-api"
@@ -16,6 +22,7 @@ region         = "asia-northeast1"
 # otel_collector_image            = "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google:0.144.0"
 # otel_collector_memory           = "256Mi"
 # allow_unauthenticated = true
+# restrict_direct_cloud_run_ingress = false # Set to true after api_hostname works through the load balancer.
 
 # Grafana Cloud OTLP fan-out. Leave empty to disable.
 # Endpoint: get from Grafana Cloud Portal -> Stack -> Connections -> OpenTelemetry (OTLP) -> Configure.

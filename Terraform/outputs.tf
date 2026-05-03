@@ -3,6 +3,26 @@ output "artifact_repo" {
   value       = "${google_artifact_registry_repository.app.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.app.repository_id}"
 }
 
+output "api_health_url" {
+  description = "Health endpoint served through the public custom domain."
+  value       = "https://${var.api_hostname}/health"
+}
+
+output "api_hostname" {
+  description = "Public hostname served through Cloudflare and the Google external HTTPS load balancer."
+  value       = var.api_hostname
+}
+
+output "api_load_balancer_ip" {
+  description = "Global IPv4 address for the external HTTPS load balancer."
+  value       = google_compute_global_address.api.address
+}
+
+output "certificate_map" {
+  description = "Certificate Manager certificate map attached to the HTTPS proxy."
+  value       = google_certificate_manager_certificate_map.api.id
+}
+
 output "deployer_sa_email" {
   description = "Service account email impersonated by GitHub Actions. Pass to google-github-actions/auth as `service_account`."
   value       = google_service_account.deployer.email
