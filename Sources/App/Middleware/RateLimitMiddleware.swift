@@ -7,30 +7,17 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
   var cache: ValkeyClient
   var config: RateLimitConfig
 
+  // Trust boundary is enforced at the network layer:
+  //   - Cloud Armor allowlist limits ingress to Cloudflare proxy IPs
+  //   - Cloud Run ingress = INTERNAL_LOAD_BALANCER blocks *.run.app direct hits
+  // Once both are in place, the only path to this code is Cloudflare → GCP LB,
+  // and Cloudflare unconditionally sets CF-Connecting-IP with the real client IP.
+  // X-Forwarded-For and Forwarded are intentionally ignored: they are spoofable
+  // by any caller and the network boundary already provides the proxy guarantee.
   func ipAddress(
     headerFields: HTTPFields,
     context: Context
   ) -> String? {
-    // ex) 203.0.113.5, 198.51.100.7, 192.0.2.10
-    if let xForwardedFor = headerFields[.xForwardedFor],
-      let ipAddress = xForwardedFor.split(separator: ",").first
-    {
-      return ipAddress.trimmingCharacters(in: .whitespaces)
-    }
-
-    // ex) for=\"181.162.191.26\";proto=https
-    if let forwarded = headerFields[.forwarded],
-      let forPart = forwarded.split(separator: ";").first(where: {
-        $0.lowercased().contains("for=")
-      })
-    {
-      return
-        forPart
-        .replacingOccurrences(of: "for=", with: "", options: .caseInsensitive)
-        .trimmingCharacters(in: .whitespaces)
-        .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-    }
-
     if let ipAddress = headerFields[.cfConnectingIP] {
       return ipAddress
     }
@@ -153,9 +140,7 @@ struct AccessCount {
 }
 
 extension HTTPField.Name {
-  static let xForwardedFor = Self("X-Forwarded-For")!
   static let cfConnectingIP = Self("CF-Connecting-IP")!
-  static let forwarded = Self("Forwarded")!
 }
 
 struct RateLimitConfig {

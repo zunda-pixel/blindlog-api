@@ -4,6 +4,17 @@ variable "allow_unauthenticated" {
   default     = true
 }
 
+variable "api_hostname" {
+  description = "Public hostname served through Cloudflare and the Google external HTTPS load balancer."
+  type        = string
+  default     = "api.blindlog.me"
+
+  validation {
+    condition     = can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", var.api_hostname))
+    error_message = "api_hostname must be a lowercase DNS hostname, e.g. \"api.blindlog.me\"."
+  }
+}
+
 variable "app_env" {
   description = "Non-sensitive environment variables passed to the app container."
   type        = map(string)
@@ -25,6 +36,12 @@ variable "cpu_idle" {
   description = "Whether Cloud Run should allocate CPU only while requests are active."
   type        = bool
   default     = false
+}
+
+variable "cloudflare_zone_id" {
+  description = "Cloudflare zone ID that owns api_hostname. Provide via terraform.tfvars or TF_VAR_cloudflare_zone_id."
+  type        = string
+  sensitive   = true
 }
 
 variable "deploy_branch" {
@@ -138,6 +155,12 @@ variable "region" {
     condition     = can(regex("^[a-z]+-[a-z]+[0-9]+$", var.region))
     error_message = "region must look like a valid GCP region, e.g. \"asia-northeast1\"."
   }
+}
+
+variable "restrict_direct_cloud_run_ingress" {
+  description = "When true, allow external traffic only through Google Cloud Load Balancing and block direct public run.app access."
+  type        = bool
+  default     = false
 }
 
 variable "service_name" {

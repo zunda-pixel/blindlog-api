@@ -11,7 +11,8 @@ Image のビルドと push、Cloud Run への反映は GitHub Actions が行う 
 - **Terraform 実行**: 当面オペレータ手元から (GHA で terraform apply は回さない)
 - **環境**: prod のみ
 - **Observability**: Cloud Run の OpenTelemetry Collector sidecar / Collector 設定 Secret / 実行時 IAM は Terraform で管理する
-- **公開範囲**: `allow_unauthenticated = true` のため Cloud Run は **public endpoint** として公開される。アプリ層 (Hummingbird) の認証ミドルウェア + Valkey ベースのレートリミットで保護する前提。
+- **公開経路**: `api.blindlog.me` は Cloudflare proxied DNS → Google global external HTTPS Load Balancer → Cloud Run serverless NEG で公開する。Cloud Armor は Cloudflare proxy IP のみ許可する。
+- **公開範囲**: `allow_unauthenticated = true` は維持する。`restrict_direct_cloud_run_ingress = true` にすると Cloud Run は external load balancer 経由のみ受け付け、外部からの `*.run.app` 直アクセスを拒否する。
 
 ## Bootstrap 手順 (初回のみ)
 
@@ -23,6 +24,7 @@ Image のビルドと push、Cloud Run への反映は GitHub Actions が行う 
 export PROJECT_ID="<your-gcp-project-id>"
 export REGION="asia-northeast1"              # prod Cloud Run を動かすリージョン
 export STATE_BUCKET="${PROJECT_ID}-tfstate"  # Terraform state 用 GCS バケット名
+export CLOUDFLARE_API_TOKEN="<cloudflare-dns-edit-token>"
 ```
 
 ### 1. Google Cloud プロジェクトに Owner/Editor で認証
@@ -60,6 +62,10 @@ gcloud storage buckets update "gs://$STATE_BUCKET" --versioning
 cp terraform.tfvars.example terraform.tfvars
 $EDITOR terraform.tfvars
 ```
+
+`cloudflare_zone_id` には `blindlog.me` の Cloudflare zone ID を入れる。Terraform provider 用の `CLOUDFLARE_API_TOKEN` は DNS edit 権限を持つ token を環境変数で渡す。アプリが Secret Manager から読む `CLOUDFLARE_API_TOKEN` とは用途が別なので、同じ値にする必要はない。
+
+Cloudflare の SSL/TLS mode は Terraform では変更しない。Cloudflare Dashboard で `Full (strict)` になっていることを確認してから `api.blindlog.me` を公開する。
 
 ### 5. `terraform init`
 
@@ -157,6 +163,29 @@ terraform apply
 ```
 
 Cloud Run service, OTel Collector sidecar, WIF pool/provider, deployer SA, IAM bindings などの新規リソースが作成される。
+
+### 10.5. `api.blindlog.me` の二段階 rollout
+
+初回は `restrict_direct_cloud_run_ingress = false` のまま apply し、Load Balancer / Cloud Armor / Certificate Manager / Cloudflare DNS を作る。既存の `api.blindlog.me` DNS record が Cloudflare にある場合は、先に削除するか Terraform に import してから apply する。
+
+```sh
+terraform apply
+terraform output -raw api_health_url
+```
+
+Certificate Manager の証明書と certificate map entry が `ACTIVE` になり、`https://api.blindlog.me/health` が 200 を返すまで待つ。証明書発行には数分から 1 時間程度かかる場合がある。
+
+疎通確認後、`terraform.tfvars` で以下を有効化して再 apply する。
+
+```hcl
+restrict_direct_cloud_run_ingress = true
+```
+
+```sh
+terraform apply
+```
+
+この状態では `https://api.blindlog.me` は通り、外部からの Cloud Run `*.run.app` 直アクセスは Cloud Run ingress で拒否される。
 
 ### 11. GitHub 側の設定
 

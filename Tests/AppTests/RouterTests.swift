@@ -29,7 +29,7 @@ struct RouterTests {
         uri: "/health",
         method: .get,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(response.status == .ok)
@@ -47,7 +47,7 @@ struct RouterTests {
         uri: "/.well-known/apple-app-site-association",
         method: .get,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(response.status == .ok)
@@ -66,7 +66,7 @@ struct RouterTests {
         uri: "/user",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(newUserResponse.status == .ok)
@@ -79,7 +79,7 @@ struct RouterTests {
         uri: "/me",
         method: .get,
         headers: [
-          .xForwardedFor: ipAddress,
+          .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ]
       )
@@ -105,7 +105,7 @@ struct RouterTests {
               uri: "/user",
               method: .post,
               headers: [
-                .xForwardedFor: ipAddress
+                .cfConnectingIP: ipAddress
               ]
             ) { response in
               #expect(response.status == .ok)
@@ -134,7 +134,7 @@ struct RouterTests {
         uri: "/users?ids=\(idsQuery)",
         method: .get,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       ) { response in
         #expect(response.status == .ok)
@@ -147,7 +147,7 @@ struct RouterTests {
         uri: "/users?ids=\(idsQuery)",
         method: .get,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       ) { response in
         #expect(response.status == .ok)
@@ -169,7 +169,7 @@ struct RouterTests {
         uri: "/user",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(newUserResponse.status == .ok)
@@ -180,7 +180,7 @@ struct RouterTests {
         uri: "/refreshToken",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ],
         body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": newUser.refreshToken])),
       )
@@ -206,7 +206,7 @@ struct RouterTests {
         uri: "/user",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(newUserResponse.status == .ok)
@@ -219,7 +219,7 @@ struct RouterTests {
         uri: "/challenge",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress,
+          .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ]
       )
@@ -241,7 +241,7 @@ struct RouterTests {
         uri: "/challenge",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
 
@@ -263,7 +263,7 @@ struct RouterTests {
         uri: "/user",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(newUserResponse.status == .ok)
@@ -276,7 +276,7 @@ struct RouterTests {
         uri: "/challenge",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress,
+          .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ]
       )
@@ -300,7 +300,7 @@ struct RouterTests {
         uri: "/passkey?challenge=\(challenge.base64EncodedString())",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress,
+          .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
         body: ByteBuffer(data: bodyData)
@@ -321,7 +321,7 @@ struct RouterTests {
         uri: "/user",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(newUserResponse.status == .ok)
@@ -334,7 +334,7 @@ struct RouterTests {
         uri: "/email/verify/start?email=zunda.dev@gmail.com",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress,
+          .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ]
       )
@@ -354,7 +354,7 @@ struct RouterTests {
           uri: "/.well-known/apple-app-site-association",
           method: .get,
           headers: [
-            .xForwardedFor: ipAddress
+            .cfConnectingIP: ipAddress
           ]
         )
         #expect(response.status == .ok)
@@ -364,7 +364,7 @@ struct RouterTests {
         uri: "/.well-known/apple-app-site-association",
         method: .get,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(response.status == .tooManyRequests)
@@ -383,7 +383,7 @@ struct RouterTests {
         uri: "/user",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(newUserResponse.status == .ok)
@@ -398,7 +398,7 @@ struct RouterTests {
           method: .get,
           headers: [
             .authorization: "Bearer \(newUser.token)",
-            .xForwardedFor: ipAddress,
+            .cfConnectingIP: ipAddress,
           ]
         )
 
@@ -412,7 +412,7 @@ struct RouterTests {
         method: .get,
         headers: [
           .authorization: "Bearer \(newUser.token)",
-          .xForwardedFor: ipAddress,
+          .cfConnectingIP: ipAddress,
         ]
       )
 
@@ -433,7 +433,7 @@ struct RouterTests {
           uri: "/user",
           method: .post,
           headers: [
-            .xForwardedFor: ipAddress
+            .cfConnectingIP: ipAddress
           ]
         )
         #expect(newUserResponse.status == .ok)
@@ -443,7 +443,7 @@ struct RouterTests {
         uri: "/user",
         method: .post,
         headers: [
-          .xForwardedFor: ipAddress
+          .cfConnectingIP: ipAddress
         ]
       )
       #expect(newUserResponse.status == .internalServerError)

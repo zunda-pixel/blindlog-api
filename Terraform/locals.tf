@@ -1,6 +1,11 @@
 locals {
   image_url = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.app.repository_id}/${var.service_name}:${var.image_tag}"
 
+  cloudflare_cidr_chunks = chunklist(concat(
+    data.cloudflare_ip_ranges.cloudflare.ipv4_cidrs,
+    data.cloudflare_ip_ranges.cloudflare.ipv6_cidrs,
+  ), 10)
+
   # CLOUD_RUN_REGION is derived from var.region so it can't drift from where
   # the service actually runs.
   plain_env = merge(var.app_env, {

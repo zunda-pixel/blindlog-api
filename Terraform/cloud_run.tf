@@ -9,7 +9,7 @@ resource "google_cloud_run_v2_service" "api" {
 
   name                = var.service_name
   location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  ingress             = var.restrict_direct_cloud_run_ingress ? "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER" : "INGRESS_TRAFFIC_ALL"
   deletion_protection = true
 
   template {
