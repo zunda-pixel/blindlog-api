@@ -236,7 +236,6 @@ func makeDatabase(
   }
 
   let migrations = DatabaseMigrations()
-  await migrations.add(CreateUserProfiles())
 
   let database = await PostgresPersistDriver(
     client: databaseClient,
