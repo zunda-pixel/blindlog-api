@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 import Hummingbird
 import PostgresNIO
@@ -47,7 +48,7 @@ extension API {
       return .badRequest
     }
 
-    let name = bodyData.name.trimmingCharacters(in: .whitespacesAndNewlines)
+    let name = String(bodyData.name.trimming(while: \.isWhitespace))
     guard (1...100).contains(name.count) else {
       return .badRequest
     }
