@@ -49,6 +49,7 @@ let package = Package(
         .product(name: "JWTKit", package: "jwt-kit"),
         .product(name: "Records", package: "swift-records"),
         .product(name: "CloudflareEmailService", package: "cloudflare-swift"),
+        .product(name: "CloudflareImages", package: "cloudflare-swift"),
         .product(name: "UUIDV7", package: "UUIDV7"),
         .product(name: "OTel", package: "swift-otel"),
       ],

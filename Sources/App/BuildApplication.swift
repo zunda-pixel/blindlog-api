@@ -6,6 +6,7 @@ import Foundation
 import HTTPClient
 import Hummingbird
 import HummingbirdPostgres
+import Images
 import JWTKit
 import Logging
 import OTel
@@ -31,7 +32,8 @@ private struct AlreadyBootstrappedObservabilityService: Service {
 }
 
 func buildApplication(
-  _ arguments: some AppArguments
+  _ arguments: some AppArguments,
+  cloudflareImagesClient: (any CloudflareImagesClientProtocol)? = nil
 ) async throws -> some ApplicationProtocol {
   let config = ConfigReader(providers: [EnvironmentVariablesProvider()])
 
@@ -87,6 +89,7 @@ func buildApplication(
   let api = try API(
     cache: cache,
     database: databaseClient,
+    cloudflareImagesClient: cloudflareImagesClient ?? makeCloudflareImagesClient(config: config),
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
@@ -280,5 +283,18 @@ func makeCloudflareEmailService(
     accountId: config.requiredString(forKey: "account.id"),
     apiToken: config.requiredString(forKey: "api.token"),
     httpClient: .asyncHTTPClient(.shared)
+  )
+}
+
+func makeCloudflareImagesClient(
+  config: ConfigReader
+) throws -> any CloudflareImagesClientProtocol {
+  let config = config.scoped(to: "cloudflare")
+  return CloudflareImagesClient(
+    client: Images.Client(
+      accountId: try config.requiredString(forKey: "account.id"),
+      apiToken: try config.requiredString(forKey: "api.token"),
+      httpClient: .asyncHTTPClient(.shared)
+    )
   )
 }

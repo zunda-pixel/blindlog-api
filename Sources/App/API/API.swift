@@ -10,6 +10,7 @@ import WebAuthn
 struct API: APIProtocol {
   var cache: ValkeyClient
   var database: PostgresClient
+  var cloudflareImagesClient: any CloudflareImagesClientProtocol
   var jwtKeyCollection: JWTKeyCollection
   var webAuthn: WebAuthnManager
   var appleAppSiteAssociation: AppleAppSiteAssociation
