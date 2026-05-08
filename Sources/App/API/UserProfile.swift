@@ -98,7 +98,7 @@ extension Components.Schemas.UserProfile {
       id: profile.id.uuidString,
       userID: profile.userID.uuidString,
       name: profile.name,
-      createdAt: profile.createdAt
+      createdAt: profile.createdAt.timeIntervalSinceReferenceDate
     )
   }
 }
