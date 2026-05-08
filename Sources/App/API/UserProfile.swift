@@ -33,7 +33,7 @@ extension API {
       return .notFound
     }
 
-    return .ok(.init(body: .json(profile.responseBody)))
+    return .ok(.init(body: .json(.init(profile))))
   }
 
   func createUserProfile(
@@ -75,7 +75,7 @@ extension API {
       return .badRequest
     }
 
-    return .ok(.init(body: .json(profile.responseBody)))
+    return .ok(.init(body: .json(.init(profile))))
   }
 
   fileprivate func latestUserProfile(userID: UUID) async throws -> UserProfileRecord? {
@@ -91,13 +91,13 @@ extension API {
   }
 }
 
-extension UserProfileRecord {
-  fileprivate var responseBody: Components.Schemas.UserProfile {
-    .init(
-      id: id.uuidString,
-      userID: userID.uuidString,
-      name: name,
-      createdAt: createdAt
+extension Components.Schemas.UserProfile {
+  init(_ profile: UserProfileRecord) {
+    self.init(
+      id: profile.id.uuidString,
+      userID: profile.userID.uuidString,
+      name: profile.name,
+      createdAt: profile.createdAt
     )
   }
 }
