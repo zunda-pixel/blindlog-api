@@ -91,6 +91,148 @@ struct RouterTests {
   }
 
   @Test
+  func userProfileRequiresAuthentication() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let getResponse = try await client.execute(
+        uri: "/user_profile",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(getResponse.status == .unauthorized)
+
+      let postResponse = try await client.execute(
+        uri: "/user_profile",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["name": "Alice"]))
+      )
+      #expect(postResponse.status == .unauthorized)
+    }
+  }
+
+  @Test
+  func userProfileCreateAndGetLatest() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      let missingResponse = try await client.execute(
+        uri: "/user_profile",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      )
+      #expect(missingResponse.status == .notFound)
+
+      let firstProfile = try await client.execute(
+        uri: "/user_profile",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["name": " Alice "]))
+      ) { response in
+        #expect(response.status == .ok)
+        return try JSONDecoder().decode(Components.Schemas.UserProfile.self, from: response.body)
+      }
+      #expect(firstProfile.userID == newUser.userID)
+      #expect(firstProfile.name == "Alice")
+
+      let secondProfile = try await client.execute(
+        uri: "/user_profile",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["name": "Bob"]))
+      ) { response in
+        #expect(response.status == .ok)
+        return try JSONDecoder().decode(Components.Schemas.UserProfile.self, from: response.body)
+      }
+      #expect(firstProfile.id != secondProfile.id)
+      #expect(secondProfile.name == "Bob")
+
+      try await client.execute(
+        uri: "/user_profile",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      ) { response in
+        #expect(response.status == .ok)
+        let profile = try JSONDecoder().decode(
+          Components.Schemas.UserProfile.self,
+          from: response.body
+        )
+        #expect(profile.id == secondProfile.id)
+        #expect(profile.name == "Bob")
+      }
+    }
+  }
+
+  @Test
+  func userProfileValidatesName() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      for invalidName in ["", "   ", String(repeating: "a", count: 101)] {
+        let response = try await client.execute(
+          uri: "/user_profile",
+          method: .post,
+          headers: [
+            .cfConnectingIP: ipAddress,
+            .authorization: "Bearer \(newUser.token)",
+          ],
+          body: ByteBuffer(data: JSONEncoder().encode(["name": invalidName]))
+        )
+        #expect(response.status == .badRequest)
+      }
+    }
+  }
+
+  @Test
   func createAndGetUsers() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
