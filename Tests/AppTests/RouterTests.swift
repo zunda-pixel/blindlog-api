@@ -158,7 +158,7 @@ struct RouterTests {
         body: ByteBuffer(data: JSONEncoder().encode(["name": " Alice "]))
       ) { response in
         #expect(response.status == .ok)
-        return try JSONDecoder().decode(TestUserProfile.self, from: response.body)
+        return try JSONDecoder().decode(Components.Schemas.UserProfile.self, from: response.body)
       }
       #expect(firstProfile.userID == newUser.userID)
       #expect(firstProfile.name == "Alice")
@@ -173,7 +173,7 @@ struct RouterTests {
         body: ByteBuffer(data: JSONEncoder().encode(["name": "Bob"]))
       ) { response in
         #expect(response.status == .ok)
-        return try JSONDecoder().decode(TestUserProfile.self, from: response.body)
+        return try JSONDecoder().decode(Components.Schemas.UserProfile.self, from: response.body)
       }
       #expect(firstProfile.id != secondProfile.id)
       #expect(secondProfile.name == "Bob")
@@ -187,7 +187,10 @@ struct RouterTests {
         ]
       ) { response in
         #expect(response.status == .ok)
-        let profile = try JSONDecoder().decode(TestUserProfile.self, from: response.body)
+        let profile = try JSONDecoder().decode(
+          Components.Schemas.UserProfile.self,
+          from: response.body
+        )
         #expect(profile.id == secondProfile.id)
         #expect(profile.name == "Bob")
       }
@@ -588,10 +591,4 @@ struct RouterTests {
       #expect(newUserResponse.status == .internalServerError)
     }
   }
-}
-
-private struct TestUserProfile: Decodable {
-  var id: String
-  var userID: String
-  var name: String
 }
