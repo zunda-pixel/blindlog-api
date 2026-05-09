@@ -65,12 +65,15 @@ extension API {
           createdAt: Date()
         )
 
-        try await ImageRecord.insert { image } onConflict: {
+        try await ImageRecord.insert {
+          image
+        } onConflict: {
           $0.cloudflareImageID
         }
         .execute(db)
 
-        return try await ImageRecord
+        return
+          try await ImageRecord
           .where({ $0.cloudflareImageID.eq(bodyData.imageID) })
           .limit(1)
           .fetchOne(db)
