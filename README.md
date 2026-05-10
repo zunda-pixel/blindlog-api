@@ -1,5 +1,8 @@
 # Blindlog API Server
 
+- https://api.blindlog.me/
+- Documents https://api.blindlog.me/documents
+
 ## Run on Local
 
 - Postgres
@@ -15,10 +18,6 @@ container run --rm \
 ```
 
 - Valkey
-
-```sh
-valkey-server
-```
 
 ```sh
 container run --rm \
