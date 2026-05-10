@@ -233,6 +233,174 @@ struct RouterTests {
   }
 
   @Test
+  func imageUploadRequiresAuthentication() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient()
+    )
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let uploadURLResponse = try await client.execute(
+        uri: "/images/upload_url",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(uploadURLResponse.status == .unauthorized)
+
+      let imageResponse = try await client.execute(
+        uri: "/images",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["imageID": "cloudflare-image-id"]))
+      )
+      #expect(imageResponse.status == .unauthorized)
+    }
+  }
+
+  @Test
+  func createImageUploadURL() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient(
+        directUpload: .init(
+          id: "cloudflare-image-id",
+          uploadURL: URL(string: "https://upload.imagedelivery.net/direct-upload")!
+        )
+      )
+    )
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      try await client.execute(
+        uri: "/images/upload_url",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      ) { response in
+        #expect(response.status == .ok)
+        let upload = try JSONDecoder().decode(
+          Components.Schemas.CreateImageUploadURLResponse.self,
+          from: response.body
+        )
+        #expect(upload.imageID == "cloudflare-image-id")
+        #expect(upload.uploadURL == "https://upload.imagedelivery.net/direct-upload")
+      }
+    }
+  }
+
+  @Test
+  func createImageRegistersUploadedImageIdempotently() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient()
+    )
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      let firstImage = try await client.execute(
+        uri: "/images",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["imageID": "cloudflare-image-id"]))
+      ) { response in
+        #expect(response.status == .ok)
+        return try JSONDecoder().decode(Components.Schemas.Image.self, from: response.body)
+      }
+      #expect(firstImage.imageID == "cloudflare-image-id")
+
+      let secondImage = try await client.execute(
+        uri: "/images",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["imageID": "cloudflare-image-id"]))
+      ) { response in
+        #expect(response.status == .ok)
+        return try JSONDecoder().decode(Components.Schemas.Image.self, from: response.body)
+      }
+      #expect(secondImage.id == firstImage.id)
+      #expect(secondImage.imageID == firstImage.imageID)
+    }
+  }
+
+  @Test
+  func createImageRejectsCloudflareVerificationFailure() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient(verifyError: TestCloudflareImagesError())
+    )
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      let response = try await client.execute(
+        uri: "/images",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["imageID": "missing-image-id"]))
+      )
+      #expect(response.status == .badRequest)
+    }
+  }
+
+  @Test
   func createAndGetUsers() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
@@ -592,3 +760,27 @@ struct RouterTests {
     }
   }
 }
+
+private struct TestCloudflareImagesClient: CloudflareImagesClientProtocol {
+  var directUpload: CloudflareDirectUpload = .init(
+    id: "cloudflare-image-id",
+    uploadURL: URL(string: "https://upload.imagedelivery.net/direct-upload")!
+  )
+  var directUploadError: TestCloudflareImagesError?
+  var verifyError: TestCloudflareImagesError?
+
+  func createDirectUploadURL(userID: UUID) async throws -> CloudflareDirectUpload {
+    if let directUploadError {
+      throw directUploadError
+    }
+    return directUpload
+  }
+
+  func verifyUploadedImage(id: String, userID: UUID) async throws {
+    if let verifyError {
+      throw verifyError
+    }
+  }
+}
+
+private struct TestCloudflareImagesError: Error {}

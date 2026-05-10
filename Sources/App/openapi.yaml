@@ -221,6 +221,44 @@ paths:
           description: A bad request
         '401':
           description: Not Authorization
+  /images/upload_url:
+    post:
+      operationId: createImageUploadURL
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with a direct image upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateImageUploadURLResponse'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+  /images:
+    post:
+      operationId: createImage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateImageRequest'
+      responses:
+        '200':
+          description: A success response with the registered image.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
   /users:
     get:
       operationId: getUsers
@@ -376,6 +414,47 @@ components:
           description: User profile name.
       required:
         - name
+    CreateImageUploadURLResponse:
+      type: object
+      description: A response with a Cloudflare Images direct upload URL.
+      properties:
+        imageID:
+          type: string
+          description: Cloudflare Images image id.
+        uploadURL:
+          type: string
+          description: Cloudflare Images direct upload URL.
+      required:
+        - imageID
+        - uploadURL
+    CreateImageRequest:
+      type: object
+      description: A request to register an uploaded image.
+      properties:
+        imageID:
+          type: string
+          description: Cloudflare Images image id.
+      required:
+        - imageID
+    Image:
+      type: object
+      description: A value with the uploaded image contents.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Image id.
+        imageID:
+          type: string
+          description: Cloudflare Images image id.
+        createdAt:
+          type: number
+          format: double
+          description: Image registered date.
+      required:
+        - id
+        - imageID
+        - createdAt
     AppleAppSiteAssociation:
       type: object
       description: Apple App Site Association document.

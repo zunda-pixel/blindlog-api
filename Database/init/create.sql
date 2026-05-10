@@ -53,3 +53,15 @@ CREATE TABLE public.user_profiles (
 );
 
 CREATE INDEX user_profiles_latest_idx ON public.user_profiles(user_id, created_at DESC, id DESC);
+
+CREATE TABLE public.images (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  cloudflare_image_id text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT images_pk PRIMARY KEY (id),
+  CONSTRAINT images_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE CASCADE,
+  CONSTRAINT images_cloudflare_image_id_key UNIQUE (cloudflare_image_id)
+);
+
+CREATE INDEX images_user_id_idx ON public.images(user_id);
