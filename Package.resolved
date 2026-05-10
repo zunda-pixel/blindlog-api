@@ -1,5 +1,5 @@
 {
-  "originHash" : "8aa61df61bd41898792ce354b7e9009ee6e65a6a08835a1cfa107621ff42e56c",
+  "originHash" : "58b48f54f3b6b54c65fdec9ee721ee0db832c861d80c732b89e450bde30b8382",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/jwt-kit.git",
       "state" : {
-        "revision" : "94a8b96d0ab5aae91324b68f100e3670cd908b51",
-        "version" : "5.4.1"
+        "revision" : "a93a262fefb0938b799191b54f581ffa43422d96",
+        "version" : "5.5.0"
       }
     },
     {
@@ -98,6 +98,15 @@
       "state" : {
         "revision" : "343b2c1793058fcc53c1bd7e2907f8e3a4d640fb",
         "version" : "3.9.0"
+      }
+    },
+    {
+      "identity" : "opencombine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenCombine/OpenCombine.git",
+      "state" : {
+        "revision" : "8576f0d579b27020beccbccc3ea6844f3ddfc2c2",
+        "version" : "0.14.0"
       }
     },
     {
