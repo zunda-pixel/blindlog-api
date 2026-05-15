@@ -53,9 +53,38 @@ extension API {
       return .badRequest
     }
 
+    let imageID: UUID?
+    if let requestedImageID = bodyData.imageID {
+      guard let parsedImageID = UUID(uuidString: requestedImageID) else {
+        return .badRequest
+      }
+
+      do {
+        guard try await imageBelongsToUser(imageID: parsedImageID, userID: userID) else {
+          return .badRequest
+        }
+      } catch {
+        AppRequestContext.current?.logger.appError(
+          eventName: "user.profile_image_read_failed",
+          "Failed to fetch user profile image",
+          metadata: AppLogMetadata.userID(userID).merging([
+            "db.operation": .string("select"),
+            "image.id": .string(requestedImageID),
+          ]) { _, new in new },
+          error: error
+        )
+        return .badRequest
+      }
+
+      imageID = parsedImageID
+    } else {
+      imageID = nil
+    }
+
     let profile = UserProfileRecord(
       id: UUID(uuidString: UUID.uuidV7String())!,
       userID: userID,
+      imageID: imageID,
       name: name,
       createdAt: Date()
     )
@@ -90,6 +119,18 @@ extension API {
         .fetchOne(db)
     }
   }
+
+  fileprivate func imageBelongsToUser(imageID: UUID, userID: UUID) async throws -> Bool {
+    try await database.read { db in
+      try await ImageRecord
+        .where {
+          $0.id.eq(imageID)
+            .and($0.userID.eq(userID))
+        }
+        .limit(1)
+        .fetchOne(db) != nil
+    }
+  }
 }
 
 extension Components.Schemas.UserProfile {
@@ -98,6 +139,7 @@ extension Components.Schemas.UserProfile {
       id: profile.id.uuidString,
       userID: profile.userID.uuidString,
       name: profile.name,
+      imageID: profile.imageID?.uuidString,
       createdAt: profile.createdAt.timeIntervalSinceReferenceDate
     )
   }
