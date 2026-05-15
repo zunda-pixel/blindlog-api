@@ -244,10 +244,12 @@ struct RouterTests {
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
-        body: ByteBuffer(data: JSONEncoder().encode([
-          "name": "Alice",
-          "imageID": image.id,
-        ]))
+        body: ByteBuffer(
+          data: JSONEncoder().encode([
+            "name": "Alice",
+            "imageID": image.id,
+          ])
+        )
       ) { response in
         #expect(response.status == .ok)
         return try JSONDecoder().decode(Components.Schemas.UserProfile.self, from: response.body)
@@ -325,10 +327,12 @@ struct RouterTests {
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(secondUser.token)",
         ],
-        body: ByteBuffer(data: JSONEncoder().encode([
-          "name": "Bob",
-          "imageID": image.id,
-        ]))
+        body: ByteBuffer(
+          data: JSONEncoder().encode([
+            "name": "Bob",
+            "imageID": image.id,
+          ])
+        )
       )
       #expect(response.status == .badRequest)
     }
