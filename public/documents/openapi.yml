@@ -391,13 +391,13 @@ components:
           type: string
           format: uuid
           description: User id.
+        name:
+          type: string
+          description: User profile name.
         imageID:
           type: string
           format: uuid
           description: Image id for the profile image.
-        name:
-          type: string
-          description: User profile name.
         createdAt:
           type: number
           format: double

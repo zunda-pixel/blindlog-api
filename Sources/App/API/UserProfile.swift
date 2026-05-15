@@ -138,8 +138,8 @@ extension Components.Schemas.UserProfile {
     self.init(
       id: profile.id.uuidString,
       userID: profile.userID.uuidString,
-      imageID: profile.imageID?.uuidString,
       name: profile.name,
+      imageID: profile.imageID?.uuidString,
       createdAt: profile.createdAt.timeIntervalSinceReferenceDate
     )
   }
