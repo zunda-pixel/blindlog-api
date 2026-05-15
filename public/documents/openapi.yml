@@ -391,6 +391,10 @@ components:
           type: string
           format: uuid
           description: User id.
+        imageID:
+          type: string
+          format: uuid
+          description: Image id for the profile image.
         name:
           type: string
           description: User profile name.
@@ -412,6 +416,10 @@ components:
           minLength: 1
           maxLength: 100
           description: User profile name.
+        imageID:
+          type: string
+          format: uuid
+          description: Image id for the profile image.
       required:
         - name
     CreateImageUploadURLResponse:

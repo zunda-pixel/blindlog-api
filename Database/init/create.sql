@@ -42,18 +42,6 @@ CREATE TABLE public.user_email (
   CONSTRAINT user_email_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE CASCADE
 );
 
-CREATE TABLE public.user_profiles (
-  id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  name text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT user_profiles_pk PRIMARY KEY (id),
-  CONSTRAINT user_profiles_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE CASCADE,
-  CONSTRAINT user_profiles_name_length CHECK (char_length(trim(name)) BETWEEN 1 AND 100)
-);
-
-CREATE INDEX user_profiles_latest_idx ON public.user_profiles(user_id, created_at DESC, id DESC);
-
 CREATE TABLE public.images (
   id uuid NOT NULL,
   user_id uuid NOT NULL,
@@ -65,3 +53,17 @@ CREATE TABLE public.images (
 );
 
 CREATE INDEX images_user_id_idx ON public.images(user_id);
+
+CREATE TABLE public.user_profiles (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  image_id uuid,
+  name text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT user_profiles_pk PRIMARY KEY (id),
+  CONSTRAINT user_profiles_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE CASCADE,
+  CONSTRAINT user_profiles_image_fk FOREIGN KEY (image_id) REFERENCES public.images (id),
+  CONSTRAINT user_profiles_name_length CHECK (char_length(trim(name)) BETWEEN 1 AND 100)
+);
+
+CREATE INDEX user_profiles_latest_idx ON public.user_profiles(user_id, created_at DESC, id DESC);
