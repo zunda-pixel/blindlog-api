@@ -74,7 +74,22 @@ struct RouterTests {
         Components.Schemas.UserToken.self,
         from: newUserResponse.body
       )
-      // 2. Get User to DB
+      let profileResponse = try await client.execute(
+        uri: "/me",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["name": "Alice"]))
+      )
+      #expect(profileResponse.status == .ok)
+      let createdProfile = try JSONDecoder().decode(
+        Components.Schemas.UserProfile.self,
+        from: profileResponse.body
+      )
+
+      // 2. Get latest user profile
       let getResponse = try await client.execute(
         uri: "/me",
         method: .get,
@@ -85,8 +100,13 @@ struct RouterTests {
       )
 
       #expect(getResponse.status == .ok)
-      let getUser = try JSONDecoder().decode(User.self, from: getResponse.body)
-      #expect(newUser.userID == getUser.id.uuidString)
+      let getProfile = try JSONDecoder().decode(
+        Components.Schemas.UserProfile.self,
+        from: getResponse.body
+      )
+      #expect(getProfile.id == createdProfile.id)
+      #expect(getProfile.userID == newUser.userID)
+      #expect(getProfile.name == "Alice")
     }
   }
 
@@ -98,7 +118,7 @@ struct RouterTests {
 
     try await app.test(.router) { client in
       let getResponse = try await client.execute(
-        uri: "/user_profile",
+        uri: "/user_profile/\(UUID().uuidString)",
         method: .get,
         headers: [
           .cfConnectingIP: ipAddress
@@ -107,7 +127,7 @@ struct RouterTests {
       #expect(getResponse.status == .unauthorized)
 
       let postResponse = try await client.execute(
-        uri: "/user_profile",
+        uri: "/me",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress
@@ -139,7 +159,7 @@ struct RouterTests {
       )
 
       let missingResponse = try await client.execute(
-        uri: "/user_profile",
+        uri: "/user_profile/\(newUser.userID)",
         method: .get,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -149,7 +169,7 @@ struct RouterTests {
       #expect(missingResponse.status == .notFound)
 
       let firstProfile = try await client.execute(
-        uri: "/user_profile",
+        uri: "/me",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -162,10 +182,10 @@ struct RouterTests {
       }
       #expect(firstProfile.userID == newUser.userID)
       #expect(firstProfile.name == "Alice")
-      #expect(firstProfile.imageID == nil)
+      #expect(firstProfile.imageURL == nil)
 
       let secondProfile = try await client.execute(
-        uri: "/user_profile",
+        uri: "/me",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -178,10 +198,10 @@ struct RouterTests {
       }
       #expect(firstProfile.id != secondProfile.id)
       #expect(secondProfile.name == "Bob")
-      #expect(secondProfile.imageID == nil)
+      #expect(secondProfile.imageURL == nil)
 
       try await client.execute(
-        uri: "/user_profile",
+        uri: "/user_profile/\(newUser.userID)",
         method: .get,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -195,7 +215,7 @@ struct RouterTests {
         )
         #expect(profile.id == secondProfile.id)
         #expect(profile.name == "Bob")
-        #expect(profile.imageID == nil)
+        #expect(profile.imageURL == nil)
       }
     }
   }
@@ -203,9 +223,10 @@ struct RouterTests {
   @Test
   func userProfileCanReferenceOwnImage() async throws {
     let arguments = TestArguments()
+    let recorder = TestCloudflareImagesCallRecorder()
     let app = try await buildApplication(
       arguments,
-      cloudflareImagesClient: TestCloudflareImagesClient()
+      cloudflareImagesClient: TestCloudflareImagesClient(recorder: recorder)
     )
     let ipAddress = UUID().uuidString
     let cloudflareImageID = UUID().uuidString
@@ -238,7 +259,7 @@ struct RouterTests {
       }
 
       let profile = try await client.execute(
-        uri: "/user_profile",
+        uri: "/me",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -254,10 +275,12 @@ struct RouterTests {
         #expect(response.status == .ok)
         return try JSONDecoder().decode(Components.Schemas.UserProfile.self, from: response.body)
       }
-      #expect(profile.imageID == image.id)
+      #expect(
+        profile.imageURL == "https://imagedelivery.net/account-hash/\(cloudflareImageID)/public")
+      #expect(await recorder.imageURLCount == 1)
 
       try await client.execute(
-        uri: "/user_profile",
+        uri: "/user_profile/\(newUser.userID)",
         method: .get,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -270,8 +293,31 @@ struct RouterTests {
           from: response.body
         )
         #expect(latestProfile.id == profile.id)
-        #expect(latestProfile.imageID == image.id)
+        #expect(
+          latestProfile.imageURL
+            == "https://imagedelivery.net/account-hash/\(cloudflareImageID)/public")
       }
+      #expect(await recorder.imageURLCount == 1)
+
+      try await client.execute(
+        uri: "/user_profile/\(newUser.userID)",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      ) { response in
+        #expect(response.status == .ok)
+        let latestProfile = try JSONDecoder().decode(
+          Components.Schemas.UserProfile.self,
+          from: response.body
+        )
+        #expect(latestProfile.id == profile.id)
+        #expect(
+          latestProfile.imageURL
+            == "https://imagedelivery.net/account-hash/\(cloudflareImageID)/public")
+      }
+      #expect(await recorder.imageURLCount == 1)
     }
   }
 
@@ -321,7 +367,7 @@ struct RouterTests {
       }
 
       let response = try await client.execute(
-        uri: "/user_profile",
+        uri: "/me",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -360,7 +406,7 @@ struct RouterTests {
 
       for invalidName in ["", "   ", String(repeating: "a", count: 101)] {
         let response = try await client.execute(
-          uri: "/user_profile",
+          uri: "/me",
           method: .post,
           headers: [
             .cfConnectingIP: ipAddress,
@@ -454,11 +500,13 @@ struct RouterTests {
   @Test
   func createImageRegistersUploadedImageIdempotently() async throws {
     let arguments = TestArguments()
+    let recorder = TestCloudflareImagesCallRecorder()
     let app = try await buildApplication(
       arguments,
-      cloudflareImagesClient: TestCloudflareImagesClient()
+      cloudflareImagesClient: TestCloudflareImagesClient(recorder: recorder)
     )
     let ipAddress = UUID().uuidString
+    let cloudflareImageID = UUID().uuidString
 
     try await app.test(.router) { client in
       let newUserResponse = try await client.execute(
@@ -481,12 +529,12 @@ struct RouterTests {
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
-        body: ByteBuffer(data: JSONEncoder().encode(["imageID": "cloudflare-image-id"]))
+        body: ByteBuffer(data: JSONEncoder().encode(["imageID": cloudflareImageID]))
       ) { response in
         #expect(response.status == .ok)
         return try JSONDecoder().decode(Components.Schemas.Image.self, from: response.body)
       }
-      #expect(firstImage.imageID == "cloudflare-image-id")
+      #expect(firstImage.imageID == cloudflareImageID)
 
       let secondImage = try await client.execute(
         uri: "/images",
@@ -495,13 +543,14 @@ struct RouterTests {
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
-        body: ByteBuffer(data: JSONEncoder().encode(["imageID": "cloudflare-image-id"]))
+        body: ByteBuffer(data: JSONEncoder().encode(["imageID": cloudflareImageID]))
       ) { response in
         #expect(response.status == .ok)
         return try JSONDecoder().decode(Components.Schemas.Image.self, from: response.body)
       }
       #expect(secondImage.id == firstImage.id)
       #expect(secondImage.imageID == firstImage.imageID)
+      #expect(await recorder.verifyUploadedImageCount == 1)
     }
   }
 
@@ -842,8 +891,23 @@ struct RouterTests {
         Components.Schemas.UserToken.self,
         from: newUserResponse.body
       )
+      let profileResponse = try await client.execute(
+        uri: "/me",
+        method: .post,
+        headers: [
+          .authorization: "Bearer \(newUser.token)",
+          .cfConnectingIP: ipAddress,
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["name": "Alice"]))
+      )
+      #expect(profileResponse.status == .ok)
+      let createdProfile = try JSONDecoder().decode(
+        Components.Schemas.UserProfile.self,
+        from: profileResponse.body
+      )
+
       for _ in 0..<arguments.rateLimitUserTokenMaxCount! {
-        // 2. Get User to DB
+        // 2. Get latest user profile
         let getResponse = try await client.execute(
           uri: "/me",
           method: .get,
@@ -854,8 +918,12 @@ struct RouterTests {
         )
 
         #expect(getResponse.status == .ok)
-        let getUser = try JSONDecoder().decode(User.self, from: getResponse.body)
-        #expect(newUser.userID == getUser.id.uuidString)
+        let getProfile = try JSONDecoder().decode(
+          Components.Schemas.UserProfile.self,
+          from: getResponse.body
+        )
+        #expect(getProfile.id == createdProfile.id)
+        #expect(getProfile.userID == newUser.userID)
       }
 
       let getResponse = try await client.execute(
@@ -909,8 +977,11 @@ private struct TestCloudflareImagesClient: CloudflareImagesClientProtocol {
   )
   var directUploadError: TestCloudflareImagesError?
   var verifyError: TestCloudflareImagesError?
+  var imageURLError: TestCloudflareImagesError?
+  var recorder: TestCloudflareImagesCallRecorder?
 
   func createDirectUploadURL(userID: UUID) async throws -> CloudflareDirectUpload {
+    await recorder?.recordCreateDirectUploadURL()
     if let directUploadError {
       throw directUploadError
     }
@@ -918,9 +989,36 @@ private struct TestCloudflareImagesClient: CloudflareImagesClientProtocol {
   }
 
   func verifyUploadedImage(id: String, userID: UUID) async throws {
+    await recorder?.recordVerifyUploadedImage()
     if let verifyError {
       throw verifyError
     }
+  }
+
+  func imageURL(id: String, userID: UUID) async throws -> URL {
+    await recorder?.recordImageURL()
+    if let imageURLError {
+      throw imageURLError
+    }
+    return URL(string: "https://imagedelivery.net/account-hash/\(id)/public")!
+  }
+}
+
+private actor TestCloudflareImagesCallRecorder {
+  private(set) var createDirectUploadURLCount = 0
+  private(set) var verifyUploadedImageCount = 0
+  private(set) var imageURLCount = 0
+
+  func recordCreateDirectUploadURL() {
+    createDirectUploadURLCount += 1
+  }
+
+  func recordVerifyUploadedImage() {
+    verifyUploadedImageCount += 1
+  }
+
+  func recordImageURL() {
+    imageURLCount += 1
   }
 }
 

@@ -69,6 +69,25 @@
       border-color: #60a5fa;
       box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
     }
+    img {
+      display: block;
+      max-width: 160px;
+      max-height: 160px;
+      border-radius: 12px;
+      object-fit: cover;
+    }
+    img[hidden] {
+      display: none;
+    }
+    .profile-result {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    .profile-result p {
+      margin: 0.35rem 0 0;
+      font-size: 0.95rem;
+    }
     .field {
       margin-bottom: 0.9rem;
     }
@@ -162,6 +181,29 @@
     </section>
 
     <section>
+      <h2>プロフィール画像</h2>
+      <p>画像をアップロードし、プロフィール名と一緒に最新プロフィールへ登録します。</p>
+      <div class="field">
+        <label for="profile-name-input">プロフィール名</label>
+        <input id="profile-name-input" type="text" autocomplete="name" maxlength="100" placeholder="表示名">
+      </div>
+      <div class="field">
+        <label for="profile-image-file">画像ファイル</label>
+        <input id="profile-image-file" type="file" accept="image/*">
+      </div>
+      <div class="field">
+        <img id="profile-image-preview" alt="選択したプロフィール画像のプレビュー" hidden>
+      </div>
+      <button id="upload-profile-image" type="button">画像を登録</button>
+      <p id="profile-image-status" class="status" role="status"></p>
+      <div id="current-profile" class="profile-result" hidden>
+        <img id="current-profile-image" alt="プロフィールに設定した画像">
+        <p id="current-profile-name"></p>
+        <p id="current-profile-image-url"></p>
+      </div>
+    </section>
+
+    <section>
       <h2>ログアウト</h2>
       <p>保持しているセッション情報を破棄します。</p>
       <button id="logout" type="button">ログアウト</button>
@@ -209,7 +251,15 @@
         webAuthn,
         supportsWebAuthn,
       });
-      const logoutFlow = createLogoutFlow({ session, status, state });
+      const profileImageFlow = createProfileImageFlow({
+        api,
+        session,
+        status,
+        inputs: elements.inputs,
+        preview: elements.profileImagePreview,
+        currentProfile: elements.currentProfile,
+      });
+      const logoutFlow = createLogoutFlow({ session, status, state, profileImageFlow });
 
       init();
 
@@ -222,6 +272,7 @@
           login,
           startEmailLogin,
           completeEmailLogin,
+          uploadProfileImage,
           logout,
         } = elements.buttons;
 
@@ -232,6 +283,8 @@
         bindAsync(login, passkeyFlow.login);
         bindAsync(startEmailLogin, emailLoginFlow.start);
         bindAsync(completeEmailLogin, emailLoginFlow.complete);
+        bindAsync(uploadProfileImage, profileImageFlow.uploadAndRegister);
+        elements.inputs.profileImageFile.addEventListener('change', profileImageFlow.previewSelectedFile);
         logout.addEventListener('click', logoutFlow);
 
         if (!supportsWebAuthn) {
@@ -439,12 +492,109 @@
         };
       }
 
-      function createLogoutFlow({ session, status, state }) {
+      function createProfileImageFlow({ api, session, status, inputs, preview, currentProfile }) {
+        let previewURL = null;
+        let currentImageURL = null;
+
+        function setPreview(file) {
+          if (previewURL) {
+            URL.revokeObjectURL(previewURL);
+            previewURL = null;
+          }
+          if (!file) {
+            preview.hidden = true;
+            preview.removeAttribute('src');
+            return;
+          }
+          previewURL = URL.createObjectURL(file);
+          preview.src = previewURL;
+          preview.hidden = false;
+        }
+
+        function setCurrentProfile({ profile, file }) {
+          if (currentImageURL) {
+            URL.revokeObjectURL(currentImageURL);
+          }
+          currentImageURL = URL.createObjectURL(file);
+          currentProfile.image.src = profile.imageURL || currentImageURL;
+          currentProfile.name.textContent = `名前: ${profile.name}`;
+          currentProfile.imageURL.textContent = `画像URL: ${profile.imageURL || ''}`;
+          currentProfile.container.hidden = false;
+        }
+
+        function resetDisplay() {
+          if (previewURL) {
+            URL.revokeObjectURL(previewURL);
+            previewURL = null;
+          }
+          if (currentImageURL) {
+            URL.revokeObjectURL(currentImageURL);
+            currentImageURL = null;
+          }
+          preview.hidden = true;
+          preview.removeAttribute('src');
+          currentProfile.image.removeAttribute('src');
+          currentProfile.name.textContent = '';
+          currentProfile.imageURL.textContent = '';
+          currentProfile.container.hidden = true;
+        }
+
+        return {
+          previewSelectedFile() {
+            setPreview(inputs.profileImageFile.files?.[0] ?? null);
+          },
+
+          resetDisplay,
+
+          async uploadAndRegister() {
+            const { token } = session.data;
+            const name = inputs.profileName.value.trim();
+            const file = inputs.profileImageFile.files?.[0] ?? null;
+
+            if (!validate('profileImage', [
+              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
+              { predicate: () => name.length > 0, message: 'プロフィール名を入力してください。' },
+              { predicate: () => name.length <= 100, message: 'プロフィール名は100文字以内で入力してください。' },
+              { predicate: () => !!file, message: '画像ファイルを選択してください。' },
+            ])) {
+              return;
+            }
+
+            status.set('profileImage', 'アップロードURL取得中...');
+            status.clear('logout');
+            try {
+              const upload = await api.createImageUploadURL(token);
+              status.set('profileImage', '画像アップロード中...');
+              await api.uploadImageFile({ uploadURL: upload.uploadURL, file });
+
+              status.set('profileImage', '画像登録中...');
+              const image = await api.createImage({ imageID: upload.imageID, token });
+
+              status.set('profileImage', 'プロフィール登録中...');
+              const profile = await api.createUserProfile({
+                name,
+                imageID: image.id,
+                token,
+              });
+
+              session.updateProfile(profile);
+              setCurrentProfile({ profile, file });
+              status.set('profileImage', 'プロフィール画像を登録しました。');
+            } catch (error) {
+              console.error(error);
+              status.set('profileImage', error.message || 'プロフィール画像の登録に失敗しました。', { error: true });
+            }
+          },
+        };
+      }
+
+      function createLogoutFlow({ session, status, state, profileImageFlow }) {
         return function handleLogout() {
           session.reset();
           state.emailLoginChallenge = null;
+          profileImageFlow.resetDisplay();
           status.set('logout', 'ログアウトしました。');
-          status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin');
+          status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'profileImage');
         };
       }
 
@@ -493,6 +643,7 @@
             login: document.getElementById('login'),
             startEmailLogin: document.getElementById('start-email-login'),
             completeEmailLogin: document.getElementById('complete-email-login'),
+            uploadProfileImage: document.getElementById('upload-profile-image'),
             logout: document.getElementById('logout'),
           },
           statuses: {
@@ -502,6 +653,7 @@
             passkey: document.getElementById('passkey-status'),
             login: document.getElementById('login-status'),
             emailLogin: document.getElementById('email-login-status'),
+            profileImage: document.getElementById('profile-image-status'),
             logout: document.getElementById('logout-status'),
           },
           inputs: {
@@ -509,6 +661,15 @@
             code: document.getElementById('email-code'),
             emailLoginEmail: document.getElementById('email-login-input'),
             emailLoginCode: document.getElementById('email-login-code'),
+            profileName: document.getElementById('profile-name-input'),
+            profileImageFile: document.getElementById('profile-image-file'),
+          },
+          profileImagePreview: document.getElementById('profile-image-preview'),
+          currentProfile: {
+            container: document.getElementById('current-profile'),
+            image: document.getElementById('current-profile-image'),
+            name: document.getElementById('current-profile-name'),
+            imageURL: document.getElementById('current-profile-image-url'),
           },
           sessionOutput: document.getElementById('session-output'),
         };
@@ -543,6 +704,7 @@
           refreshToken: null,
           refreshTokenExpiresAt: null,
           email: null,
+          profile: null,
         };
 
         function render() {
@@ -575,6 +737,10 @@
             data.email = email ? email.trim() : null;
             render();
           },
+          updateProfile(profile) {
+            data.profile = profile ?? null;
+            render();
+          },
           reset() {
             data.userID = null;
             data.token = null;
@@ -582,6 +748,7 @@
             data.refreshToken = null;
             data.refreshTokenExpiresAt = null;
             data.email = null;
+            data.profile = null;
             render();
           },
           render,
@@ -660,6 +827,37 @@
           async exchangeEmailCodeForToken(payload) {
             return postJSON('/token/email', payload, {
               message: 'メールでのログインに失敗しました。',
+            });
+          },
+
+          async createImageUploadURL(token) {
+            const response = await post('/images/upload_url', {
+              headers: { Authorization: `Bearer ${token}` },
+              message: '画像アップロードURLの取得に失敗しました。',
+            });
+            return response.json();
+          },
+
+          async uploadImageFile({ uploadURL, file }) {
+            const body = new FormData();
+            body.append('file', file);
+            await post(uploadURL, {
+              body,
+              message: '画像アップロードに失敗しました。',
+            });
+          },
+
+          async createImage({ imageID, token }) {
+            return postJSON('/images', { imageID }, {
+              headers: { Authorization: `Bearer ${token}` },
+              message: '画像登録に失敗しました。',
+            });
+          },
+
+          async createUserProfile({ name, imageID, token }) {
+            return postJSON('/me', { name, imageID }, {
+              headers: { Authorization: `Bearer ${token}` },
+              message: 'プロフィール登録に失敗しました。',
             });
           },
         };
