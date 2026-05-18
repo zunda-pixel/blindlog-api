@@ -88,6 +88,17 @@
       margin: 0.35rem 0 0;
       font-size: 0.95rem;
     }
+    .email-list {
+      margin: 1rem 0 0;
+      padding-left: 1.25rem;
+    }
+    .email-list:empty {
+      display: none;
+    }
+    .email-list li {
+      margin: 0.25rem 0;
+      word-break: break-all;
+    }
     .field {
       margin-bottom: 0.9rem;
     }
@@ -148,6 +159,14 @@
       </div>
       <button id="confirm-email" type="button">コードを送信</button>
       <p id="email-confirm-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>登録メールアドレス</h2>
+      <p>現在のトークンに紐づく登録済みメールアドレスを取得します。</p>
+      <button id="load-emails" type="button">メールアドレス取得</button>
+      <p id="emails-status" class="status" role="status"></p>
+      <ul id="emails-list" class="email-list"></ul>
     </section>
 
     <section>
@@ -236,6 +255,13 @@
         session,
         status,
         inputs: elements.inputs,
+        emailsList: elements.emailsList,
+      });
+      const emailsFlow = createEmailsFlow({
+        api,
+        session,
+        status,
+        emailsList: elements.emailsList,
       });
       const emailLoginFlow = createEmailLoginFlow({
         api,
@@ -268,6 +294,7 @@
           create,
           sendEmail,
           confirmEmail,
+          loadEmails,
           addPasskey,
           login,
           startEmailLogin,
@@ -279,6 +306,7 @@
         bindAsync(create, userFlow);
         bindAsync(sendEmail, emailVerificationFlow.send);
         bindAsync(confirmEmail, emailVerificationFlow.confirm);
+        bindAsync(loadEmails, emailsFlow);
         bindAsync(addPasskey, passkeyFlow.add);
         bindAsync(login, passkeyFlow.login);
         bindAsync(startEmailLogin, emailLoginFlow.start);
@@ -300,11 +328,12 @@
       function createUserFlow({ api, session, status, state }) {
         return async function handleCreateUser() {
           status.set('create', 'ユーザー作成中...');
-          status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'logout');
+          status.clear('emailStart', 'emailConfirm', 'emails', 'passkey', 'login', 'emailLogin', 'logout');
           try {
             const payload = await api.createUser();
             session.apply(payload);
-            session.updateEmail(null);
+            session.updateEmails([]);
+            renderEmailsList(elements.emailsList, []);
             state.emailLoginChallenge = null;
             status.set('create', 'ユーザーを作成しトークンを取得しました。');
           } catch (error) {
@@ -314,7 +343,7 @@
         };
       }
 
-      function createEmailVerificationFlow({ api, session, status, inputs }) {
+      function createEmailVerificationFlow({ api, session, status, inputs, emailsList }) {
         const emailInput = inputs.email;
         const codeInput = inputs.code;
 
@@ -333,7 +362,6 @@
             status.clear('emailConfirm', 'logout');
             try {
               await api.sendVerificationEmail({ email, token });
-              session.updateEmail(email);
               status.set('emailStart', '確認メールを送信しました。');
             } catch (error) {
               console.error(error);
@@ -357,7 +385,9 @@
             status.clear('logout');
             try {
               await api.confirmEmailAddress({ email, code, token });
-              session.updateEmail(email);
+              const emails = await api.fetchEmailsFromMe(token);
+              session.updateEmails(emails);
+              renderEmailsList(emailsList, emails);
               codeInput.value = '';
               status.set('emailConfirm', 'メールアドレスを認証しました。');
             } catch (error) {
@@ -415,7 +445,7 @@
               });
               state.emailLoginChallenge = null;
               session.apply(tokens);
-              session.updateEmail(email);
+              await refreshSessionEmails(tokens.token);
               codeInput.value = '';
               status.set('emailLogin', 'メールアドレスでログインしました。');
               status.clear('login');
@@ -446,7 +476,7 @@
               const options = webAuthn.buildRegistrationOptions({
                 challenge,
                 userID,
-                email: session.data.email,
+                email: session.data.emails[0]?.email,
               });
               const credential = await navigator.credentials.create({ publicKey: options });
               if (!credential) {
@@ -482,7 +512,7 @@
               const payload = webAuthn.serializeAuthenticationCredential(credential, challenge);
               const tokens = await api.requestPasskeyToken(payload);
               session.apply(tokens);
-              await refreshSessionEmail(tokens.token);
+              await refreshSessionEmails(tokens.token);
               status.set('login', 'Passkeyでログインしました。新しいトークンを取得しました。');
             } catch (error) {
               console.error(error);
@@ -593,20 +623,59 @@
           session.reset();
           state.emailLoginChallenge = null;
           profileImageFlow.resetDisplay();
+          renderEmailsList(elements.emailsList, []);
           status.set('logout', 'ログアウトしました。');
-          status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'profileImage');
+          status.clear('create', 'emailStart', 'emailConfirm', 'emails', 'passkey', 'login', 'emailLogin', 'profileImage');
         };
       }
 
-      async function refreshSessionEmail(token) {
+      function createEmailsFlow({ api, session, status, emailsList }) {
+        return async function handleLoadEmails() {
+          const { token } = session.data;
+          if (!validate('emails', [
+            { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
+          ])) {
+            return;
+          }
+
+          status.set('emails', 'メールアドレス取得中...');
+          status.clear('logout');
+          try {
+            const emails = await api.fetchEmailsFromMe(token);
+            session.updateEmails(emails);
+            renderEmailsList(emailsList, emails);
+            status.set('emails', emails.length > 0 ? 'メールアドレスを取得しました。' : '登録済みメールアドレスはありません。');
+          } catch (error) {
+            console.error(error);
+            status.set('emails', error.message || 'メールアドレスの取得に失敗しました。', { error: true });
+          }
+        };
+      }
+
+      async function refreshSessionEmails(token) {
         if (!token) {
           return;
         }
         try {
-          const user = await api.fetchCurrentUser(token);
-          session.updateEmail(user?.email ?? null);
+          const emails = await api.fetchEmailsFromMe(token);
+          session.updateEmails(emails);
+          renderEmailsList(elements.emailsList, emails);
         } catch (error) {
           console.error(error);
+        }
+      }
+
+      function renderEmailsList(list, emails) {
+        list.replaceChildren();
+        for (const item of emails) {
+          const email = (typeof item === 'string' ? item : item?.email)?.trim();
+          if (!email) continue;
+          const createdAt = typeof item?.createdAt === 'number'
+            ? ` (${formatReferenceDate(item.createdAt)})`
+            : '';
+          const listItem = document.createElement('li');
+          listItem.textContent = `${email}${createdAt}`;
+          list.appendChild(listItem);
         }
       }
 
@@ -639,6 +708,7 @@
             create: document.getElementById('create-user'),
             sendEmail: document.getElementById('send-email'),
             confirmEmail: document.getElementById('confirm-email'),
+            loadEmails: document.getElementById('load-emails'),
             addPasskey: document.getElementById('add-passkey'),
             login: document.getElementById('login'),
             startEmailLogin: document.getElementById('start-email-login'),
@@ -650,6 +720,7 @@
             create: document.getElementById('create-status'),
             emailStart: document.getElementById('email-start-status'),
             emailConfirm: document.getElementById('email-confirm-status'),
+            emails: document.getElementById('emails-status'),
             passkey: document.getElementById('passkey-status'),
             login: document.getElementById('login-status'),
             emailLogin: document.getElementById('email-login-status'),
@@ -671,6 +742,7 @@
             name: document.getElementById('current-profile-name'),
             imageURL: document.getElementById('current-profile-image-url'),
           },
+          emailsList: document.getElementById('emails-list'),
           sessionOutput: document.getElementById('session-output'),
         };
       }
@@ -696,14 +768,13 @@
       }
 
       function createSessionManager(outputElement) {
-        const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
         const data = {
           userID: null,
           token: null,
           tokenExpiresAt: null,
           refreshToken: null,
           refreshTokenExpiresAt: null,
-          email: null,
+          emails: [],
           profile: null,
         };
 
@@ -733,8 +804,8 @@
             data.refreshTokenExpiresAt = formatReferenceDate(payload?.refreshTokenExpiredDate);
             render();
           },
-          updateEmail(email) {
-            data.email = email ? email.trim() : null;
+          updateEmails(emails) {
+            data.emails = Array.isArray(emails) ? emails : [];
             render();
           },
           updateProfile(profile) {
@@ -747,13 +818,22 @@
             data.tokenExpiresAt = null;
             data.refreshToken = null;
             data.refreshTokenExpiresAt = null;
-            data.email = null;
+            data.emails = [];
             data.profile = null;
             render();
           },
           render,
         };
       }
+
+      function formatReferenceDate(value) {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+          return null;
+        }
+        return new Date(APPLE_REFERENCE_DATE_MS + value * 1000).toISOString();
+      }
+
+      const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
 
       function createApi() {
         return {
@@ -813,6 +893,15 @@
               message: 'ユーザー情報の取得に失敗しました。',
             });
             return response.json();
+          },
+
+          async fetchEmailsFromMe(token) {
+            const response = await get('/me', {
+              headers: { Authorization: `Bearer ${token}` },
+              message: 'メールアドレスの取得に失敗しました。',
+            });
+            const me = await response.json();
+            return Array.isArray(me?.emails) ? me.emails : [];
           },
 
           async sendEmailLoginChallenge(email) {

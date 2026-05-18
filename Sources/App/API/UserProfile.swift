@@ -5,8 +5,8 @@ import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
-import Valkey
 import UUIDV7
+import Valkey
 
 extension API {
   func getUserProfile(

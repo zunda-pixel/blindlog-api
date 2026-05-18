@@ -101,12 +101,13 @@ struct RouterTests {
 
       #expect(getResponse.status == .ok)
       let getProfile = try JSONDecoder().decode(
-        Components.Schemas.UserProfile.self,
+        Components.Schemas.Me.self,
         from: getResponse.body
       )
       #expect(getProfile.id == createdProfile.id)
       #expect(getProfile.userID == newUser.userID)
       #expect(getProfile.name == "Alice")
+      #expect(getProfile.emails.isEmpty)
     }
   }
 
@@ -906,7 +907,7 @@ struct RouterTests {
         from: profileResponse.body
       )
 
-      for _ in 0..<arguments.rateLimitUserTokenMaxCount! {
+      for _ in 0..<(arguments.rateLimitUserTokenMaxCount! - 1) {
         // 2. Get latest user profile
         let getResponse = try await client.execute(
           uri: "/me",
@@ -919,11 +920,12 @@ struct RouterTests {
 
         #expect(getResponse.status == .ok)
         let getProfile = try JSONDecoder().decode(
-          Components.Schemas.UserProfile.self,
+          Components.Schemas.Me.self,
           from: getResponse.body
         )
         #expect(getProfile.id == createdProfile.id)
         #expect(getProfile.userID == newUser.userID)
+        #expect(getProfile.emails.isEmpty)
       }
 
       let getResponse = try await client.execute(

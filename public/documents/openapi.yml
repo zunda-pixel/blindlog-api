@@ -175,7 +175,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
+                $ref: '#/components/schemas/Me'
         '400':
           description: A bad request
         '401':
@@ -414,6 +414,55 @@ components:
         - id
         - userID
         - name
+        - createdAt
+    Me:
+      type: object
+      description: A value with the current user profile and registered email addresses.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User profile id.
+        userID:
+          type: string
+          format: uuid
+          description: User id.
+        name:
+          type: string
+          description: User profile name.
+        imageURL:
+          type: string
+          format: uri
+          description: Image URL for the profile image.
+        createdAt:
+          type: number
+          format: double
+          description: User profile created date.
+        emails:
+          type: array
+          description: Registered email addresses.
+          items:
+            $ref: '#/components/schemas/Email'
+      required:
+        - id
+        - userID
+        - name
+        - createdAt
+        - emails
+    Email:
+      type: object
+      description: A registered email address.
+      properties:
+        email:
+          type: string
+          format: email
+          description: Registered email address.
+        createdAt:
+          type: number
+          format: double
+          description: Registered email created date.
+      required:
+        - email
         - createdAt
     CreateUserProfileRequest:
       type: object

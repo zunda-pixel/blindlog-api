@@ -59,10 +59,9 @@ extension API {
     do {
       try await database.write { db in
         try await UserEmail.insert {
-          UserEmail(
-            userID: userID,
-            email: email
-          )
+          ($0.userID, $0.email)
+        } values: {
+          (userID, email)
         } onConflict: { columns in
           (columns.userID, columns.email)
         }.execute(db)

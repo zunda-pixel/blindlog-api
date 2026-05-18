@@ -5,4 +5,5 @@ import Records
 struct UserEmail: Codable, Hashable {
   @Column("user_id") var userID: UUID
   var email: String
+  @Column("created_at") var createdAt: Date
 }
