@@ -1,105 +1,80 @@
 import Foundation
 import Hummingbird
-import PostgresKit
+import Logging
+import PostgresNIO
 import Records
 import SQLKit
-import Valkey
+import StructuredQueriesPostgres
 
 extension API {
   func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
     guard let userID = UserTokenContext.currentUserID else {
       return .unauthorized
     }
-    let user: UserProfile?
+
+    let profile: Components.Schemas.UserProfile?
     do {
-      user = try await getUser(id: userID)
+      profile = try await getProfile(userID: userID)
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "user.profile_read_failed",
         "Failed to fetch user profile",
-        metadata: AppLogMetadata.userID(userID),
+        metadata: AppLogMetadata.userID(userID).merging([
+          "db.operation": .string("select")
+        ]) { _, new in new },
         error: error
       )
       return .badRequest
     }
 
-    guard let user else {
-      return .notFound
+    guard let profile else { return .notFound }
+
+    let emails: [UserEmail]
+    do {
+      emails = try await registeredEmails(userID: userID)
+    } catch {
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.email.list_failed",
+        "Failed to fetch registered emails",
+        metadata: AppLogMetadata.userID(userID).merging([
+          "db.operation": .string("select")
+        ]) { _, new in new },
+        error: error
+      )
+      return .badRequest
     }
 
-    let responseUser = Components.Schemas.User(
-      id: user.id.uuidString,
-      email: user.email
-    )
-
-    return .ok(.init(body: .json(responseUser)))
+    return .ok(.init(body: .json(.init(profile, emails: emails))))
   }
 
-  fileprivate func getUser(id: UUID) async throws -> UserProfile? {
-    // 1. Get User from Cache and Update Expiration if exits
-    let cacheUser = try await getUserFromCacheAndUpdateExpiration(
-      id: id
-    )
-
-    if let cacheUser {
-      return cacheUser
-    }
-
-    // 2. Get User from DB that is not in Cache
-    let dbUser: UserProfile? = try await getUserFromDatabase(
-      id: id
-    )
-
-    guard let dbUser else { return nil }
-
-    // 3. Set New User to Cache
-    try await addUserToCache(
-      user: dbUser
-    )
-    return dbUser
-  }
-
-  fileprivate func addUserToCache(
-    user: UserProfile
-  ) async throws {
-    try await cache.set(
-      ValkeyKey("user:\(user.id.uuidString)"),
-      value: try JSONEncoder().encode(user),
-      expiration: .seconds(60 * 10)  // 10 minutes
-    )
-  }
-
-  fileprivate func getUserFromDatabase(
-    id: User.ID
-  ) async throws -> UserProfile? {
-    return try await database.read { db in
-      try await User
-        .leftJoin(UserEmail.all) { $0.0.id.eq($0.1.userID) }
-        .where { user, _ in user.id.eq(id) }
-        .select { UserProfile.Columns(id: $0.id, email: $1.email) }
-        .limit(1)
-        .fetchOne(db)
-    }
-  }
-
-  fileprivate func getUserFromCacheAndUpdateExpiration(
-    id: User.ID
-  ) async throws -> UserProfile? {
-    let userData = try await cache.getex(
-      ValkeyKey("user:\(id.uuidString)"),
-      expiration: .seconds(60 * 10)  // 10 minutes
-    )
-
-    if let userData {
-      return try JSONDecoder().decode(UserProfile.self, from: Data(userData))
-    } else {
-      return nil
+  fileprivate func registeredEmails(userID: UUID) async throws -> [UserEmail] {
+    try await database.read { db in
+      try await UserEmail
+        .where { $0.userID.eq(userID) }
+        .order { ($0.createdAt.asc(), $0.email.asc()) }
+        .fetchAll(db)
     }
   }
 }
 
-@Selection
-struct UserProfile: Codable {
-  var id: UUID
-  var email: String?
+extension Components.Schemas.Me {
+  fileprivate init(_ profile: Components.Schemas.UserProfile, emails: [UserEmail]) {
+    self.init(
+      id: profile.id,
+      userID: profile.userID,
+      name: profile.name,
+      imageURL: profile.imageURL,
+      createdAt: profile.createdAt,
+      emails: emails.map { .init($0) }
+    )
+  }
+}
+
+extension Components.Schemas.Email {
+  fileprivate init(_ email: UserEmail) {
+    self.init(
+      email: email.email,
+      createdAt: email.createdAt.timeIntervalSinceReferenceDate
+    )
+  }
 }

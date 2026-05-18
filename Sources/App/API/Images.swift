@@ -40,6 +40,26 @@ extension API {
       return .badRequest
     }
 
+    do {
+      if let cachedImage = try await cachedImage(cloudflareImageID: bodyData.imageID) {
+        guard cachedImage.userID == userID else {
+          return .badRequest
+        }
+        return .ok(.init(body: .json(.init(cachedImage))))
+      }
+    } catch {
+      AppRequestContext.current?.logger.appLog(
+        level: .warning,
+        eventName: "image.cache_read_failed",
+        "Failed to fetch image from cache",
+        metadata: AppLogMetadata.userID(userID).merging([
+          "cache.operation": .string("getex"),
+          "image.id": .string(bodyData.imageID),
+        ]) { _, new in new },
+        error: error
+      )
+    }
+
     let savedImage: ImageRecord?
     do {
       let existingImage = try await database.read { db in
@@ -51,6 +71,20 @@ extension API {
       if let existingImage {
         guard existingImage.userID == userID else {
           return .badRequest
+        }
+        do {
+          try await cacheImage(existingImage)
+        } catch {
+          AppRequestContext.current?.logger.appLog(
+            level: .warning,
+            eventName: "image.cache_write_failed",
+            "Failed to write image to cache",
+            metadata: AppLogMetadata.userID(userID).merging([
+              "cache.operation": .string("set"),
+              "image.id": .string(existingImage.cloudflareImageID),
+            ]) { _, new in new },
+            error: error
+          )
         }
         return .ok(.init(body: .json(.init(existingImage))))
       }
@@ -96,6 +130,21 @@ extension API {
     }
     guard savedImage.userID == userID else {
       return .badRequest
+    }
+
+    do {
+      try await cacheImage(savedImage)
+    } catch {
+      AppRequestContext.current?.logger.appLog(
+        level: .warning,
+        eventName: "image.cache_write_failed",
+        "Failed to write image to cache",
+        metadata: AppLogMetadata.userID(userID).merging([
+          "cache.operation": .string("set"),
+          "image.id": .string(savedImage.cloudflareImageID),
+        ]) { _, new in new },
+        error: error
+      )
     }
 
     return .ok(.init(body: .json(.init(savedImage))))

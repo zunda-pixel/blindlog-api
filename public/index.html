@@ -69,6 +69,36 @@
       border-color: #60a5fa;
       box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
     }
+    img {
+      display: block;
+      max-width: 160px;
+      max-height: 160px;
+      border-radius: 12px;
+      object-fit: cover;
+    }
+    img[hidden] {
+      display: none;
+    }
+    .profile-result {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    .profile-result p {
+      margin: 0.35rem 0 0;
+      font-size: 0.95rem;
+    }
+    .email-list {
+      margin: 1rem 0 0;
+      padding-left: 1.25rem;
+    }
+    .email-list:empty {
+      display: none;
+    }
+    .email-list li {
+      margin: 0.25rem 0;
+      word-break: break-all;
+    }
     .field {
       margin-bottom: 0.9rem;
     }
@@ -132,6 +162,14 @@
     </section>
 
     <section>
+      <h2>登録メールアドレス</h2>
+      <p>現在のトークンに紐づく登録済みメールアドレスを取得します。</p>
+      <button id="load-emails" type="button">メールアドレス取得</button>
+      <p id="emails-status" class="status" role="status"></p>
+      <ul id="emails-list" class="email-list"></ul>
+    </section>
+
+    <section>
       <h2>Passkey追加</h2>
       <p>既存のトークンでチャレンジを取得し、Passkey を登録します。</p>
       <button id="add-passkey" type="button">Passkey追加</button>
@@ -159,6 +197,29 @@
       </div>
       <button id="complete-email-login" type="button">コードでログイン</button>
       <p id="email-login-status" class="status" role="status"></p>
+    </section>
+
+    <section>
+      <h2>プロフィール画像</h2>
+      <p>画像をアップロードし、プロフィール名と一緒に最新プロフィールへ登録します。</p>
+      <div class="field">
+        <label for="profile-name-input">プロフィール名</label>
+        <input id="profile-name-input" type="text" autocomplete="name" maxlength="100" placeholder="表示名">
+      </div>
+      <div class="field">
+        <label for="profile-image-file">画像ファイル</label>
+        <input id="profile-image-file" type="file" accept="image/*">
+      </div>
+      <div class="field">
+        <img id="profile-image-preview" alt="選択したプロフィール画像のプレビュー" hidden>
+      </div>
+      <button id="upload-profile-image" type="button">画像を登録</button>
+      <p id="profile-image-status" class="status" role="status"></p>
+      <div id="current-profile" class="profile-result" hidden>
+        <img id="current-profile-image" alt="プロフィールに設定した画像">
+        <p id="current-profile-name"></p>
+        <p id="current-profile-image-url"></p>
+      </div>
     </section>
 
     <section>
@@ -194,6 +255,13 @@
         session,
         status,
         inputs: elements.inputs,
+        emailsList: elements.emailsList,
+      });
+      const emailsFlow = createEmailsFlow({
+        api,
+        session,
+        status,
+        emailsList: elements.emailsList,
       });
       const emailLoginFlow = createEmailLoginFlow({
         api,
@@ -209,7 +277,15 @@
         webAuthn,
         supportsWebAuthn,
       });
-      const logoutFlow = createLogoutFlow({ session, status, state });
+      const profileImageFlow = createProfileImageFlow({
+        api,
+        session,
+        status,
+        inputs: elements.inputs,
+        preview: elements.profileImagePreview,
+        currentProfile: elements.currentProfile,
+      });
+      const logoutFlow = createLogoutFlow({ session, status, state, profileImageFlow });
 
       init();
 
@@ -218,20 +294,25 @@
           create,
           sendEmail,
           confirmEmail,
+          loadEmails,
           addPasskey,
           login,
           startEmailLogin,
           completeEmailLogin,
+          uploadProfileImage,
           logout,
         } = elements.buttons;
 
         bindAsync(create, userFlow);
         bindAsync(sendEmail, emailVerificationFlow.send);
         bindAsync(confirmEmail, emailVerificationFlow.confirm);
+        bindAsync(loadEmails, emailsFlow);
         bindAsync(addPasskey, passkeyFlow.add);
         bindAsync(login, passkeyFlow.login);
         bindAsync(startEmailLogin, emailLoginFlow.start);
         bindAsync(completeEmailLogin, emailLoginFlow.complete);
+        bindAsync(uploadProfileImage, profileImageFlow.uploadAndRegister);
+        elements.inputs.profileImageFile.addEventListener('change', profileImageFlow.previewSelectedFile);
         logout.addEventListener('click', logoutFlow);
 
         if (!supportsWebAuthn) {
@@ -247,11 +328,12 @@
       function createUserFlow({ api, session, status, state }) {
         return async function handleCreateUser() {
           status.set('create', 'ユーザー作成中...');
-          status.clear('emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin', 'logout');
+          status.clear('emailStart', 'emailConfirm', 'emails', 'passkey', 'login', 'emailLogin', 'logout');
           try {
             const payload = await api.createUser();
             session.apply(payload);
-            session.updateEmail(null);
+            session.updateEmails([]);
+            renderEmailsList(elements.emailsList, []);
             state.emailLoginChallenge = null;
             status.set('create', 'ユーザーを作成しトークンを取得しました。');
           } catch (error) {
@@ -261,7 +343,7 @@
         };
       }
 
-      function createEmailVerificationFlow({ api, session, status, inputs }) {
+      function createEmailVerificationFlow({ api, session, status, inputs, emailsList }) {
         const emailInput = inputs.email;
         const codeInput = inputs.code;
 
@@ -280,7 +362,6 @@
             status.clear('emailConfirm', 'logout');
             try {
               await api.sendVerificationEmail({ email, token });
-              session.updateEmail(email);
               status.set('emailStart', '確認メールを送信しました。');
             } catch (error) {
               console.error(error);
@@ -304,7 +385,9 @@
             status.clear('logout');
             try {
               await api.confirmEmailAddress({ email, code, token });
-              session.updateEmail(email);
+              const emails = await api.fetchEmailsFromMe(token);
+              session.updateEmails(emails);
+              renderEmailsList(emailsList, emails);
               codeInput.value = '';
               status.set('emailConfirm', 'メールアドレスを認証しました。');
             } catch (error) {
@@ -362,7 +445,7 @@
               });
               state.emailLoginChallenge = null;
               session.apply(tokens);
-              session.updateEmail(email);
+              await refreshSessionEmails(tokens.token);
               codeInput.value = '';
               status.set('emailLogin', 'メールアドレスでログインしました。');
               status.clear('login');
@@ -393,7 +476,7 @@
               const options = webAuthn.buildRegistrationOptions({
                 challenge,
                 userID,
-                email: session.data.email,
+                email: session.data.emails[0]?.email,
               });
               const credential = await navigator.credentials.create({ publicKey: options });
               if (!credential) {
@@ -429,7 +512,7 @@
               const payload = webAuthn.serializeAuthenticationCredential(credential, challenge);
               const tokens = await api.requestPasskeyToken(payload);
               session.apply(tokens);
-              await refreshSessionEmail(tokens.token);
+              await refreshSessionEmails(tokens.token);
               status.set('login', 'Passkeyでログインしました。新しいトークンを取得しました。');
             } catch (error) {
               console.error(error);
@@ -439,24 +522,160 @@
         };
       }
 
-      function createLogoutFlow({ session, status, state }) {
-        return function handleLogout() {
-          session.reset();
-          state.emailLoginChallenge = null;
-          status.set('logout', 'ログアウトしました。');
-          status.clear('create', 'emailStart', 'emailConfirm', 'passkey', 'login', 'emailLogin');
+      function createProfileImageFlow({ api, session, status, inputs, preview, currentProfile }) {
+        let previewURL = null;
+        let currentImageURL = null;
+
+        function setPreview(file) {
+          if (previewURL) {
+            URL.revokeObjectURL(previewURL);
+            previewURL = null;
+          }
+          if (!file) {
+            preview.hidden = true;
+            preview.removeAttribute('src');
+            return;
+          }
+          previewURL = URL.createObjectURL(file);
+          preview.src = previewURL;
+          preview.hidden = false;
+        }
+
+        function setCurrentProfile({ profile, file }) {
+          if (currentImageURL) {
+            URL.revokeObjectURL(currentImageURL);
+          }
+          currentImageURL = URL.createObjectURL(file);
+          currentProfile.image.src = profile.imageURL || currentImageURL;
+          currentProfile.name.textContent = `名前: ${profile.name}`;
+          currentProfile.imageURL.textContent = `画像URL: ${profile.imageURL || ''}`;
+          currentProfile.container.hidden = false;
+        }
+
+        function resetDisplay() {
+          if (previewURL) {
+            URL.revokeObjectURL(previewURL);
+            previewURL = null;
+          }
+          if (currentImageURL) {
+            URL.revokeObjectURL(currentImageURL);
+            currentImageURL = null;
+          }
+          preview.hidden = true;
+          preview.removeAttribute('src');
+          currentProfile.image.removeAttribute('src');
+          currentProfile.name.textContent = '';
+          currentProfile.imageURL.textContent = '';
+          currentProfile.container.hidden = true;
+        }
+
+        return {
+          previewSelectedFile() {
+            setPreview(inputs.profileImageFile.files?.[0] ?? null);
+          },
+
+          resetDisplay,
+
+          async uploadAndRegister() {
+            const { token } = session.data;
+            const name = inputs.profileName.value.trim();
+            const file = inputs.profileImageFile.files?.[0] ?? null;
+
+            if (!validate('profileImage', [
+              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
+              { predicate: () => name.length > 0, message: 'プロフィール名を入力してください。' },
+              { predicate: () => name.length <= 100, message: 'プロフィール名は100文字以内で入力してください。' },
+              { predicate: () => !!file, message: '画像ファイルを選択してください。' },
+            ])) {
+              return;
+            }
+
+            status.set('profileImage', 'アップロードURL取得中...');
+            status.clear('logout');
+            try {
+              const upload = await api.createImageUploadURL(token);
+              status.set('profileImage', '画像アップロード中...');
+              await api.uploadImageFile({ uploadURL: upload.uploadURL, file });
+
+              status.set('profileImage', '画像登録中...');
+              const image = await api.createImage({ imageID: upload.imageID, token });
+
+              status.set('profileImage', 'プロフィール登録中...');
+              const profile = await api.createUserProfile({
+                name,
+                imageID: image.id,
+                token,
+              });
+
+              session.updateProfile(profile);
+              setCurrentProfile({ profile, file });
+              status.set('profileImage', 'プロフィール画像を登録しました。');
+            } catch (error) {
+              console.error(error);
+              status.set('profileImage', error.message || 'プロフィール画像の登録に失敗しました。', { error: true });
+            }
+          },
         };
       }
 
-      async function refreshSessionEmail(token) {
+      function createLogoutFlow({ session, status, state, profileImageFlow }) {
+        return function handleLogout() {
+          session.reset();
+          state.emailLoginChallenge = null;
+          profileImageFlow.resetDisplay();
+          renderEmailsList(elements.emailsList, []);
+          status.set('logout', 'ログアウトしました。');
+          status.clear('create', 'emailStart', 'emailConfirm', 'emails', 'passkey', 'login', 'emailLogin', 'profileImage');
+        };
+      }
+
+      function createEmailsFlow({ api, session, status, emailsList }) {
+        return async function handleLoadEmails() {
+          const { token } = session.data;
+          if (!validate('emails', [
+            { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
+          ])) {
+            return;
+          }
+
+          status.set('emails', 'メールアドレス取得中...');
+          status.clear('logout');
+          try {
+            const emails = await api.fetchEmailsFromMe(token);
+            session.updateEmails(emails);
+            renderEmailsList(emailsList, emails);
+            status.set('emails', emails.length > 0 ? 'メールアドレスを取得しました。' : '登録済みメールアドレスはありません。');
+          } catch (error) {
+            console.error(error);
+            status.set('emails', error.message || 'メールアドレスの取得に失敗しました。', { error: true });
+          }
+        };
+      }
+
+      async function refreshSessionEmails(token) {
         if (!token) {
           return;
         }
         try {
-          const user = await api.fetchCurrentUser(token);
-          session.updateEmail(user?.email ?? null);
+          const emails = await api.fetchEmailsFromMe(token);
+          session.updateEmails(emails);
+          renderEmailsList(elements.emailsList, emails);
         } catch (error) {
           console.error(error);
+        }
+      }
+
+      function renderEmailsList(list, emails) {
+        list.replaceChildren();
+        for (const item of emails) {
+          const email = (typeof item === 'string' ? item : item?.email)?.trim();
+          if (!email) continue;
+          const createdAt = typeof item?.createdAt === 'number'
+            ? ` (${formatReferenceDate(item.createdAt)})`
+            : '';
+          const listItem = document.createElement('li');
+          listItem.textContent = `${email}${createdAt}`;
+          list.appendChild(listItem);
         }
       }
 
@@ -489,19 +708,23 @@
             create: document.getElementById('create-user'),
             sendEmail: document.getElementById('send-email'),
             confirmEmail: document.getElementById('confirm-email'),
+            loadEmails: document.getElementById('load-emails'),
             addPasskey: document.getElementById('add-passkey'),
             login: document.getElementById('login'),
             startEmailLogin: document.getElementById('start-email-login'),
             completeEmailLogin: document.getElementById('complete-email-login'),
+            uploadProfileImage: document.getElementById('upload-profile-image'),
             logout: document.getElementById('logout'),
           },
           statuses: {
             create: document.getElementById('create-status'),
             emailStart: document.getElementById('email-start-status'),
             emailConfirm: document.getElementById('email-confirm-status'),
+            emails: document.getElementById('emails-status'),
             passkey: document.getElementById('passkey-status'),
             login: document.getElementById('login-status'),
             emailLogin: document.getElementById('email-login-status'),
+            profileImage: document.getElementById('profile-image-status'),
             logout: document.getElementById('logout-status'),
           },
           inputs: {
@@ -509,7 +732,17 @@
             code: document.getElementById('email-code'),
             emailLoginEmail: document.getElementById('email-login-input'),
             emailLoginCode: document.getElementById('email-login-code'),
+            profileName: document.getElementById('profile-name-input'),
+            profileImageFile: document.getElementById('profile-image-file'),
           },
+          profileImagePreview: document.getElementById('profile-image-preview'),
+          currentProfile: {
+            container: document.getElementById('current-profile'),
+            image: document.getElementById('current-profile-image'),
+            name: document.getElementById('current-profile-name'),
+            imageURL: document.getElementById('current-profile-image-url'),
+          },
+          emailsList: document.getElementById('emails-list'),
           sessionOutput: document.getElementById('session-output'),
         };
       }
@@ -535,14 +768,14 @@
       }
 
       function createSessionManager(outputElement) {
-        const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
         const data = {
           userID: null,
           token: null,
           tokenExpiresAt: null,
           refreshToken: null,
           refreshTokenExpiresAt: null,
-          email: null,
+          emails: [],
+          profile: null,
         };
 
         function render() {
@@ -571,8 +804,12 @@
             data.refreshTokenExpiresAt = formatReferenceDate(payload?.refreshTokenExpiredDate);
             render();
           },
-          updateEmail(email) {
-            data.email = email ? email.trim() : null;
+          updateEmails(emails) {
+            data.emails = Array.isArray(emails) ? emails : [];
+            render();
+          },
+          updateProfile(profile) {
+            data.profile = profile ?? null;
             render();
           },
           reset() {
@@ -581,12 +818,22 @@
             data.tokenExpiresAt = null;
             data.refreshToken = null;
             data.refreshTokenExpiresAt = null;
-            data.email = null;
+            data.emails = [];
+            data.profile = null;
             render();
           },
           render,
         };
       }
+
+      function formatReferenceDate(value) {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+          return null;
+        }
+        return new Date(APPLE_REFERENCE_DATE_MS + value * 1000).toISOString();
+      }
+
+      const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
 
       function createApi() {
         return {
@@ -648,6 +895,15 @@
             return response.json();
           },
 
+          async fetchEmailsFromMe(token) {
+            const response = await get('/me', {
+              headers: { Authorization: `Bearer ${token}` },
+              message: 'メールアドレスの取得に失敗しました。',
+            });
+            const me = await response.json();
+            return Array.isArray(me?.emails) ? me.emails : [];
+          },
+
           async sendEmailLoginChallenge(email) {
             const url = new URL('/token/email/start', window.location.origin);
             url.searchParams.set('email', email);
@@ -660,6 +916,37 @@
           async exchangeEmailCodeForToken(payload) {
             return postJSON('/token/email', payload, {
               message: 'メールでのログインに失敗しました。',
+            });
+          },
+
+          async createImageUploadURL(token) {
+            const response = await post('/images/upload_url', {
+              headers: { Authorization: `Bearer ${token}` },
+              message: '画像アップロードURLの取得に失敗しました。',
+            });
+            return response.json();
+          },
+
+          async uploadImageFile({ uploadURL, file }) {
+            const body = new FormData();
+            body.append('file', file);
+            await post(uploadURL, {
+              body,
+              message: '画像アップロードに失敗しました。',
+            });
+          },
+
+          async createImage({ imageID, token }) {
+            return postJSON('/images', { imageID }, {
+              headers: { Authorization: `Bearer ${token}` },
+              message: '画像登録に失敗しました。',
+            });
+          },
+
+          async createUserProfile({ name, imageID, token }) {
+            return postJSON('/me', { name, imageID }, {
+              headers: { Authorization: `Bearer ${token}` },
+              message: 'プロフィール登録に失敗しました。',
             });
           },
         };
