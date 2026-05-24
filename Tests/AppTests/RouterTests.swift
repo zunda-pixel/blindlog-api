@@ -105,8 +105,8 @@ struct RouterTests {
         from: getResponse.body
       )
       #expect(getProfile.userID == newUser.userID)
-      #expect(getProfile.userProfile?.value1.name == "Alice")
-      #expect(getProfile.userProfile?.value1.createdAt == createdProfile.createdAt)
+      #expect(getProfile.userProfile?.name == "Alice")
+      #expect(getProfile.userProfile?.createdAt == createdProfile.createdAt)
       #expect(getProfile.emails.isEmpty)
     }
   }
@@ -941,8 +941,8 @@ struct RouterTests {
           from: getResponse.body
         )
         #expect(getProfile.userID == newUser.userID)
-        #expect(getProfile.userProfile?.value1.name == "Alice")
-        #expect(getProfile.userProfile?.value1.createdAt == createdProfile.createdAt)
+        #expect(getProfile.userProfile?.name == "Alice")
+        #expect(getProfile.userProfile?.createdAt == createdProfile.createdAt)
         #expect(getProfile.emails.isEmpty)
       }
 
