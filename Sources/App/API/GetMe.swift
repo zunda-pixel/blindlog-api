@@ -59,7 +59,7 @@ extension Components.Schemas.Me {
   fileprivate init(userID: UUID, profile: Components.Schemas.UserProfile?, emails: [UserEmail]) {
     self.init(
       userID: userID.uuidString,
-      userProfile: profile.map { .init(value1: .init($0)) },
+      userProfile: profile.map { .init($0) },
       emails: emails.map { .init($0) }
     )
   }
