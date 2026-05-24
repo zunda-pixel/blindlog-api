@@ -171,35 +171,15 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with the current user state.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/Me'
         '400':
           description: A bad request
         '401':
           description: Not Authorization
-        '404':
-          description: Not found User
-  /user_profile:
-    get:
-      operationId: getUserProfile
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: A success response with the latest user profile.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfile'
-        '400':
-          description: A bad request
-        '401':
-          description: Not Authorization
-        '404':
-          description: Not found User Profile
     post:
       operationId: createUserProfile
       security:
@@ -221,6 +201,32 @@ paths:
           description: A bad request
         '401':
           description: Not Authorization
+  /user_profile/{user_id}:
+    get:
+      operationId: getUserProfile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User id.
+      responses:
+        '200':
+          description: A success response with the latest user profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found User Profile
   /images/upload_url:
     post:
       operationId: createImageUploadURL
@@ -394,10 +400,12 @@ components:
         name:
           type: string
           description: User profile name.
-        imageID:
-          type: string
-          format: uuid
-          description: Image id for the profile image.
+        imageURL:
+          type:
+            - string
+            - 'null'
+          format: uri
+          description: Image URL for the profile image.
         createdAt:
           type: number
           format: double
@@ -406,6 +414,62 @@ components:
         - id
         - userID
         - name
+        - createdAt
+    Me:
+      type: object
+      description: A value with the current user profile and registered email addresses.
+      properties:
+        userID:
+          type: string
+          format: uuid
+          description: User id.
+        userProfile:
+          allOf:
+            - $ref: '#/components/schemas/MeUserProfile'
+          nullable: true
+          description: Current user profile, or null when it is not created yet.
+        emails:
+          type: array
+          description: Registered email addresses.
+          items:
+            $ref: '#/components/schemas/Email'
+      required:
+        - userID
+        - emails
+    MeUserProfile:
+      type: object
+      description: A current user profile summary for the authenticated user.
+      properties:
+        name:
+          type: string
+          description: User profile name.
+        imageURL:
+          type:
+            - string
+            - 'null'
+          format: uri
+          description: Image URL for the profile image.
+        createdAt:
+          type: number
+          format: double
+          description: User profile created date.
+      required:
+        - name
+        - createdAt
+    Email:
+      type: object
+      description: A registered email address.
+      properties:
+        email:
+          type: string
+          format: email
+          description: Registered email address.
+        createdAt:
+          type: number
+          format: double
+          description: Registered email created date.
+      required:
+        - email
         - createdAt
     CreateUserProfileRequest:
       type: object
