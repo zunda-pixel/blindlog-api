@@ -424,9 +424,7 @@ components:
           format: uuid
           description: User id.
         userProfile:
-          allOf:
-            - $ref: '#/components/schemas/MeUserProfile'
-          nullable: true
+          $ref: '#/components/schemas/MeUserProfile'
           description: Current user profile, or null when it is not created yet.
         emails:
           type: array
@@ -435,9 +433,12 @@ components:
             $ref: '#/components/schemas/Email'
       required:
         - userID
+        - userProfile
         - emails
     MeUserProfile:
-      type: object
+      type:
+        - object
+        - 'null'
       description: A current user profile summary for the authenticated user.
       properties:
         name:
