@@ -171,7 +171,7 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: A success response with the latest user profile.
+          description: A success response with the current user state.
           content:
             application/json:
               schema:
@@ -180,8 +180,6 @@ paths:
           description: A bad request
         '401':
           description: Not Authorization
-        '404':
-          description: Not found User Profile
     post:
       operationId: createUserProfile
       security:
@@ -419,14 +417,27 @@ components:
       type: object
       description: A value with the current user profile and registered email addresses.
       properties:
-        id:
-          type: string
-          format: uuid
-          description: User profile id.
         userID:
           type: string
           format: uuid
           description: User id.
+        userProfile:
+          allOf:
+            - $ref: '#/components/schemas/MeUserProfile'
+          nullable: true
+          description: Current user profile, or null when it is not created yet.
+        emails:
+          type: array
+          description: Registered email addresses.
+          items:
+            $ref: '#/components/schemas/Email'
+      required:
+        - userID
+        - emails
+    MeUserProfile:
+      type: object
+      description: A current user profile summary for the authenticated user.
+      properties:
         name:
           type: string
           description: User profile name.
@@ -438,17 +449,9 @@ components:
           type: number
           format: double
           description: User profile created date.
-        emails:
-          type: array
-          description: Registered email addresses.
-          items:
-            $ref: '#/components/schemas/Email'
       required:
-        - id
-        - userID
         - name
         - createdAt
-        - emails
     Email:
       type: object
       description: A registered email address.

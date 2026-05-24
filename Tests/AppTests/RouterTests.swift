@@ -104,9 +104,9 @@ struct RouterTests {
         Components.Schemas.Me.self,
         from: getResponse.body
       )
-      #expect(getProfile.id == createdProfile.id)
       #expect(getProfile.userID == newUser.userID)
-      #expect(getProfile.name == "Alice")
+      #expect(getProfile.userProfile?.value1.name == "Alice")
+      #expect(getProfile.userProfile?.value1.createdAt == createdProfile.createdAt)
       #expect(getProfile.emails.isEmpty)
     }
   }
@@ -158,6 +158,23 @@ struct RouterTests {
         Components.Schemas.UserToken.self,
         from: newUserResponse.body
       )
+
+      let missingMeResponse = try await client.execute(
+        uri: "/me",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      )
+      #expect(missingMeResponse.status == .ok)
+      let missingMe = try JSONDecoder().decode(
+        Components.Schemas.Me.self,
+        from: missingMeResponse.body
+      )
+      #expect(missingMe.userID == newUser.userID)
+      #expect(missingMe.userProfile == nil)
+      #expect(missingMe.emails.isEmpty)
 
       let missingResponse = try await client.execute(
         uri: "/user_profile/\(newUser.userID)",
@@ -923,8 +940,9 @@ struct RouterTests {
           Components.Schemas.Me.self,
           from: getResponse.body
         )
-        #expect(getProfile.id == createdProfile.id)
         #expect(getProfile.userID == newUser.userID)
+        #expect(getProfile.userProfile?.value1.name == "Alice")
+        #expect(getProfile.userProfile?.value1.createdAt == createdProfile.createdAt)
         #expect(getProfile.emails.isEmpty)
       }
 

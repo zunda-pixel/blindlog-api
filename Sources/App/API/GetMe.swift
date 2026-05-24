@@ -12,23 +12,6 @@ extension API {
       return .unauthorized
     }
 
-    let profile: Components.Schemas.UserProfile?
-    do {
-      profile = try await getProfile(userID: userID)
-    } catch {
-      AppRequestContext.current?.logger.appError(
-        eventName: "user.profile_read_failed",
-        "Failed to fetch user profile",
-        metadata: AppLogMetadata.userID(userID).merging([
-          "db.operation": .string("select")
-        ]) { _, new in new },
-        error: error
-      )
-      return .badRequest
-    }
-
-    guard let profile else { return .notFound }
-
     let emails: [UserEmail]
     do {
       emails = try await registeredEmails(userID: userID)
@@ -44,7 +27,22 @@ extension API {
       return .badRequest
     }
 
-    return .ok(.init(body: .json(.init(profile, emails: emails))))
+    let profile: Components.Schemas.UserProfile?
+    do {
+      profile = try await getProfile(userID: userID)
+    } catch {
+      AppRequestContext.current?.logger.appError(
+        eventName: "user.profile_read_failed",
+        "Failed to fetch user profile",
+        metadata: AppLogMetadata.userID(userID).merging([
+          "db.operation": .string("select")
+        ]) { _, new in new },
+        error: error
+      )
+      return .badRequest
+    }
+
+    return .ok(.init(body: .json(.init(userID: userID, profile: profile, emails: emails))))
   }
 
   fileprivate func registeredEmails(userID: UUID) async throws -> [UserEmail] {
@@ -58,14 +56,21 @@ extension API {
 }
 
 extension Components.Schemas.Me {
-  fileprivate init(_ profile: Components.Schemas.UserProfile, emails: [UserEmail]) {
+  fileprivate init(userID: UUID, profile: Components.Schemas.UserProfile?, emails: [UserEmail]) {
     self.init(
-      id: profile.id,
-      userID: profile.userID,
+      userID: userID.uuidString,
+      userProfile: profile.map { .init(value1: .init($0)) },
+      emails: emails.map { .init($0) }
+    )
+  }
+}
+
+extension Components.Schemas.MeUserProfile {
+  fileprivate init(_ profile: Components.Schemas.UserProfile) {
+    self.init(
       name: profile.name,
       imageURL: profile.imageURL,
-      createdAt: profile.createdAt,
-      emails: emails.map { .init($0) }
+      createdAt: profile.createdAt
     )
   }
 }
