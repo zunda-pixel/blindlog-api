@@ -103,8 +103,6 @@ extension API {
 
         try await PasskeyCredential.insert {
           passkeyCredential
-        } onConflict: {
-          $0.id
         }
         .execute(db)
 
