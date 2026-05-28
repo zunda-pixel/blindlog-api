@@ -1,7 +1,14 @@
 # Blindlog API Server
 
+> [!WARNING]
+> This API/service has not been released yet. Destructive changes can happen when they better align the schema and implementation with the intended design.
+
 - https://api.blindlog.me/
 - Documents https://api.blindlog.me/documents
+
+## Development Policy
+
+In the database design of this repository, an immutable data model is adopted as a general rule.
 
 ## Run on Local
 
