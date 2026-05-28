@@ -4,6 +4,7 @@ import Hummingbird
 import Records
 import SQLKit
 import StructuredQueriesPostgres
+import UUIDV7
 import Valkey
 import WebAuthn
 
@@ -67,13 +68,25 @@ extension API {
       return .badRequest
     }
 
-    // 3. Load stored credential
+    // 3. Load stored credential and the highest observed sign counter
     let passkeyCredential: PasskeyCredential?
+    let signCount: Int64?
     do {
-      passkeyCredential = try await database.read { db in
-        try await PasskeyCredential
+      (passkeyCredential, signCount) = try await database.read { db in
+        let passkeyCredential =
+          try await PasskeyCredential
           .where { $0.id.eq(credential.id.asString()) }
           .fetchOne(db)
+
+        let signCount =
+          try await PasskeyCredentialSignCount
+          .where { $0.passkeyCredentialID.eq(credential.id.asString()) }
+          .order { ($0.signCount.desc(), $0.id.desc()) }
+          .select { $0.signCount }
+          .limit(1)
+          .fetchOne(db)
+
+        return (passkeyCredential, signCount)
       }
     } catch {
       AppRequestContext.current?.logger.appError(
@@ -87,12 +100,11 @@ extension API {
       return .badRequest
     }
 
-    guard let passkeyCredential else {
+    guard let passkeyCredential, let signCount else {
       return .badRequest
     }
 
     let userID = passkeyCredential.userID
-    let signCount = passkeyCredential.signCount
 
     // 4. Verify assertion with WebAuthn
     let verifiedAuthentication: VerifiedAuthentication
@@ -115,24 +127,24 @@ extension API {
       return .badRequest
     }
 
-    // 5. Update stored sign counter
+    // 5. Append observed sign counter
     do {
       try await database.write { db in
-        try await PasskeyCredential
-          .update {
-            $0.signCount = #sql(
-              "GREATEST(\($0.signCount), \(Int64(verifiedAuthentication.newSignCount)))"
-            )
-          }
-          .where { $0.id.eq(verifiedAuthentication.credentialID.asString()) }
-          .execute(db)
+        try await PasskeyCredentialSignCount.insert {
+          PasskeyCredentialSignCount(
+            id: UUID(uuidString: UUID.uuidV7String())!,
+            passkeyCredentialID: verifiedAuthentication.credentialID.asString(),
+            signCount: Int64(verifiedAuthentication.newSignCount)
+          )
+        }
+        .execute(db)
       }
     } catch {
       AppRequestContext.current?.logger.appError(
-        eventName: "auth.passkey.sign_count_update_failed",
-        "Failed to update stored sign counter",
+        eventName: "auth.passkey.sign_count_append_failed",
+        "Failed to append observed sign counter",
         metadata: AppLogMetadata.userID(userID).merging([
-          "db.operation": .string("update"),
+          "db.operation": .string("insert"),
           "webauthn.sign_count": .stringConvertible(signCount),
           "webauthn.new_sign_count": .stringConvertible(verifiedAuthentication.newSignCount),
         ]) { _, new in new },

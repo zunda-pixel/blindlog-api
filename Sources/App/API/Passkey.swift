@@ -5,6 +5,7 @@ import PostgresNIO
 import Records
 import SQLKit
 import StructuredQueriesPostgres
+import UUIDV7
 import Valkey
 import WebAuthn
 
@@ -94,15 +95,23 @@ extension API {
     // 4. Persist credential metadata
     do {
       try await database.write { db in
+        let passkeyCredential = PasskeyCredential(
+          id: registrationCredential.id.asString(),
+          userID: userID,
+          publicKey: Data(credential.publicKey)
+        )
+
         try await PasskeyCredential.insert {
-          PasskeyCredential(
-            id: registrationCredential.id.asString(),
-            userID: userID,
-            publicKey: Data(credential.publicKey),
+          passkeyCredential
+        }
+        .execute(db)
+
+        try await PasskeyCredentialSignCount.insert {
+          PasskeyCredentialSignCount(
+            id: UUID(uuidString: UUID.uuidV7String())!,
+            passkeyCredentialID: passkeyCredential.id,
             signCount: Int64(credential.signCount)
           )
-        } onConflict: {
-          $0.id
         }
         .execute(db)
       }
