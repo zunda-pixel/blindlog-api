@@ -58,7 +58,7 @@ CREATE TABLE public.user_profiles (
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT user_profiles_pk PRIMARY KEY (id),
   CONSTRAINT user_profiles_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE RESTRICT,
-  CONSTRAINT user_profiles_image_fk FOREIGN KEY (image_id) REFERENCES public.images (id),
+  CONSTRAINT user_profiles_image_fk FOREIGN KEY (image_id) REFERENCES public.images (id) ON DELETE RESTRICT,
   CONSTRAINT user_profiles_name_length CHECK (char_length(trim(name)) BETWEEN 1 AND 100)
 );
 
