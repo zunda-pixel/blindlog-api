@@ -73,11 +73,13 @@ extension API {
     let signCount: Int64?
     do {
       (passkeyCredential, signCount) = try await database.read { db in
-        let passkeyCredential = try await PasskeyCredential
+        let passkeyCredential =
+          try await PasskeyCredential
           .where { $0.id.eq(credential.id.asString()) }
           .fetchOne(db)
 
-        let signCount = try await PasskeyCredentialSignCount
+        let signCount =
+          try await PasskeyCredentialSignCount
           .where { $0.passkeyCredentialID.eq(credential.id.asString()) }
           .order { ($0.signCount.desc(), $0.id.desc()) }
           .select { $0.signCount }
@@ -135,7 +137,7 @@ extension API {
             signCount: Int64(verifiedAuthentication.newSignCount)
           )
         }
-          .execute(db)
+        .execute(db)
       }
     } catch {
       AppRequestContext.current?.logger.appError(
