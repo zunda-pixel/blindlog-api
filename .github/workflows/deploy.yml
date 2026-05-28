@@ -24,6 +24,10 @@ jobs:
       REGION: ${{ vars.GOOGLE_CLOUD_REGION }}
       SERVICE: ${{ vars.GOOGLE_CLOUD_SERVICE_NAME }}
       REPO: ${{ vars.GOOGLE_CLOUD_ARTIFACT_REPO }}
+      POSTGRES_HOSTNAME: ${{ vars.POSTGRES_HOSTNAME }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+      POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+      ATLAS_BASELINE_VERSION: ${{ vars.ATLAS_BASELINE_VERSION }}
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -51,6 +55,34 @@ jobs:
           tags: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.SERVICE }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Install Atlas Community
+        run: curl -sSf https://atlasgo.sh | sh -s -- --community
+
+      - name: Apply database migrations
+        run: |
+          for name in POSTGRES_HOSTNAME POSTGRES_USER POSTGRES_DB; do
+            if [ -z "${!name}" ]; then
+              echo "$name repository variable is required" >&2
+              exit 1
+            fi
+          done
+
+          POSTGRES_PASSWORD="$(gcloud secrets versions access latest --secret=POSTGRES_PASSWORD --project="$PROJECT_ID")"
+          echo "::add-mask::$POSTGRES_PASSWORD"
+          POSTGRES_USER_ENCODED="$(jq -rn --arg value "$POSTGRES_USER" '$value|@uri')"
+          POSTGRES_PASSWORD_ENCODED="$(jq -rn --arg value "$POSTGRES_PASSWORD" '$value|@uri')"
+          POSTGRES_DB_ENCODED="$(jq -rn --arg value "$POSTGRES_DB" '$value|@uri')"
+
+          baseline_args=()
+          if [ -n "$ATLAS_BASELINE_VERSION" ]; then
+            baseline_args=(--baseline "$ATLAS_BASELINE_VERSION")
+          fi
+
+          atlas migrate apply \
+            --env production \
+            --var "database_url=postgres://${POSTGRES_USER_ENCODED}:${POSTGRES_PASSWORD_ENCODED}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB_ENCODED}?sslmode=require" \
+            "${baseline_args[@]}"
 
       - name: Update Cloud Run service image
         run: |
