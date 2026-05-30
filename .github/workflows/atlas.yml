@@ -1,0 +1,46 @@
+name: Atlas
+
+on:
+  pull_request:
+    paths:
+      - "Database/schema.sql"
+      - "Database/extensions.sql"
+      - "Database/migrations/**"
+      - "atlas.hcl"
+      - ".github/workflows/atlas.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: dev
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ATLAS_DEV_DATABASE_URL: postgres://postgres:postgres@localhost:5432/dev?sslmode=disable&search_path=public
+    steps:
+      - name: Install Atlas Community
+        run: curl -sSf https://atlasgo.sh | sh -s -- --community
+
+      - uses: actions/checkout@v6.0.2
+
+      - name: Prepare Atlas dev database
+        run: psql "postgres://postgres:postgres@localhost:5432/dev?sslmode=disable" -f Database/extensions.sql
+
+      - name: Check migration diff
+        run: |
+          atlas migrate diff schema --env local --var "dev_url=$ATLAS_DEV_DATABASE_URL"
+          git diff --exit-code -- Database/migrations

@@ -21,6 +21,12 @@ resource "google_secret_manager_secret_iam_member" "runtime_access" {
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "deployer_postgres_password_access" {
+  secret_id = google_secret_manager_secret.app["POSTGRES_PASSWORD"].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.deployer.email}"
+}
+
 resource "google_secret_manager_secret" "otel_collector_config" {
   depends_on = [google_project_service.required]
 
