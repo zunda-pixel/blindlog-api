@@ -81,7 +81,7 @@ jobs:
 
           atlas migrate apply \
             --env production \
-            --var "database_url=postgres://${POSTGRES_USER_ENCODED}:${POSTGRES_PASSWORD_ENCODED}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB_ENCODED}?sslmode=require" \
+            --var "database_url=postgres://${POSTGRES_USER_ENCODED}:${POSTGRES_PASSWORD_ENCODED}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB_ENCODED}?sslmode=require&search_path=public" \
             "${baseline_args[@]}"
 
       - name: Update Cloud Run service image
