@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hummingbird-project/hummingbird.git",
       "state" : {
-        "revision" : "2f407402799c2217df69b01582f3a44856fef012",
-        "version" : "2.24.0"
+        "revision" : "eebb5ecf8a39beea87401f014fdf87f0ce5b159d",
+        "version" : "2.25.0"
       }
     },
     {
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hummingbird-project/hummingbird-postgres.git",
       "state" : {
-        "revision" : "27cb90b31e2551760514d9eac000849c7f7d09af",
-        "version" : "1.0.0"
+        "revision" : "c1674a4eaef71440df8a05538d937eb0e6609227",
+        "version" : "1.1.0"
       }
     },
     {
@@ -213,8 +213,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
       "state" : {
-        "revision" : "5a3825302b1a0d744183200915a47b508c828e6f",
-        "version" : "1.3.2"
+        "revision" : "a90e2e40a7a840a853dd29e57cbef5dbb72c9d5b",
+        "version" : "1.4.0"
       }
     },
     {
@@ -303,8 +303,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log.git",
       "state" : {
-        "revision" : "7dc6101ae4dbe95cd3bc9cebad3b7cf8e49a7a63",
-        "version" : "1.13.0"
+        "revision" : "2aed77ae5ec9a86d8fe42c12275e4c2653a286ee",
+        "version" : "1.13.1"
       }
     },
     {
@@ -430,7 +430,7 @@
       "location" : "https://github.com/zunda-pixel/swift-records.git",
       "state" : {
         "branch" : "fix-build-error",
-        "revision" : "95384b90a40f44c8cf6babccca259a49cf2ea986"
+        "revision" : "5a555bf00542b3b5568570ee2515e5d07ec83c75"
       }
     },
     {
@@ -465,8 +465,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/zunda-pixel/swift-structured-queries-postgres",
       "state" : {
-        "branch" : "fix-build-error",
-        "revision" : "a1f68bb1312164baf664ae5cd7e214e0fe464162"
+        "branch" : "fix/issue-5",
+        "revision" : "604a03cc5a52ec23931c6ff460486cd72b03ade4"
       }
     },
     {
@@ -481,7 +481,7 @@
     {
       "identity" : "swift-system",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-system",
+      "location" : "https://github.com/apple/swift-system.git",
       "state" : {
         "revision" : "7c6ad0fc39d0763e0b699210e4124afd5041c5df",
         "version" : "1.6.4"
