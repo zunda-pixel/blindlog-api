@@ -1,1114 +1,467 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="utf-8">
   <title>BlindLog Controls</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root { color-scheme: light dark; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f8fafc;
-      color: #0f172a;
-      line-height: 1.5;
-    }
-    main {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 2.5rem 1.5rem;
-    }
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 1.5rem;
-    }
-    section {
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
-    }
-    h2 {
-      margin: 0 0 0.75rem;
-      font-size: 1.2rem;
-    }
-    button {
-      appearance: none;
-      border: none;
-      border-radius: 999px;
-      padding: 0.6rem 1.4rem;
-      background: #2563eb;
-      color: #ffffff;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s ease, transform 0.1s ease;
-    }
-    button:disabled {
-      background: #9ca3af;
-      cursor: progress;
-    }
-    button:not(:disabled):hover {
-      background: #1d4ed8;
-    }
-    button:not(:disabled):active {
-      transform: scale(0.97);
-    }
-    input {
-      width: 100%;
-      padding: 0.6rem 0.75rem;
-      border-radius: 10px;
-      border: 1px solid #cbd5f5;
-      background: #ffffff;
-      font-size: 1rem;
-      color: inherit;
-    }
-    input:focus {
-      outline: none;
-      border-color: #60a5fa;
-      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
-    }
-    img {
-      display: block;
-      max-width: 160px;
-      max-height: 160px;
-      border-radius: 12px;
-      object-fit: cover;
-    }
-    img[hidden] {
-      display: none;
-    }
-    .profile-result {
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid #e2e8f0;
-    }
-    .profile-result p {
-      margin: 0.35rem 0 0;
-      font-size: 0.95rem;
-    }
-    .email-list {
-      margin: 1rem 0 0;
-      padding-left: 1.25rem;
-    }
-    .email-list:empty {
-      display: none;
-    }
-    .email-list li {
-      margin: 0.25rem 0;
-      word-break: break-all;
-    }
-    .field {
-      margin-bottom: 0.9rem;
-    }
-    .field label {
-      display: block;
-      margin-bottom: 0.35rem;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-    .status {
-      min-height: 1.25rem;
-      margin-top: 0.75rem;
-      font-size: 0.95rem;
-      font-weight: 500;
-    }
-    pre {
-      background: #0f172a;
-      color: #e2e8f0;
-      border-radius: 12px;
-      padding: 1rem;
-      overflow-x: auto;
-      font-size: 0.9rem;
-    }
-    @media (prefers-color-scheme: dark) {
-      body { background: #0f172a; color: #e2e8f0; }
-      section { background: #1f2937; box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45); }
-      button { background: #38bdf8; color: #0f172a; }
-      button:not(:disabled):hover { background: #0ea5e9; }
-      input { background: #111827; border-color: #334155; color: #e2e8f0; }
-      input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.4); }
-      pre { background: #020617; color: #cbd5f5; }
-    }
-  </style>
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main>
-    <h1>BlindLog Passkey Playground</h1>
+  <a class="skip-link" href="#main-content">メインコンテンツへスキップ</a>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">🍷</span>
+      <span>
+        BlindLog
+        <span class="brand__sub">Playground</span>
+      </span>
+    </div>
 
-    <section>
-      <h2>ユーザー作成</h2>
-      <p>匿名ユーザーを作成して認証トークンを取得します。</p>
-      <button id="create-user" type="button">ユーザー作成</button>
-      <p id="create-status" class="status" role="status"></p>
-    </section>
+    <button class="session__badge" id="session-badge" type="button"
+            data-state="out" popovertarget="session-pop">● 未ログイン</button>
 
-    <section>
-      <h2>メールアドレス認証</h2>
-      <p>トークンを使って確認メールを送り、受け取ったコードで認証します。</p>
-      <div class="field">
-        <label for="email-input">メールアドレス</label>
-        <input id="email-input" type="email" autocomplete="email" placeholder="user@example.com">
-      </div>
-      <button id="send-email" type="button">確認メール送信</button>
-      <p id="email-start-status" class="status" role="status"></p>
-      <div class="field">
-        <label for="email-code">確認コード</label>
-        <input id="email-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6桁のコード">
-      </div>
-      <button id="confirm-email" type="button">コードを送信</button>
-      <p id="email-confirm-status" class="status" role="status"></p>
-    </section>
+    <div class="tablist" role="tablist" aria-label="セクション">
+      <button role="tab" id="tab-account" class="tab" aria-controls="account" aria-selected="true" tabindex="0">アカウント</button>
+      <button role="tab" id="tab-wine" class="tab" aria-controls="wine" aria-selected="false" tabindex="-1">Wine 参照</button>
+      <button role="tab" id="tab-events" class="tab" aria-controls="events" aria-selected="false" tabindex="-1">イベント</button>
+    </div>
+  </header>
 
-    <section>
-      <h2>登録メールアドレス</h2>
-      <p>現在のトークンに紐づく登録済みメールアドレスを取得します。</p>
-      <button id="load-emails" type="button">メールアドレス取得</button>
-      <p id="emails-status" class="status" role="status"></p>
-      <ul id="emails-list" class="email-list"></ul>
-    </section>
-
-    <section>
-      <h2>Passkey追加</h2>
-      <p>既存のトークンでチャレンジを取得し、Passkey を登録します。</p>
-      <button id="add-passkey" type="button">Passkey追加</button>
-      <p id="passkey-status" class="status" role="status"></p>
-    </section>
-
-    <section>
-      <h2>Passkeyログイン</h2>
-      <p>Passkey を使って認証し、新しいトークンを取得します。</p>
-      <button id="login" type="button">Passkeyでログイン</button>
-      <p id="login-status" class="status" role="status"></p>
-    </section>
-
-    <section>
-      <h2>メールログイン</h2>
-      <p>メールアドレスにコードを送り、新しいトークンを取得します。</p>
-      <div class="field">
-        <label for="email-login-input">メールアドレス</label>
-        <input id="email-login-input" type="email" autocomplete="email" placeholder="user@example.com">
-      </div>
-      <button id="start-email-login" type="button">ログインコード送信</button>
-      <div class="field">
-        <label for="email-login-code">確認コード</label>
-        <input id="email-login-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6桁のコード">
-      </div>
-      <button id="complete-email-login" type="button">コードでログイン</button>
-      <p id="email-login-status" class="status" role="status"></p>
-    </section>
-
-    <section>
-      <h2>プロフィール画像</h2>
-      <p>画像をアップロードし、プロフィール名と一緒に最新プロフィールへ登録します。</p>
-      <div class="field">
-        <label for="profile-name-input">プロフィール名</label>
-        <input id="profile-name-input" type="text" autocomplete="name" maxlength="100" placeholder="表示名">
-      </div>
-      <div class="field">
-        <label for="profile-image-file">画像ファイル</label>
-        <input id="profile-image-file" type="file" accept="image/*">
-      </div>
-      <div class="field">
-        <img id="profile-image-preview" alt="選択したプロフィール画像のプレビュー" hidden>
-      </div>
-      <button id="upload-profile-image" type="button">画像を登録</button>
-      <p id="profile-image-status" class="status" role="status"></p>
-      <div id="current-profile" class="profile-result" hidden>
-        <img id="current-profile-image" alt="プロフィールに設定した画像">
-        <p id="current-profile-name"></p>
-        <p id="current-profile-image-url"></p>
-      </div>
-    </section>
-
-    <section>
-      <h2>ログアウト</h2>
-      <p>保持しているセッション情報を破棄します。</p>
-      <button id="logout" type="button">ログアウト</button>
-      <p id="logout-status" class="status" role="status"></p>
-    </section>
-
-    <section>
-      <h2>セッション情報</h2>
+  <div id="session-pop" popover>
+    <h2 class="session-pop__title">セッション情報</h2>
+    <dl class="session__facts">
+      <dt>userID</dt><dd id="session-user-id">—</dd>
+      <dt>token</dt><dd id="session-token">なし</dd>
+      <dt>メール</dt><dd id="session-emails">0</dd>
+      <dt>プロフィール</dt><dd id="session-profile">—</dd>
+    </dl>
+    <details>
+      <summary>セッション JSON</summary>
       <pre id="session-output">セッションがありません。</pre>
+    </details>
+    <button id="logout" class="btn-danger" type="button">ログアウト</button>
+    <p id="logout-status" class="status" role="status"></p>
+  </div>
+
+  <main id="main-content" tabindex="-1">
+    <h1 class="sr-only">BlindLog Passkey Playground</h1>
+
+    <!-- ============ アカウント ============ -->
+    <section class="tabpanel" id="account" role="tabpanel" aria-labelledby="tab-account" tabindex="0">
+      <h2 class="category__title sr-only" id="account-title">アカウント</h2>
+
+      <section class="card">
+        <h3>ユーザー作成</h3>
+        <p>匿名ユーザーを作成して認証トークンを取得します。</p>
+        <div class="btn-row">
+          <button id="create-user" type="button">ユーザー作成</button>
+        </div>
+        <p id="create-status" class="status" role="status"></p>
+      </section>
+
+      <section class="card">
+        <h3>メールアドレス認証</h3>
+        <p>トークンを使って確認メールを送り、受け取ったコードで認証します。</p>
+        <div class="field">
+          <label for="email-input">メールアドレス</label>
+          <input id="email-input" type="email" autocomplete="email" placeholder="user@example.com">
+        </div>
+        <div class="btn-row">
+          <button id="send-email" type="button">確認メール送信</button>
+        </div>
+        <p id="email-start-status" class="status" role="status"></p>
+        <div class="field">
+          <label for="email-code">確認コード</label>
+          <input id="email-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6桁のコード">
+        </div>
+        <div class="btn-row">
+          <button id="confirm-email" type="button">コードを送信</button>
+        </div>
+        <p id="email-confirm-status" class="status" role="status"></p>
+      </section>
+
+      <section class="card">
+        <h3>登録メールアドレス</h3>
+        <p>現在のトークンに紐づく登録済みメールアドレスを取得します。</p>
+        <div class="btn-row">
+          <button id="load-emails" type="button">メールアドレス取得</button>
+        </div>
+        <p id="emails-status" class="status" role="status"></p>
+        <ul id="emails-list" class="email-list"></ul>
+      </section>
+
+      <section class="card">
+        <h3>Passkey追加</h3>
+        <p>既存のトークンでチャレンジを取得し、Passkey を登録します。</p>
+        <div class="btn-row">
+          <button id="add-passkey" type="button">Passkey追加</button>
+        </div>
+        <p id="passkey-status" class="status" role="status"></p>
+      </section>
+
+      <section class="card">
+        <h3>Passkeyログイン</h3>
+        <p>Passkey を使って認証し、新しいトークンを取得します。</p>
+        <div class="btn-row">
+          <button id="login" type="button">Passkeyでログイン</button>
+        </div>
+        <p id="login-status" class="status" role="status"></p>
+      </section>
+
+      <section class="card">
+        <h3>メールログイン</h3>
+        <p>メールアドレスにコードを送り、新しいトークンを取得します。</p>
+        <div class="field">
+          <label for="email-login-input">メールアドレス</label>
+          <input id="email-login-input" type="email" autocomplete="email" placeholder="user@example.com">
+        </div>
+        <div class="btn-row">
+          <button id="start-email-login" type="button">ログインコード送信</button>
+        </div>
+        <div class="field">
+          <label for="email-login-code">確認コード</label>
+          <input id="email-login-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6桁のコード">
+        </div>
+        <div class="btn-row">
+          <button id="complete-email-login" type="button">コードでログイン</button>
+        </div>
+        <p id="email-login-status" class="status" role="status"></p>
+      </section>
+
+      <section class="card">
+        <h3>プロフィール画像</h3>
+        <p>画像をアップロードし、プロフィール名と一緒に最新プロフィールへ登録します。</p>
+        <div class="field">
+          <label for="profile-name-input">プロフィール名</label>
+          <input id="profile-name-input" type="text" autocomplete="name" maxlength="100" placeholder="表示名">
+        </div>
+        <div class="field">
+          <label for="profile-image-file">画像ファイル</label>
+          <input id="profile-image-file" type="file" accept="image/*">
+        </div>
+        <div class="field">
+          <img id="profile-image-preview" class="preview" alt="選択したプロフィール画像のプレビュー" hidden>
+        </div>
+        <div class="btn-row">
+          <button id="upload-profile-image" type="button">画像を登録</button>
+        </div>
+        <p id="profile-image-status" class="status" role="status"></p>
+        <div id="current-profile" class="profile-result" hidden>
+          <img id="current-profile-image" class="preview" alt="プロフィールに設定した画像">
+          <p id="current-profile-name"></p>
+          <p id="current-profile-image-url"></p>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============ Wine 参照データ ============ -->
+    <section class="tabpanel" id="wine" role="tabpanel" aria-labelledby="tab-wine" tabindex="0" hidden>
+      <h2 class="category__title sr-only" id="wine-title">Wine 参照データ</h2>
+
+      <section class="card">
+        <h3>参照データ取得</h3>
+        <p>正解・回答フォームで使う wine の ID を取得します。品種・地域を読み込むと下のフォームの選択肢に反映されます。</p>
+        <div class="btn-row">
+          <button id="wine-styles" class="btn-ghost" type="button">スタイル</button>
+          <button id="wine-varieties" class="btn-ghost" type="button">品種</button>
+          <button id="wine-region-types" class="btn-ghost" type="button">地域タイプ</button>
+          <button id="wine-regions" class="btn-ghost" type="button">地域</button>
+        </div>
+        <p id="wine-status" class="status" role="status"></p>
+        <div id="wine-result" class="wine-result" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <!-- ============ イベント ============ -->
+    <section class="tabpanel" id="events" role="tabpanel" aria-labelledby="tab-events" tabindex="0" hidden>
+      <h2 class="category__title sr-only" id="events-title">イベント</h2>
+
+      <section class="card">
+        <div class="card-head">
+          <h3>イベント一覧</h3>
+          <div class="btn-row">
+            <button id="event-add" type="button">+ 追加</button>
+            <button id="events-list" class="btn-ghost" type="button">再読み込み</button>
+          </div>
+        </div>
+        <p>自分が閲覧できるイベントの一覧です。各イベントの「編集」から内容を変更できます。</p>
+        <p id="events-list-status" class="status" role="status"></p>
+        <div id="events-list-result" class="events-list" aria-live="polite"></div>
+      </section>
+
+      <dialog id="event-dialog" class="dialog">
+        <form method="dialog" class="dialog__head">
+          <h3 id="event-dialog-title">イベント作成</h3>
+          <button class="dialog__close" type="submit" value="close" aria-label="閉じる">×</button>
+        </form>
+        <div class="dialog__body">
+        <div class="field">
+          <label for="event-title">タイトル *</label>
+          <input id="event-title" type="text" required placeholder="ブラインドテイスティング会">
+        </div>
+        <div class="field">
+          <label for="event-body">本文 *</label>
+          <textarea id="event-body" required placeholder="イベントの説明"></textarea>
+        </div>
+        <div class="field">
+          <label for="event-image-id">画像ID (任意, uuid)</label>
+          <input id="event-image-id" type="text" placeholder="画像API で取得した imageID">
+        </div>
+        <div class="field">
+          <label for="event-venue-name">会場名 *</label>
+          <input id="event-venue-name" type="text" required placeholder="会場名">
+        </div>
+
+        <p class="subhead">会場住所</p>
+        <div class="field">
+          <label for="event-address-line1">住所1 *</label>
+          <input id="event-address-line1" type="text" required placeholder="番地・建物名">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="event-address-line2">住所2 (任意)</label>
+            <input id="event-address-line2" type="text">
+          </div>
+          <div class="field">
+            <label for="event-locality">市区町村 (任意)</label>
+            <input id="event-locality" type="text">
+          </div>
+          <div class="field">
+            <label for="event-administrative-area">都道府県 (任意)</label>
+            <input id="event-administrative-area" type="text">
+          </div>
+          <div class="field">
+            <label for="event-postal-code">郵便番号 (任意)</label>
+            <input id="event-postal-code" type="text">
+          </div>
+        </div>
+        <div class="field">
+          <label for="event-country-code">国コード * (ISO 3166-1 alpha-2)</label>
+          <input id="event-country-code" type="text" required placeholder="JP" maxlength="2">
+        </div>
+
+        <p class="subhead">座標 (任意 / 両方入力時のみ送信)</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="event-latitude">緯度</label>
+            <input id="event-latitude" type="number" step="any" placeholder="35.681">
+          </div>
+          <div class="field">
+            <label for="event-longitude">経度</label>
+            <input id="event-longitude" type="number" step="any" placeholder="139.767">
+          </div>
+        </div>
+
+        <p class="subhead">開催期間 *</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="event-period-start">開始 *</label>
+            <input id="event-period-start" type="datetime-local" required>
+          </div>
+          <div class="field">
+            <label for="event-period-end">終了 *</label>
+            <input id="event-period-end" type="datetime-local" required>
+          </div>
+        </div>
+
+        <p class="subhead">受付期間 (任意 / 両方入力時のみ送信)</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="event-registration-start">受付開始</label>
+            <input id="event-registration-start" type="datetime-local">
+          </div>
+          <div class="field">
+            <label for="event-registration-end">受付終了</label>
+            <input id="event-registration-end" type="datetime-local">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="event-answer-published-at">正解公開日時 (任意)</label>
+            <input id="event-answer-published-at" type="datetime-local">
+          </div>
+          <div class="field">
+            <label for="event-capacity">定員 (任意, 1以上)</label>
+            <input id="event-capacity" type="number" min="1" step="1">
+          </div>
+        </div>
+
+        <p class="subhead">参加費 (任意 / 両方入力時のみ送信)</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="event-fee-amount">金額 (最小通貨単位の整数。例: 円はそのまま、USDはセント)</label>
+            <input id="event-fee-amount" type="number" min="0" step="1">
+          </div>
+          <div class="field">
+            <label for="event-fee-currency">通貨コード (ISO 4217)</label>
+            <input id="event-fee-currency" type="text" placeholder="JPY" maxlength="3">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="event-visibility">公開設定 *</label>
+          <select id="event-visibility">
+            <option value="private">private</option>
+            <option value="unlisted">unlisted</option>
+            <option value="public">public</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="event-id">イベントID (uuid)</label>
+          <input id="event-id" type="text" placeholder="作成時に自動採番 / 編集時に自動入力">
+        </div>
+
+        <div class="btn-row">
+          <button id="event-create" type="button">作成</button>
+          <button id="event-update" type="button">更新</button>
+          <button id="event-get" class="btn-ghost" type="button">最新を取得</button>
+        </div>
+        <p id="event-create-status" class="status" role="status"></p>
+        <p id="event-detail-status" class="status" role="status"></p>
+        <div id="event-result" class="event-detail"></div>
+        </div>
+      </dialog>
+
+      <p class="group-label">問題・正解・回答</p>
+
+      <section class="card">
+        <h3>問題 作成 / 更新</h3>
+        <p>イベントに問題を追加・更新します。作成後は問題IDが自動入力されます。</p>
+        <div class="field">
+          <label for="question-event-id">イベントID (uuid)</label>
+          <input id="question-event-id" type="text">
+        </div>
+        <div class="field">
+          <label for="question-number">問題番号 * (1以上)</label>
+          <input id="question-number" type="number" min="1" step="1" required>
+        </div>
+        <div class="field">
+          <label for="question-image-id">画像ID (任意, uuid)</label>
+          <input id="question-image-id" type="text">
+        </div>
+        <div class="field">
+          <label for="question-note">メモ (任意)</label>
+          <textarea id="question-note"></textarea>
+        </div>
+        <div class="btn-row">
+          <button id="question-create" type="button">問題作成</button>
+        </div>
+        <div class="field">
+          <label for="question-id">問題ID (uuid)</label>
+          <input id="question-id" type="text" placeholder="作成後に自動入力されます">
+        </div>
+        <div class="btn-row">
+          <button id="question-update" type="button">問題更新</button>
+        </div>
+        <p id="question-status" class="status" role="status"></p>
+        <pre id="question-result" class="result"></pre>
+      </section>
+
+      <section class="card">
+        <h3>正解 作成 / 更新</h3>
+        <p>問題の正解を登録・更新します。地域・品種は「Wine 参照データ」を読み込むと選択肢に反映されます（品種は1つ以上必須）。</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="answer-event-id">イベントID (uuid)</label>
+            <input id="answer-event-id" type="text">
+          </div>
+          <div class="field">
+            <label for="answer-question-id">問題ID (uuid)</label>
+            <input id="answer-question-id" type="text">
+          </div>
+        </div>
+        <div class="field">
+          <label for="answer-wine-style-id">スタイルID (任意, uuid)</label>
+          <input id="answer-wine-style-id" type="text">
+        </div>
+        <div class="field">
+          <label for="answer-wine-region-id">地域 (任意)</label>
+          <select id="answer-wine-region-id">
+            <option value="">（未選択 / 「地域」を読み込んでください）</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="answer-vintage">ヴィンテージ (任意)</label>
+            <input id="answer-vintage" type="number" step="1">
+          </div>
+          <div class="field">
+            <label for="answer-abv">アルコール度数 (任意, 0以上)</label>
+            <input id="answer-abv" type="number" min="0" step="any">
+          </div>
+        </div>
+        <div class="field">
+          <label for="answer-variety-ids">品種 * (Ctrl/Cmd+クリックで複数選択)</label>
+          <select id="answer-variety-ids" multiple size="5">
+            <option value="" disabled>（「品種」を読み込んでください）</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button id="answer-create" type="button">正解作成</button>
+          <button id="answer-update" class="btn-ghost" type="button">正解更新</button>
+        </div>
+        <p id="answer-status" class="status" role="status"></p>
+        <pre id="answer-result" class="result"></pre>
+      </section>
+
+      <section class="card">
+        <h3>回答 作成 / 自分の回答更新</h3>
+        <p>問題への回答を登録・更新します。地域・品種は「Wine 参照データ」を読み込むと選択肢に反映されます（品種は1つ以上必須）。</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="response-event-id">イベントID (uuid)</label>
+            <input id="response-event-id" type="text">
+          </div>
+          <div class="field">
+            <label for="response-question-id">問題ID (uuid)</label>
+            <input id="response-question-id" type="text">
+          </div>
+        </div>
+        <div class="field">
+          <label for="response-wine-style-id">スタイルID (任意, uuid)</label>
+          <input id="response-wine-style-id" type="text">
+        </div>
+        <div class="field">
+          <label for="response-wine-region-id">地域 (任意)</label>
+          <select id="response-wine-region-id">
+            <option value="">（未選択 / 「地域」を読み込んでください）</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="response-vintage">ヴィンテージ (任意)</label>
+            <input id="response-vintage" type="number" step="1">
+          </div>
+          <div class="field">
+            <label for="response-abv">アルコール度数 (任意, 0以上)</label>
+            <input id="response-abv" type="number" min="0" step="any">
+          </div>
+        </div>
+        <div class="field">
+          <label for="response-note">メモ (任意)</label>
+          <textarea id="response-note"></textarea>
+        </div>
+        <div class="field">
+          <label for="response-variety-ids">品種 * (Ctrl/Cmd+クリックで複数選択)</label>
+          <select id="response-variety-ids" multiple size="5">
+            <option value="" disabled>（「品種」を読み込んでください）</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button id="response-create" type="button">回答作成</button>
+          <button id="response-update" class="btn-ghost" type="button">自分の回答を更新</button>
+        </div>
+        <p id="response-status" class="status" role="status"></p>
+        <pre id="response-result" class="result"></pre>
+      </section>
     </section>
   </main>
 
-  <script>
-    (() => {
-      const supportsWebAuthn = 'PublicKeyCredential' in window;
+  <div id="toast-region" popover="manual" aria-live="polite"></div>
 
-      const elements = createElementsMap();
-      const status = createStatusManager(elements.statuses);
-      const session = createSessionManager(elements.sessionOutput);
-      const state = {
-        emailLoginChallenge: null,
-      };
-
-      const api = createApi();
-      const webAuthn = createWebAuthnHelpers();
-
-      const userFlow = createUserFlow({ api, session, status, state });
-      const emailVerificationFlow = createEmailVerificationFlow({
-        api,
-        session,
-        status,
-        inputs: elements.inputs,
-        emailsList: elements.emailsList,
-      });
-      const emailsFlow = createEmailsFlow({
-        api,
-        session,
-        status,
-        emailsList: elements.emailsList,
-      });
-      const emailLoginFlow = createEmailLoginFlow({
-        api,
-        session,
-        status,
-        inputs: elements.inputs,
-        state,
-      });
-      const passkeyFlow = createPasskeyFlow({
-        api,
-        session,
-        status,
-        webAuthn,
-        supportsWebAuthn,
-      });
-      const profileImageFlow = createProfileImageFlow({
-        api,
-        session,
-        status,
-        inputs: elements.inputs,
-        preview: elements.profileImagePreview,
-        currentProfile: elements.currentProfile,
-      });
-      const logoutFlow = createLogoutFlow({ session, status, state, profileImageFlow });
-
-      init();
-
-      function init() {
-        const {
-          create,
-          sendEmail,
-          confirmEmail,
-          loadEmails,
-          addPasskey,
-          login,
-          startEmailLogin,
-          completeEmailLogin,
-          uploadProfileImage,
-          logout,
-        } = elements.buttons;
-
-        bindAsync(create, userFlow);
-        bindAsync(sendEmail, emailVerificationFlow.send);
-        bindAsync(confirmEmail, emailVerificationFlow.confirm);
-        bindAsync(loadEmails, emailsFlow);
-        bindAsync(addPasskey, passkeyFlow.add);
-        bindAsync(login, passkeyFlow.login);
-        bindAsync(startEmailLogin, emailLoginFlow.start);
-        bindAsync(completeEmailLogin, emailLoginFlow.complete);
-        bindAsync(uploadProfileImage, profileImageFlow.uploadAndRegister);
-        elements.inputs.profileImageFile.addEventListener('change', profileImageFlow.previewSelectedFile);
-        logout.addEventListener('click', logoutFlow);
-
-        if (!supportsWebAuthn) {
-          addPasskey.disabled = true;
-          login.disabled = true;
-          status.set('passkey', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
-          status.set('login', 'このブラウザーは WebAuthn をサポートしていません。', { error: true });
-        }
-
-        session.render();
-      }
-
-      function createUserFlow({ api, session, status, state }) {
-        return async function handleCreateUser() {
-          status.set('create', 'ユーザー作成中...');
-          status.clear('emailStart', 'emailConfirm', 'emails', 'passkey', 'login', 'emailLogin', 'logout');
-          try {
-            const payload = await api.createUser();
-            session.apply(payload);
-            session.updateEmails([]);
-            renderEmailsList(elements.emailsList, []);
-            state.emailLoginChallenge = null;
-            status.set('create', 'ユーザーを作成しトークンを取得しました。');
-          } catch (error) {
-            console.error(error);
-            status.set('create', error.message || 'ユーザー作成に失敗しました。', { error: true });
-          }
-        };
-      }
-
-      function createEmailVerificationFlow({ api, session, status, inputs, emailsList }) {
-        const emailInput = inputs.email;
-        const codeInput = inputs.code;
-
-        return {
-          async send() {
-            const { token } = session.data;
-            const email = emailInput.value.trim();
-            if (!validate('emailStart', [
-              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
-              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
-            ])) {
-              return;
-            }
-
-            status.set('emailStart', '確認メール送信中...');
-            status.clear('emailConfirm', 'logout');
-            try {
-              await api.sendVerificationEmail({ email, token });
-              status.set('emailStart', '確認メールを送信しました。');
-            } catch (error) {
-              console.error(error);
-              status.set('emailStart', error.message || '確認メールの送信に失敗しました。', { error: true });
-            }
-          },
-
-          async confirm() {
-            const { token } = session.data;
-            const email = emailInput.value.trim();
-            const code = codeInput.value.trim();
-            if (!validate('emailConfirm', [
-              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
-              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
-              { predicate: () => code.length > 0, message: '確認コードを入力してください。' },
-            ])) {
-              return;
-            }
-
-            status.set('emailConfirm', '確認コード送信中...');
-            status.clear('logout');
-            try {
-              await api.confirmEmailAddress({ email, code, token });
-              const emails = await api.fetchEmailsFromMe(token);
-              session.updateEmails(emails);
-              renderEmailsList(emailsList, emails);
-              codeInput.value = '';
-              status.set('emailConfirm', 'メールアドレスを認証しました。');
-            } catch (error) {
-              console.error(error);
-              status.set('emailConfirm', error.message || 'メールアドレスの確認に失敗しました。', { error: true });
-            }
-          },
-        };
-      }
-
-      function createEmailLoginFlow({ api, session, status, inputs, state }) {
-        const emailInput = inputs.emailLoginEmail;
-        const codeInput = inputs.emailLoginCode;
-
-        return {
-          async start() {
-            const email = emailInput.value.trim();
-            if (!validate('emailLogin', [
-              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
-            ])) {
-              return;
-            }
-
-            status.set('emailLogin', 'ログインコード送信中...');
-            status.clear('logout', 'login');
-            try {
-              state.emailLoginChallenge = await api.sendEmailLoginChallenge(email);
-              codeInput.value = '';
-              status.set('emailLogin', '確認コードを送信しました。メールをご確認ください。');
-            } catch (error) {
-              console.error(error);
-              status.set('emailLogin', error.message || 'ログインコードの送信に失敗しました。', { error: true });
-            }
-          },
-
-          async complete() {
-            const email = emailInput.value.trim();
-            const otp = codeInput.value.trim();
-
-            if (!validate('emailLogin', [
-              { predicate: () => email.length > 0, message: 'メールアドレスを入力してください。' },
-              { predicate: () => otp.length > 0, message: '確認コードを入力してください。' },
-              { predicate: () => !!state.emailLoginChallenge, message: '先にログインコードを送信してください。' },
-            ])) {
-              return;
-            }
-
-            status.set('emailLogin', 'ログイン処理中...');
-            status.clear('logout', 'login');
-            try {
-              const tokens = await api.exchangeEmailCodeForToken({
-                email,
-                otp,
-                challenge: state.emailLoginChallenge,
-              });
-              state.emailLoginChallenge = null;
-              session.apply(tokens);
-              await refreshSessionEmails(tokens.token);
-              codeInput.value = '';
-              status.set('emailLogin', 'メールアドレスでログインしました。');
-              status.clear('login');
-            } catch (error) {
-              console.error(error);
-              status.set('emailLogin', error.message || 'メールでのログインに失敗しました。', { error: true });
-            }
-          },
-        };
-      }
-
-      function createPasskeyFlow({ api, session, status, webAuthn, supportsWebAuthn }) {
-        return {
-          async add() {
-            const { token, userID } = session.data;
-            if (!validate('passkey', [
-              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
-              { predicate: () => !!userID, message: 'ユーザーIDを取得できませんでした。' },
-              { predicate: () => supportsWebAuthn, message: 'このブラウザーは WebAuthn をサポートしていません。' },
-            ])) {
-              return;
-            }
-
-            status.set('passkey', 'チャレンジ取得中...');
-            status.clear('logout');
-            try {
-              const challenge = await api.fetchChallenge({ token });
-              const options = webAuthn.buildRegistrationOptions({
-                challenge,
-                userID,
-                email: session.data.emails[0]?.email,
-              });
-              const credential = await navigator.credentials.create({ publicKey: options });
-              if (!credential) {
-                throw new Error('認証器がキャンセルされました。');
-              }
-
-              const payload = webAuthn.serializeRegistrationCredential(credential);
-              await api.registerPasskey({ challenge, payload, token });
-              status.set('passkey', 'Passkey を登録しました。');
-            } catch (error) {
-              console.error(error);
-              status.set('passkey', error.message || 'Passkey登録に失敗しました。', { error: true });
-            }
-          },
-
-          async login() {
-            if (!validate('login', [
-              { predicate: () => supportsWebAuthn, message: 'このブラウザーは WebAuthn をサポートしていません。' },
-            ])) {
-              return;
-            }
-
-            status.set('login', 'チャレンジ取得中...');
-            status.clear('logout', 'emailLogin');
-            try {
-              const challenge = await api.fetchChallenge();
-              const options = webAuthn.buildAuthenticationOptions(challenge);
-              const credential = await navigator.credentials.get({ publicKey: options });
-              if (!credential) {
-                throw new Error('認証器がキャンセルされました。');
-              }
-
-              const payload = webAuthn.serializeAuthenticationCredential(credential, challenge);
-              const tokens = await api.requestPasskeyToken(payload);
-              session.apply(tokens);
-              await refreshSessionEmails(tokens.token);
-              status.set('login', 'Passkeyでログインしました。新しいトークンを取得しました。');
-            } catch (error) {
-              console.error(error);
-              status.set('login', error.message || 'ログインに失敗しました。', { error: true });
-            }
-          },
-        };
-      }
-
-      function createProfileImageFlow({ api, session, status, inputs, preview, currentProfile }) {
-        let previewURL = null;
-        let currentImageURL = null;
-
-        function setPreview(file) {
-          if (previewURL) {
-            URL.revokeObjectURL(previewURL);
-            previewURL = null;
-          }
-          if (!file) {
-            preview.hidden = true;
-            preview.removeAttribute('src');
-            return;
-          }
-          previewURL = URL.createObjectURL(file);
-          preview.src = previewURL;
-          preview.hidden = false;
-        }
-
-        function setCurrentProfile({ profile, file }) {
-          if (currentImageURL) {
-            URL.revokeObjectURL(currentImageURL);
-          }
-          currentImageURL = URL.createObjectURL(file);
-          currentProfile.image.src = profile.imageURL || currentImageURL;
-          currentProfile.name.textContent = `名前: ${profile.name}`;
-          currentProfile.imageURL.textContent = `画像URL: ${profile.imageURL || ''}`;
-          currentProfile.container.hidden = false;
-        }
-
-        function resetDisplay() {
-          if (previewURL) {
-            URL.revokeObjectURL(previewURL);
-            previewURL = null;
-          }
-          if (currentImageURL) {
-            URL.revokeObjectURL(currentImageURL);
-            currentImageURL = null;
-          }
-          preview.hidden = true;
-          preview.removeAttribute('src');
-          currentProfile.image.removeAttribute('src');
-          currentProfile.name.textContent = '';
-          currentProfile.imageURL.textContent = '';
-          currentProfile.container.hidden = true;
-        }
-
-        return {
-          previewSelectedFile() {
-            setPreview(inputs.profileImageFile.files?.[0] ?? null);
-          },
-
-          resetDisplay,
-
-          async uploadAndRegister() {
-            const { token } = session.data;
-            const name = inputs.profileName.value.trim();
-            const file = inputs.profileImageFile.files?.[0] ?? null;
-
-            if (!validate('profileImage', [
-              { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
-              { predicate: () => name.length > 0, message: 'プロフィール名を入力してください。' },
-              { predicate: () => name.length <= 100, message: 'プロフィール名は100文字以内で入力してください。' },
-              { predicate: () => !!file, message: '画像ファイルを選択してください。' },
-            ])) {
-              return;
-            }
-
-            status.set('profileImage', 'アップロードURL取得中...');
-            status.clear('logout');
-            try {
-              const upload = await api.createImageUploadURL(token);
-              status.set('profileImage', '画像アップロード中...');
-              await api.uploadImageFile({ uploadURL: upload.uploadURL, file });
-
-              status.set('profileImage', '画像登録中...');
-              const image = await api.createImage({ imageID: upload.imageID, token });
-
-              status.set('profileImage', 'プロフィール登録中...');
-              const profile = await api.createUserProfile({
-                name,
-                imageID: image.id,
-                token,
-              });
-
-              session.updateProfile(profile);
-              setCurrentProfile({ profile, file });
-              status.set('profileImage', 'プロフィール画像を登録しました。');
-            } catch (error) {
-              console.error(error);
-              status.set('profileImage', error.message || 'プロフィール画像の登録に失敗しました。', { error: true });
-            }
-          },
-        };
-      }
-
-      function createLogoutFlow({ session, status, state, profileImageFlow }) {
-        return function handleLogout() {
-          session.reset();
-          state.emailLoginChallenge = null;
-          profileImageFlow.resetDisplay();
-          renderEmailsList(elements.emailsList, []);
-          status.set('logout', 'ログアウトしました。');
-          status.clear('create', 'emailStart', 'emailConfirm', 'emails', 'passkey', 'login', 'emailLogin', 'profileImage');
-        };
-      }
-
-      function createEmailsFlow({ api, session, status, emailsList }) {
-        return async function handleLoadEmails() {
-          const { token } = session.data;
-          if (!validate('emails', [
-            { predicate: () => !!token, message: '先にユーザーを作成またはログインしてください。' },
-          ])) {
-            return;
-          }
-
-          status.set('emails', 'メールアドレス取得中...');
-          status.clear('logout');
-          try {
-            const emails = await api.fetchEmailsFromMe(token);
-            session.updateEmails(emails);
-            renderEmailsList(emailsList, emails);
-            status.set('emails', emails.length > 0 ? 'メールアドレスを取得しました。' : '登録済みメールアドレスはありません。');
-          } catch (error) {
-            console.error(error);
-            status.set('emails', error.message || 'メールアドレスの取得に失敗しました。', { error: true });
-          }
-        };
-      }
-
-      async function refreshSessionEmails(token) {
-        if (!token) {
-          return;
-        }
-        try {
-          const emails = await api.fetchEmailsFromMe(token);
-          session.updateEmails(emails);
-          renderEmailsList(elements.emailsList, emails);
-        } catch (error) {
-          console.error(error);
-        }
-      }
-
-      function renderEmailsList(list, emails) {
-        list.replaceChildren();
-        for (const item of emails) {
-          const email = (typeof item === 'string' ? item : item?.email)?.trim();
-          if (!email) continue;
-          const createdAt = typeof item?.createdAt === 'number'
-            ? ` (${formatReferenceDate(item.createdAt)})`
-            : '';
-          const listItem = document.createElement('li');
-          listItem.textContent = `${email}${createdAt}`;
-          list.appendChild(listItem);
-        }
-      }
-
-      function bindAsync(button, action) {
-        button.addEventListener('click', () => runWithButtonDisabled(button, action));
-      }
-
-      function validate(statusKey, checks) {
-        for (const { predicate, message } of checks) {
-          if (!predicate()) {
-            status.set(statusKey, message, { error: true });
-            return false;
-          }
-        }
-        return true;
-      }
-
-      async function runWithButtonDisabled(button, action) {
-        button.disabled = true;
-        try {
-          await action();
-        } finally {
-          button.disabled = false;
-        }
-      }
-
-      function createElementsMap() {
-        return {
-          buttons: {
-            create: document.getElementById('create-user'),
-            sendEmail: document.getElementById('send-email'),
-            confirmEmail: document.getElementById('confirm-email'),
-            loadEmails: document.getElementById('load-emails'),
-            addPasskey: document.getElementById('add-passkey'),
-            login: document.getElementById('login'),
-            startEmailLogin: document.getElementById('start-email-login'),
-            completeEmailLogin: document.getElementById('complete-email-login'),
-            uploadProfileImage: document.getElementById('upload-profile-image'),
-            logout: document.getElementById('logout'),
-          },
-          statuses: {
-            create: document.getElementById('create-status'),
-            emailStart: document.getElementById('email-start-status'),
-            emailConfirm: document.getElementById('email-confirm-status'),
-            emails: document.getElementById('emails-status'),
-            passkey: document.getElementById('passkey-status'),
-            login: document.getElementById('login-status'),
-            emailLogin: document.getElementById('email-login-status'),
-            profileImage: document.getElementById('profile-image-status'),
-            logout: document.getElementById('logout-status'),
-          },
-          inputs: {
-            email: document.getElementById('email-input'),
-            code: document.getElementById('email-code'),
-            emailLoginEmail: document.getElementById('email-login-input'),
-            emailLoginCode: document.getElementById('email-login-code'),
-            profileName: document.getElementById('profile-name-input'),
-            profileImageFile: document.getElementById('profile-image-file'),
-          },
-          profileImagePreview: document.getElementById('profile-image-preview'),
-          currentProfile: {
-            container: document.getElementById('current-profile'),
-            image: document.getElementById('current-profile-image'),
-            name: document.getElementById('current-profile-name'),
-            imageURL: document.getElementById('current-profile-image-url'),
-          },
-          emailsList: document.getElementById('emails-list'),
-          sessionOutput: document.getElementById('session-output'),
-        };
-      }
-
-      function createStatusManager(statusElements) {
-        return {
-          set(key, message, { error = false } = {}) {
-            const element = statusElements[key];
-            if (!element) return;
-            element.textContent = message;
-            element.style.color = error ? '#dc2626' : '';
-          },
-          clear(...keys) {
-            keys.forEach(key => {
-              const element = statusElements[key];
-              if (element) {
-                element.textContent = '';
-                element.style.color = '';
-              }
-            });
-          },
-        };
-      }
-
-      function createSessionManager(outputElement) {
-        const data = {
-          userID: null,
-          token: null,
-          tokenExpiresAt: null,
-          refreshToken: null,
-          refreshTokenExpiresAt: null,
-          emails: [],
-          profile: null,
-        };
-
-        function render() {
-          if (!data.userID) {
-            outputElement.textContent = 'セッションがありません。';
-            return;
-          }
-          outputElement.textContent = JSON.stringify(data, null, 2);
-        }
-
-        function formatReferenceDate(value) {
-          if (typeof value !== 'number' || Number.isNaN(value)) {
-            return null;
-          }
-          return new Date(APPLE_REFERENCE_DATE_MS + value * 1000).toISOString();
-        }
-
-        return {
-          data,
-          apply(payload) {
-            const userID = payload?.userID ?? payload?.id ?? null;
-            data.userID = userID;
-            data.token = payload?.token ?? null;
-            data.tokenExpiresAt = formatReferenceDate(payload?.tokenExpiredDate);
-            data.refreshToken = payload?.refreshToken ?? null;
-            data.refreshTokenExpiresAt = formatReferenceDate(payload?.refreshTokenExpiredDate);
-            render();
-          },
-          updateEmails(emails) {
-            data.emails = Array.isArray(emails) ? emails : [];
-            render();
-          },
-          updateProfile(profile) {
-            data.profile = profile ?? null;
-            render();
-          },
-          reset() {
-            data.userID = null;
-            data.token = null;
-            data.tokenExpiresAt = null;
-            data.refreshToken = null;
-            data.refreshTokenExpiresAt = null;
-            data.emails = [];
-            data.profile = null;
-            render();
-          },
-          render,
-        };
-      }
-
-      function formatReferenceDate(value) {
-        if (typeof value !== 'number' || Number.isNaN(value)) {
-          return null;
-        }
-        return new Date(APPLE_REFERENCE_DATE_MS + value * 1000).toISOString();
-      }
-
-      const APPLE_REFERENCE_DATE_MS = Date.UTC(2001, 0, 1);
-
-      function createApi() {
-        return {
-          async createUser() {
-            const response = await post('/user', { message: 'ユーザー作成に失敗しました。' });
-            return response.json();
-          },
-
-          async sendVerificationEmail({ email, token }) {
-            const url = new URL('/email/verify/start', window.location.origin);
-            url.searchParams.set('email', email);
-            await post(url, {
-              headers: { Authorization: `Bearer ${token}` },
-              message: '確認メールの送信に失敗しました。',
-            });
-          },
-
-          async confirmEmailAddress({ email, code, token }) {
-            const url = new URL('/email/verify', window.location.origin);
-            url.searchParams.set('email', email);
-            url.searchParams.set('password', code);
-            await post(url, {
-              headers: { Authorization: `Bearer ${token}` },
-              message: 'メールアドレスの確認に失敗しました。',
-            });
-          },
-
-          async fetchChallenge({ token } = {}) {
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const response = await post('/challenge', {
-              headers,
-              message: 'チャレンジ取得に失敗しました。',
-            });
-            return readChallengeResponse(response);
-          },
-
-          async registerPasskey({ challenge, payload, token }) {
-            await post(`/passkey?challenge=${encodeURIComponent(challenge)}`, {
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(payload),
-              message: 'Passkey登録に失敗しました。',
-            });
-          },
-
-          async requestPasskeyToken(payload) {
-            return postJSON('/token/passkey', payload, {
-              message: 'ログインに失敗しました。',
-            });
-          },
-
-          async fetchCurrentUser(token) {
-            const response = await get('/me', {
-              headers: { Authorization: `Bearer ${token}` },
-              message: 'ユーザー情報の取得に失敗しました。',
-            });
-            return response.json();
-          },
-
-          async fetchEmailsFromMe(token) {
-            const response = await get('/me', {
-              headers: { Authorization: `Bearer ${token}` },
-              message: 'メールアドレスの取得に失敗しました。',
-            });
-            const me = await response.json();
-            return Array.isArray(me?.emails) ? me.emails : [];
-          },
-
-          async sendEmailLoginChallenge(email) {
-            const url = new URL('/token/email/start', window.location.origin);
-            url.searchParams.set('email', email);
-            const response = await post(url, {
-              message: 'ログインコードの送信に失敗しました。',
-            });
-            return readChallengeResponse(response);
-          },
-
-          async exchangeEmailCodeForToken(payload) {
-            return postJSON('/token/email', payload, {
-              message: 'メールでのログインに失敗しました。',
-            });
-          },
-
-          async createImageUploadURL(token) {
-            const response = await post('/images/upload_url', {
-              headers: { Authorization: `Bearer ${token}` },
-              message: '画像アップロードURLの取得に失敗しました。',
-            });
-            return response.json();
-          },
-
-          async uploadImageFile({ uploadURL, file }) {
-            const body = new FormData();
-            body.append('file', file);
-            await post(uploadURL, {
-              body,
-              message: '画像アップロードに失敗しました。',
-            });
-          },
-
-          async createImage({ imageID, token }) {
-            return postJSON('/images', { imageID }, {
-              headers: { Authorization: `Bearer ${token}` },
-              message: '画像登録に失敗しました。',
-            });
-          },
-
-          async createUserProfile({ name, imageID, token }) {
-            return postJSON('/me', { name, imageID }, {
-              headers: { Authorization: `Bearer ${token}` },
-              message: 'プロフィール登録に失敗しました。',
-            });
-          },
-        };
-      }
-
-      function createWebAuthnHelpers() {
-        const encoder = new TextEncoder();
-        return {
-          buildRegistrationOptions({ challenge, userID, email }) {
-            const label = (email ?? '').trim() || userID;
-            return {
-              challenge: base64ToUint8Array(challenge),
-              rp: { name: document.title || 'BlindLog', id: window.location.hostname },
-              user: {
-                id: encoder.encode(userID),
-                name: label,
-                displayName: label,
-              },
-              pubKeyCredParams: [
-                { type: 'public-key', alg: -7 },
-                { type: 'public-key', alg: -257 },
-              ],
-              authenticatorSelection: { userVerification: 'preferred' },
-              timeout: 60000,
-              attestation: 'none',
-            };
-          },
-
-          buildAuthenticationOptions(challenge) {
-            return {
-              challenge: base64ToUint8Array(challenge),
-              rpId: window.location.hostname,
-              timeout: 60000,
-              userVerification: 'preferred',
-            };
-          },
-
-          serializeRegistrationCredential(credential) {
-            const { response } = credential;
-            return {
-              id: credential.id,
-              rawId: arrayBufferToBase64Url(credential.rawId),
-              type: credential.type,
-              response: {
-                clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
-                attestationObject: arrayBufferToBase64Url(response.attestationObject),
-              },
-            };
-          },
-
-          serializeAuthenticationCredential(credential, challenge) {
-            const { response } = credential;
-            const payload = {
-              id: credential.id,
-              rawId: arrayBufferToBase64Url(credential.rawId),
-              type: credential.type,
-              response: {
-                clientDataJSON: arrayBufferToBase64Url(response.clientDataJSON),
-                authenticatorData: arrayBufferToBase64Url(response.authenticatorData),
-                signature: arrayBufferToBase64Url(response.signature),
-              },
-              challenge,
-            };
-            if (response.userHandle) {
-              payload.response.userHandle = arrayBufferToBase64Url(response.userHandle);
-            }
-            if (credential.authenticatorAttachment) {
-              payload.authenticatorAttachment = credential.authenticatorAttachment;
-            }
-            return payload;
-          },
-        };
-      }
-
-      function normalizeBase64(input) {
-        const base = input.replace(/-/g, '+').replace(/_/g, '/').replace(/\s+/g, '');
-        const mod = base.length % 4;
-        if (mod === 2) return base + '==';
-        if (mod === 3) return base + '=';
-        if (mod === 1) return base + '===';
-        return base;
-      }
-
-      function base64ToUint8Array(base64) {
-        const normalized = normalizeBase64(base64);
-        const binary = atob(normalized);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i += 1) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        return bytes;
-      }
-
-      function arrayBufferToBase64Url(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i += 1) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
-        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-      }
-
-      async function post(resource, { headers = {}, body, message }) {
-        const init = {
-          method: 'POST',
-          headers,
-        };
-        if (body !== undefined) {
-          init.body = body;
-        }
-        return ensureOk(fetch(resource, init), message);
-      }
-
-      async function postJSON(resource, payload, { headers = {}, message }) {
-        const response = await post(resource, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          body: JSON.stringify(payload),
-          message,
-        });
-        return response.json();
-      }
-
-      async function get(resource, { headers = {}, message }) {
-        return ensureOk(
-          fetch(resource, {
-            method: 'GET',
-            headers,
-          }),
-          message
-        );
-      }
-
-      async function ensureOk(responsePromise, defaultMessage) {
-        const response = await responsePromise;
-        if (response.ok) {
-          return response;
-        }
-        const detail = (await response.text()).trim();
-        throw new Error(detail ? `${defaultMessage}: ${detail}` : defaultMessage);
-      }
-
-      async function readChallengeResponse(response) {
-        const text = (await response.text()).trim();
-        try {
-          const parsed = JSON.parse(text);
-          if (typeof parsed === 'string') return parsed;
-          if (typeof parsed?.challenge === 'string') return parsed.challenge;
-          if (typeof parsed?.value === 'string') return parsed.value;
-          if (Array.isArray(parsed?.data)) {
-            return arrayBufferToBase64Url(Uint8Array.from(parsed.data).buffer);
-          }
-        } catch {
-          const unquoted = text.replace(/^"|"$/g, '');
-          if (unquoted) return unquoted;
-        }
-        throw new Error('Unexpected challenge response format.');
-      }
-    })();
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
