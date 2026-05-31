@@ -26,6 +26,7 @@ let package = Package(
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
+    .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),
     .package(url: "https://github.com/brokenhandsio/swift-webauthn.git", from: "1.0.0-beta.1"),
     .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
     .package(
@@ -48,6 +49,7 @@ let package = Package(
         .product(name: "OpenAPIHummingbird", package: "swift-openapi-hummingbird"),
         .product(name: "JWTKit", package: "jwt-kit"),
         .product(name: "Records", package: "swift-records"),
+        .product(name: "Currency", package: "swift-currency"),
         .product(name: "CloudflareEmailService", package: "cloudflare-swift"),
         .product(name: "CloudflareImages", package: "cloudflare-swift"),
         .product(name: "UUIDV7", package: "UUIDV7"),

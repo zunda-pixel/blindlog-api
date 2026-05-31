@@ -265,6 +265,426 @@ paths:
           description: A bad request
         '401':
           description: Not Authorization
+  /events:
+    get:
+      operationId: getEvents
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with events.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+    post:
+      operationId: createEvent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '200':
+          description: A success response with the created event.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+  /events/{event_id}:
+    get:
+      operationId: getEvent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+      responses:
+        '200':
+          description: A success response with the event.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event
+    put:
+      operationId: updateEvent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '200':
+          description: A success response with the latest event revision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event
+  /events/{event_id}/participants:
+    post:
+      operationId: registerEventParticipant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+      responses:
+        '200':
+          description: A success response with the event participant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventParticipant'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event
+  /events/{event_id}/questions:
+    post:
+      operationId: createEventQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventQuestionRequest'
+      responses:
+        '200':
+          description: A success response with the created event question.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventQuestion'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event
+  /events/{event_id}/questions/{question_id}:
+    put:
+      operationId: updateEventQuestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event question id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventQuestionRequest'
+      responses:
+        '200':
+          description: A success response with the latest event question revision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventQuestion'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event Question
+  /events/{event_id}/questions/{question_id}/correct_answer:
+    post:
+      operationId: createEventQuestionCorrectAnswer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event question id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventQuestionCorrectAnswerRequest'
+      responses:
+        '200':
+          description: A success response with the created correct answer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventQuestionCorrectAnswer'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event Question
+    put:
+      operationId: updateEventQuestionCorrectAnswer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event question id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventQuestionCorrectAnswerRequest'
+      responses:
+        '200':
+          description: A success response with the latest correct answer revision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventQuestionCorrectAnswer'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event Question
+  /events/{event_id}/questions/{question_id}/responses:
+    post:
+      operationId: createEventQuestionResponse
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event question id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventQuestionResponseRequest'
+      responses:
+        '200':
+          description: A success response with the submitted response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventQuestionResponse'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event Question
+  /events/{event_id}/questions/{question_id}/responses/me:
+    put:
+      operationId: updateMyEventQuestionResponse
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event id.
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Event question id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventQuestionResponseRequest'
+      responses:
+        '200':
+          description: A success response with the latest submitted response revision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventQuestionResponse'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+        '404':
+          description: Not found Event Question
+  /wine/styles:
+    get:
+      operationId: getWineStyles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with wine styles.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WineStyle'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+  /wine/varieties:
+    get:
+      operationId: getWineVarieties
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with wine varieties.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WineVariety'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+  /wine/region_types:
+    get:
+      operationId: getWineRegionTypes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with wine region types.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WineRegionType'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+  /wine/regions:
+    get:
+      operationId: getWineRegions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with wine regions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WineRegion'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
   /users:
     get:
       operationId: getUsers
@@ -528,6 +948,438 @@ components:
         - id
         - imageID
         - createdAt
+    Event:
+      type: object
+      description: A blind tasting event.
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizerUserID:
+          type: string
+          format: uuid
+        title:
+          type: string
+        body:
+          type: string
+        imageID:
+          type: string
+          format: uuid
+        venueName:
+          type: string
+        venueAddress:
+          $ref: '#/components/schemas/PostalAddress'
+        venueCoordinate:
+          $ref: '#/components/schemas/GeoCoordinate'
+        registrationPeriod:
+          $ref: '#/components/schemas/DateTimePeriod'
+        eventPeriod:
+          $ref: '#/components/schemas/DateTimePeriod'
+        answersPublishedAt:
+          type: number
+          format: double
+        capacity:
+          type: integer
+          format: int32
+        entryFee:
+          $ref: '#/components/schemas/Money'
+        visibility:
+          $ref: '#/components/schemas/EventVisibility'
+        publishedAt:
+          type: number
+          format: double
+        canceledAt:
+          type: number
+          format: double
+        createdAt:
+          type: number
+          format: double
+      required:
+        - id
+        - organizerUserID
+        - title
+        - body
+        - venueName
+        - venueAddress
+        - eventPeriod
+        - visibility
+        - createdAt
+    CreateEventRequest:
+      type: object
+      description: A request to create a blind tasting event.
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        imageID:
+          type: string
+          format: uuid
+        venueName:
+          type: string
+        venueAddress:
+          $ref: '#/components/schemas/PostalAddress'
+        venueCoordinate:
+          $ref: '#/components/schemas/GeoCoordinate'
+        registrationPeriod:
+          $ref: '#/components/schemas/DateTimePeriod'
+        eventPeriod:
+          $ref: '#/components/schemas/DateTimePeriod'
+        answersPublishedAt:
+          type: number
+          format: double
+        capacity:
+          type: integer
+          format: int32
+        entryFee:
+          $ref: '#/components/schemas/Money'
+        visibility:
+          $ref: '#/components/schemas/EventVisibility'
+        publishedAt:
+          type: number
+          format: double
+        canceledAt:
+          type: number
+          format: double
+      required:
+        - title
+        - body
+        - venueName
+        - venueAddress
+        - eventPeriod
+        - visibility
+    DateTimePeriod:
+      type: object
+      description: A date-time period represented by start and end instants.
+      properties:
+        startsAt:
+          type: number
+          format: double
+        endsAt:
+          type: number
+          format: double
+      required:
+        - startsAt
+        - endsAt
+    PostalAddress:
+      type: object
+      description: A structured postal address for native client formatting.
+      properties:
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        locality:
+          type: string
+        administrativeArea:
+          type: string
+        postalCode:
+          type: string
+        countryCode:
+          type: string
+          description: ISO 3166-1 alpha-2 country code.
+      required:
+        - addressLine1
+        - countryCode
+    GeoCoordinate:
+      type: object
+      description: A geographic coordinate for map display.
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+        - latitude
+        - longitude
+    Money:
+      type: object
+      description: A currency amount for locale-aware currency formatting.
+      properties:
+        minorAmount:
+          type: integer
+          format: int64
+          description: Amount in the minor currency unit, such as cents.
+        currencyCode:
+          type: string
+          description: ISO 4217 currency code.
+      required:
+        - minorAmount
+        - currencyCode
+    EventVisibility:
+      type: string
+      enum:
+        - public
+        - unlisted
+        - private
+    EventParticipant:
+      type: object
+      description: A user's registration for an event.
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventID:
+          type: string
+          format: uuid
+        userID:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/EventParticipantStatus'
+        createdAt:
+          type: number
+          format: double
+      required:
+        - id
+        - eventID
+        - userID
+        - status
+        - createdAt
+    EventParticipantStatus:
+      type: string
+      enum:
+        - registered
+        - waitlisted
+        - canceled
+        - attended
+    EventQuestion:
+      type: object
+      description: A question in a blind tasting event.
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventID:
+          type: string
+          format: uuid
+        questionNumber:
+          type: integer
+          format: int32
+        imageID:
+          type: string
+          format: uuid
+        note:
+          type: string
+        createdAt:
+          type: number
+          format: double
+      required:
+        - id
+        - eventID
+        - questionNumber
+        - createdAt
+    CreateEventQuestionRequest:
+      type: object
+      description: A request to create an event question.
+      properties:
+        questionNumber:
+          type: integer
+          format: int32
+        imageID:
+          type: string
+          format: uuid
+        note:
+          type: string
+      required:
+        - questionNumber
+    CreateEventQuestionCorrectAnswerRequest:
+      type: object
+      description: A request to create the correct answer for a question.
+      properties:
+        wineStyleID:
+          type: string
+          format: uuid
+        wineRegionID:
+          type: string
+          format: uuid
+        vintage:
+          type: integer
+          format: int32
+        alcoholByVolume:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+        wineVarietyIDs:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - wineVarietyIDs
+    EventQuestionCorrectAnswer:
+      type: object
+      description: The correct answer for an event question.
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventQuestionID:
+          type: string
+          format: uuid
+        wineStyleID:
+          type: string
+          format: uuid
+        wineRegionID:
+          type: string
+          format: uuid
+        vintage:
+          type: integer
+          format: int32
+        alcoholByVolume:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+        wineVarietyIDs:
+          type: array
+          items:
+            type: string
+            format: uuid
+        createdAt:
+          type: number
+          format: double
+      required:
+        - id
+        - eventQuestionID
+        - wineVarietyIDs
+        - createdAt
+    CreateEventQuestionResponseRequest:
+      type: object
+      description: A request to submit a response for a question.
+      properties:
+        wineStyleID:
+          type: string
+          format: uuid
+        wineRegionID:
+          type: string
+          format: uuid
+        vintage:
+          type: integer
+          format: int32
+        alcoholByVolume:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+        note:
+          type: string
+        wineVarietyIDs:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - wineVarietyIDs
+    EventQuestionResponse:
+      type: object
+      description: A submitted response for a question.
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventQuestionID:
+          type: string
+          format: uuid
+        userID:
+          type: string
+          format: uuid
+        wineStyleID:
+          type: string
+          format: uuid
+        wineRegionID:
+          type: string
+          format: uuid
+        vintage:
+          type: integer
+          format: int32
+        alcoholByVolume:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+        note:
+          type: string
+        wineVarietyIDs:
+          type: array
+          items:
+            type: string
+            format: uuid
+        submittedAt:
+          type: number
+          format: double
+      required:
+        - id
+        - eventQuestionID
+        - userID
+        - wineVarietyIDs
+        - submittedAt
+    WineStyle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - code
+        - name
+    WineVariety:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        wineStyleIDs:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - id
+        - name
+        - wineStyleIDs
+    WineRegionType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - code
+        - name
+    WineRegion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        parentRegionID:
+          type: string
+          format: uuid
+        wineRegionTypeID:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+        - id
+        - wineRegionTypeID
+        - name
     AppleAppSiteAssociation:
       type: object
       description: Apple App Site Association document.
