@@ -1,5 +1,5 @@
 {
-  "originHash" : "58b48f54f3b6b54c65fdec9ee721ee0db832c861d80c732b89e450bde30b8382",
+  "originHash" : "353542d33ba9ce89d70336863960a482f93800714201e1fa83c45ec82f574a21",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -233,6 +233,15 @@
       "state" : {
         "revision" : "1b6b2e274e85105bfa155183145a1dcfd63331f1",
         "version" : "4.5.0"
+      }
+    },
+    {
+      "identity" : "swift-currency",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/zunda-pixel/swift-currency.git",
+      "state" : {
+        "revision" : "476562c17ec5ed2d96794f13a24df86eb7bf96b5",
+        "version" : "0.0.1"
       }
     },
     {

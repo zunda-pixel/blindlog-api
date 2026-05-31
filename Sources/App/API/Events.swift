@@ -1,3 +1,4 @@
+import Currency
 import Foundation
 import Hummingbird
 import PostgresNIO
@@ -66,7 +67,7 @@ extension API {
           return .badRequest
         }
       }
-      try await database.write { db in
+      try await database.withTransaction { db in
         try await EventRecord.insert { event }.execute(db)
         try await EventRevisionRecord.insert { revision }.execute(db)
       }
@@ -259,7 +260,7 @@ extension API {
         note: body.note,
         createdAt: Date()
       )
-      try await database.write { db in
+      try await database.withTransaction { db in
         try await EventQuestionRecord.insert { question }.execute(db)
         try await EventQuestionRevisionRecord.insert { revision }.execute(db)
       }
@@ -622,11 +623,12 @@ extension API {
       return nil
     }
     if let capacity = body.capacity, capacity <= 0 { return nil }
-    if let entryFee = body.entryFee,
-      entryFee.minorAmount < 0
-        || entryFee.currencyCode.trimmingCharacters(in: .whitespacesAndNewlines).count != 3
-    {
-      return nil
+    if let entryFee = body.entryFee {
+      let currencyCode = entryFee.currencyCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        .uppercased()
+      guard entryFee.minorAmount >= 0, Currency(rawValue: currencyCode) != nil else {
+        return nil
+      }
     }
     if let coordinate = body.venueCoordinate,
       coordinate.latitude < -90 || coordinate.latitude > 90
@@ -1051,7 +1053,7 @@ extension API {
 
   fileprivate func isValidAlcoholByVolume(_ alcoholByVolume: Double?) -> Bool {
     guard let alcoholByVolume else { return true }
-    return alcoholByVolume >= 0
+    return alcoholByVolume >= 0 && alcoholByVolume <= 100
   }
 
   fileprivate func logEventDatabaseError(

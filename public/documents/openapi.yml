@@ -1201,6 +1201,8 @@ components:
         alcoholByVolume:
           type: number
           format: double
+          minimum: 0
+          maximum: 100
         wineVarietyIDs:
           type: array
           items:
@@ -1230,6 +1232,8 @@ components:
         alcoholByVolume:
           type: number
           format: double
+          minimum: 0
+          maximum: 100
         wineVarietyIDs:
           type: array
           items:
@@ -1259,6 +1263,8 @@ components:
         alcoholByVolume:
           type: number
           format: double
+          minimum: 0
+          maximum: 100
         note:
           type: string
         wineVarietyIDs:
@@ -1293,6 +1299,8 @@ components:
         alcoholByVolume:
           type: number
           format: double
+          minimum: 0
+          maximum: 100
         note:
           type: string
         wineVarietyIDs:

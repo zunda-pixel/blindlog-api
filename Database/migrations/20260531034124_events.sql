@@ -183,7 +183,7 @@ CREATE TABLE public.event_question_correct_answer_revisions (
   CONSTRAINT event_question_correct_answer_revisions_wine_style_fk FOREIGN KEY (wine_style_id) REFERENCES public.wine_styles (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_correct_answer_revisions_wine_region_fk FOREIGN KEY (wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_correct_answer_revisions_vintage_positive CHECK (vintage IS NULL OR vintage > 0),
-  CONSTRAINT event_question_correct_answer_revisions_alcohol_by_volume_non_negative CHECK (alcohol_by_volume IS NULL OR alcohol_by_volume >= 0)
+  CONSTRAINT event_question_correct_answer_revisions_alcohol_by_volume_range CHECK (alcohol_by_volume IS NULL OR (alcohol_by_volume >= 0 AND alcohol_by_volume <= 100))
 );
 
 CREATE INDEX event_question_correct_answer_revisions_event_question_latest_idx ON public.event_question_correct_answer_revisions(event_question_id, created_at DESC, id DESC);
@@ -217,7 +217,7 @@ CREATE TABLE public.event_question_response_revisions (
   CONSTRAINT event_question_response_revisions_wine_style_fk FOREIGN KEY (wine_style_id) REFERENCES public.wine_styles (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_response_revisions_wine_region_fk FOREIGN KEY (wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_response_revisions_vintage_positive CHECK (vintage IS NULL OR vintage > 0),
-  CONSTRAINT event_question_response_revisions_alcohol_by_volume_non_negative CHECK (alcohol_by_volume IS NULL OR alcohol_by_volume >= 0)
+  CONSTRAINT event_question_response_revisions_alcohol_by_volume_range CHECK (alcohol_by_volume IS NULL OR (alcohol_by_volume >= 0 AND alcohol_by_volume <= 100))
 );
 
 CREATE INDEX event_question_response_revisions_event_question_user_latest_idx ON public.event_question_response_revisions(event_question_id, user_id, submitted_at DESC, id DESC);
