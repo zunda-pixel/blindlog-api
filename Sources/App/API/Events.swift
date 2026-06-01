@@ -46,6 +46,60 @@ extension API {
     }
   }
 
+  func getUserOrganizedEvents(
+    _ input: Operations.GetUserOrganizedEvents.Input
+  ) async throws -> Operations.GetUserOrganizedEvents.Output {
+    guard let requesterUserID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard let userID = UUID(uuidString: input.path.userId) else {
+      return .badRequest
+    }
+
+    do {
+      let events = try await latestUserOrganizedEvents(
+        userID: userID,
+        requesterUserID: requesterUserID
+      )
+      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+    } catch {
+      logEventDatabaseError(
+        "event.user_organized_list_failed",
+        "Failed to fetch user organized events",
+        userID: requesterUserID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getUserParticipatingEvents(
+    _ input: Operations.GetUserParticipatingEvents.Input
+  ) async throws -> Operations.GetUserParticipatingEvents.Output {
+    guard let requesterUserID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard let userID = UUID(uuidString: input.path.userId) else {
+      return .badRequest
+    }
+
+    do {
+      let events = try await latestUserParticipatingEvents(
+        userID: userID,
+        requesterUserID: requesterUserID
+      )
+      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+    } catch {
+      logEventDatabaseError(
+        "event.user_participating_list_failed",
+        "Failed to fetch user participating events",
+        userID: requesterUserID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
   func createEvent(
     _ input: Operations.CreateEvent.Input
   ) async throws -> Operations.CreateEvent.Output {
@@ -706,6 +760,128 @@ extension API {
         .fetchAll(db)
       return rows.map { event, revision in
         EventSnapshot(event: event, revision: revision)
+      }
+    }
+  }
+
+  fileprivate func latestUserOrganizedEvents(
+    userID: UUID,
+    requesterUserID: UUID
+  ) async throws -> [EventSnapshot] {
+    try await database.read { db in
+      if userID == requesterUserID {
+        let rows =
+          try await EventRecord
+          .where { $0.organizerUserID.eq(userID) }
+          .joinLateral { event in
+            EventRevisionRecord
+              .where { $0.eventID.eq(event.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+          }
+          .order { event, revision in
+            (revision.startsAt.desc(), event.id.desc())
+          }
+          .selectStar()
+          .fetchAll(db)
+        return rows.map { event, revision in
+          EventSnapshot(event: event, revision: revision)
+        }
+      } else {
+        let rows =
+          try await EventRecord
+          .where { $0.organizerUserID.eq(userID) }
+          .joinLateral { event in
+            EventRevisionRecord
+              .where { $0.eventID.eq(event.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+          }
+          .where { _, revision in
+            revision.visibility.eq(EventRecord.Visibility.public)
+              .and(revision.publishedAt.isNot(nil))
+              .and(revision.canceledAt.is(nil))
+          }
+          .order { event, revision in
+            (revision.startsAt.desc(), event.id.desc())
+          }
+          .selectStar()
+          .fetchAll(db)
+        return rows.map { event, revision in
+          EventSnapshot(event: event, revision: revision)
+        }
+      }
+    }
+  }
+
+  fileprivate func latestUserParticipatingEvents(
+    userID: UUID,
+    requesterUserID: UUID
+  ) async throws -> [EventSnapshot] {
+    try await database.read { db in
+      if userID == requesterUserID {
+        let rows =
+          try await EventRecord
+          .join(EventParticipantRecord.all) { event, participant in
+            event.id.eq(participant.eventID)
+          }
+          .joinLateral { event, _ in
+            EventRevisionRecord
+              .where { $0.eventID.eq(event.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+          }
+          .where { _, participant, _ in
+            participant.userID.eq(userID)
+              .and(
+                participant.status.in([
+                  EventParticipantRecord.Status.registered,
+                  .waitlisted,
+                  .attended,
+                ])
+              )
+          }
+          .order { event, _, revision in
+            (revision.startsAt.desc(), event.id.desc())
+          }
+          .selectStar()
+          .fetchAll(db)
+        return rows.map { event, _, revision in
+          EventSnapshot(event: event, revision: revision)
+        }
+      } else {
+        let rows =
+          try await EventRecord
+          .join(EventParticipantRecord.all) { event, participant in
+            event.id.eq(participant.eventID)
+          }
+          .joinLateral { event, _ in
+            EventRevisionRecord
+              .where { $0.eventID.eq(event.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+          }
+          .where { _, participant, revision in
+            participant.userID.eq(userID)
+              .and(
+                participant.status.in([
+                  EventParticipantRecord.Status.registered,
+                  .waitlisted,
+                  .attended,
+                ])
+              )
+              .and(revision.visibility.eq(EventRecord.Visibility.public))
+              .and(revision.publishedAt.isNot(nil))
+              .and(revision.canceledAt.is(nil))
+          }
+          .order { event, _, revision in
+            (revision.startsAt.desc(), event.id.desc())
+          }
+          .selectStar()
+          .fetchAll(db)
+        return rows.map { event, _, revision in
+          EventSnapshot(event: event, revision: revision)
+        }
       }
     }
   }

@@ -227,6 +227,58 @@ paths:
           description: Not Authorization
         '404':
           description: Not found User Profile
+  /users/{user_id}/organized_events:
+    get:
+      operationId: getUserOrganizedEvents
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User id.
+      responses:
+        '200':
+          description: A success response with events organized by the user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
+  /users/{user_id}/participating_events:
+    get:
+      operationId: getUserParticipatingEvents
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User id.
+      responses:
+        '200':
+          description: A success response with events the user participates in.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
   /images/upload_url:
     post:
       operationId: createImageUploadURL
