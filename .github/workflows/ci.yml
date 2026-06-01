@@ -31,6 +31,13 @@ jobs:
         uses: actions/checkout@v6.0.2
       - name: Start DB, Cache & OTel Collector (wait for health)
         run: docker compose up -d --wait postgres valkey otel-collector
+      - name: Cache SwiftPM build artifacts
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-swift-6.3.2-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-6.3.2-
       - name: Run tests (Swift in Docker)
         run: docker compose run --rm swift bash -lc "apt-get update && apt-get install -y libssl-dev && swift test --parallel"
       - name: Shutdown
@@ -39,7 +46,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-      - run: docker build .
+      - uses: docker/setup-buildx-action@v4.1.0
+      - name: Build image
+        uses: docker/build-push-action@v7.2.0
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
   terraform:
     runs-on: ubuntu-latest
     steps:
