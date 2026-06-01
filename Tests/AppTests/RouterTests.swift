@@ -713,6 +713,78 @@ struct RouterTests {
   }
 
   @Test
+  func revokeToken() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      let revokeResponse = try await client.execute(
+        uri: "/revokeToken",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": newUser.refreshToken]))
+      )
+      #expect(revokeResponse.status == .ok)
+
+      let revokedRefreshResponse = try await client.execute(
+        uri: "/refreshToken",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": newUser.refreshToken]))
+      )
+      #expect(revokedRefreshResponse.status == .unauthorized)
+
+      let getMeResponse = try await client.execute(
+        uri: "/me",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      )
+      #expect(getMeResponse.status == .ok)
+
+      let accessTokenRevokeResponse = try await client.execute(
+        uri: "/revokeToken",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": newUser.token]))
+      )
+      #expect(accessTokenRevokeResponse.status == .unauthorized)
+
+      let invalidTokenRevokeResponse = try await client.execute(
+        uri: "/revokeToken",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": "invalid-token"]))
+      )
+      #expect(invalidTokenRevokeResponse.status == .unauthorized)
+    }
+  }
+
+  @Test
   func challengeForRegistration() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
