@@ -43,7 +43,7 @@ extension API {
       let challengeData = try Data(bodyData.challenge.base64decoded())
       let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
 
-      let data = try await cache.getdel(key)
+      let data = try await cache.get(key)
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
 
       guard let challenge else {
@@ -53,6 +53,8 @@ extension API {
       guard challenge.userID == nil && challenge.purpose == .authentication else {
         return .badRequest
       }
+
+      try await cache.del(keys: [key])
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.passkey.challenge.verify_failed",
