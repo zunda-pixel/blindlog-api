@@ -722,7 +722,7 @@ extension API {
       answersPublishedAt: body.answersPublishedAt.map(Date.init(timeIntervalSinceReferenceDate:))
         ?? currentRevision?.answersPublishedAt,
       capacity: body.capacity.map(Int.init),
-      entryFeeMinorAmount: body.entryFee.map { Int($0.minorAmount) },
+      entryFeeMinorAmount: body.entryFee?.minorAmount,
       entryFeeCurrencyCode: body.entryFee?.currencyCode.trimmingCharacters(
         in: .whitespacesAndNewlines
       ).uppercased(),
@@ -1282,7 +1282,7 @@ extension Components.Schemas.Event {
     )
     let entryFee: Components.Schemas.Money? = revision.entryFeeMinorAmount.flatMap { amount in
       revision.entryFeeCurrencyCode.map { currencyCode in
-        Components.Schemas.Money(minorAmount: Int64(amount), currencyCode: currencyCode)
+        Components.Schemas.Money(minorAmount: amount, currencyCode: currencyCode)
       }
     }
     let visibility = Components.Schemas.EventVisibility(rawValue: revision.visibility.rawValue)!

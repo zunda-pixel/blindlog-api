@@ -100,7 +100,7 @@ CREATE TABLE public.event_revisions (
   event_period tstzrange GENERATED ALWAYS AS (tstzrange(starts_at, ends_at, '[)')) STORED,
   answers_published_at timestamptz,
   capacity integer,
-  entry_fee_minor_amount integer,
+  entry_fee_minor_amount bigint,
   entry_fee_currency_code text,
   visibility text NOT NULL,
   published_at timestamptz,
