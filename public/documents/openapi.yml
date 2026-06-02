@@ -164,6 +164,28 @@ paths:
           description: A bad request
         '401':
           description: Not Authorization
+  /revokeToken:
+    post:
+      operationId: revokeToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  description: User refresh token.
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: A success response.
+        '400':
+          description: A bad request
+        '401':
+          description: Not Authorization
   /me:
     get:
       operationId: getMe

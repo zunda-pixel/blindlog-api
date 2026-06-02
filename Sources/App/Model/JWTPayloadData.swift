@@ -2,6 +2,7 @@ import JWTKit
 
 struct JWTPayloadData: JWTPayload, Equatable {
   var tokenType: TokenType
+  var id: IDClaim
   var subject: SubjectClaim
   var expiration: ExpirationClaim
 
@@ -11,6 +12,7 @@ struct JWTPayloadData: JWTPayload, Equatable {
 
   enum CodingKeys: String, CodingKey {
     case tokenType
+    case id = "jti"
     case subject = "sub"
     case expiration = "exp"
   }
