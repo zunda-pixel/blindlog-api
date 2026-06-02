@@ -22,7 +22,9 @@ cloudflare_zone_id = "0123456789abcdef0123456789abcdef"
 # otel_collector_image            = "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google:0.144.0"
 # otel_collector_memory           = "256Mi"
 # allow_unauthenticated = true
-# restrict_direct_cloud_run_ingress = false # Set to true after api_hostname works through the load balancer.
+# Default true blocks direct public *.run.app access. Set this to false only
+# during initial load balancer / certificate bootstrap, then remove the override.
+# restrict_direct_cloud_run_ingress = true
 
 # First `terraform apply` uses this tag. After that, GitHub Actions overrides
 # the running image with `gcloud run services update --image=...:<sha>`, and
