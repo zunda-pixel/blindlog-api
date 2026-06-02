@@ -120,7 +120,11 @@ struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
       try await RateLimitContext.$userTokenAccessCount.withValue(
         userTokenAccessCount?.perEndpointCount
       ) {
-        try await next(request, context)
+        try await RateLimitContext.$authenticationEndpointMaxCount.withValue(
+          config.authenticationEndpointMaxCount
+        ) {
+          try await next(request, context)
+        }
       }
     }
   }
@@ -132,6 +136,8 @@ enum RateLimitContext {
 
   /// Access count per user token
   @TaskLocal static var userTokenAccessCount: Int?
+
+  @TaskLocal static var authenticationEndpointMaxCount: Int = 30
 }
 
 struct AccessCount {
@@ -144,7 +150,39 @@ extension HTTPField.Name {
 }
 
 struct RateLimitConfig {
-  var durationSeconds: Int
-  var ipAddressMaxCount: Int
-  var userTokenMaxCount: Int
+  let durationSeconds: Int
+  let ipAddressMaxCount: Int
+  let userTokenMaxCount: Int
+  let authenticationEndpointMaxCount: Int
+
+  init(
+    durationSeconds: Int,
+    ipAddressMaxCount: Int,
+    userTokenMaxCount: Int,
+    authenticationEndpointMaxCount: Int
+  ) throws {
+    guard durationSeconds > 0 else {
+      throw HTTPError(.internalServerError, message: "rate limit duration must be positive")
+    }
+    guard ipAddressMaxCount > 0 else {
+      throw HTTPError(
+        .internalServerError,
+        message: "IP address rate limit max count must be positive")
+    }
+    guard userTokenMaxCount > 0 else {
+      throw HTTPError(
+        .internalServerError,
+        message: "user token rate limit max count must be positive")
+    }
+    guard authenticationEndpointMaxCount > 0 else {
+      throw HTTPError(
+        .internalServerError,
+        message: "authentication endpoint rate limit max count must be positive")
+    }
+
+    self.durationSeconds = durationSeconds
+    self.ipAddressMaxCount = ipAddressMaxCount
+    self.userTokenMaxCount = userTokenMaxCount
+    self.authenticationEndpointMaxCount = authenticationEndpointMaxCount
+  }
 }

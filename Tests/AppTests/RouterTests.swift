@@ -14,6 +14,7 @@ struct TestArguments: AppArguments {
   var rateLimitDurationSeconds: Int? = 3600
   var rateLimitIPAddressMaxCount: Int? = 100
   var rateLimitUserTokenMaxCount: Int? = 200
+  var rateLimitAuthenticationEndpointMaxCount: Int? = 30
 }
 
 @Suite(.serialized)
@@ -849,6 +850,16 @@ struct RouterTests {
         let cachedUsers = try JSONDecoder().decode([User].self, from: response.body)
         #expect(Set(newUsers.map(\.userID)) == Set(cachedUsers.map(\.id.uuidString)))
       }
+
+      let invalidIDsQuery = "\(newUsers[0].userID),not-a-uuid"
+      let invalidIDsResponse = try await client.execute(
+        uri: "/users?ids=\(invalidIDsQuery)",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(invalidIDsResponse.status == .badRequest)
     }
   }
 
@@ -1210,13 +1221,13 @@ struct RouterTests {
 
   @Test
   func ipAddressRateLimitPerEndpoint() async throws {
-    let arguments = TestArguments()
+    let arguments = TestArguments(rateLimitAuthenticationEndpointMaxCount: 2)
     let app = try await buildApplication(arguments)
     let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
       // 1. Add User to DB
-      for _ in 0..<30 {
+      for _ in 0..<arguments.rateLimitAuthenticationEndpointMaxCount! {
         let newUserResponse = try await client.execute(
           uri: "/user",
           method: .post,
@@ -1235,6 +1246,19 @@ struct RouterTests {
         ]
       )
       #expect(newUserResponse.status == .internalServerError)
+    }
+  }
+
+  @Test(
+    arguments: [
+      TestArguments(rateLimitDurationSeconds: 0),
+      TestArguments(rateLimitIPAddressMaxCount: 0),
+      TestArguments(rateLimitUserTokenMaxCount: 0),
+      TestArguments(rateLimitAuthenticationEndpointMaxCount: 0),
+    ])
+  func rateLimitConfigRejectsNonPositiveValues(arguments: TestArguments) async throws {
+    await #expect(throws: Error.self) {
+      _ = try await buildApplication(arguments)
     }
   }
 }
