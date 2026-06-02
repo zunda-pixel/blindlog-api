@@ -42,7 +42,7 @@ extension API {
     do {
       let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
 
-      let data = try await cache.get(key)
+      let data = try await cache.getdel(key)
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
 
       guard let challenge else {
@@ -53,13 +53,12 @@ extension API {
         return .badRequest
       }
 
-      try await cache.del(keys: [key])
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.passkey.registration_challenge_verify_failed",
         "Failed to verify and delete registration challenge",
         metadata: AppLogMetadata.userID(userID).merging([
-          "cache.operation": .string("get_delete")
+          "cache.operation": .string("getdel")
         ]) { _, new in new },
         error: error
       )

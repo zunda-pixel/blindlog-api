@@ -45,7 +45,7 @@ extension API {
       let challengeData = try Data(bodyData.challenge.base64decoded())
       let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
 
-      let data = try await cache.get(key)
+      let data = try await cache.getdel(key)
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
 
       guard let challenge else {
@@ -56,14 +56,13 @@ extension API {
         return .badRequest
       }
 
-      try await cache.del(keys: [key])
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.passkey.challenge.verify_failed",
         "Failed to verify and delete authentication challenge",
         metadata: [
           "auth.flow": .string("passkey"),
-          "cache.operation": .string("get_delete"),
+          "cache.operation": .string("getdel"),
         ],
         error: error
       )
