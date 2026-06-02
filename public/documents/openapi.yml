@@ -17,7 +17,7 @@ paths:
       operationId: getAppleAppSiteAssociation
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with the Apple App Site Association document.
           content:
             application/json:
               schema:
@@ -27,7 +27,7 @@ paths:
       operationId: createChallenge
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with a newly issued passkey challenge.
           content:
             application/json:
               schema:
@@ -56,17 +56,17 @@ paths:
               $ref: '#/components/schemas/AddPasskey'
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response indicating the passkey was registered.
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /user:
     post:
       operationId: createUser
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with a token for the created user.
           content:
             application/json:
               schema:
@@ -84,7 +84,7 @@ paths:
               $ref: '#/components/schemas/CreatePasskeyTokenRequest'
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with a token created from passkey authentication.
           content:
             application/json:
               schema:
@@ -102,7 +102,7 @@ paths:
               $ref: '#/components/schemas/CreateEmailTokenRequest'
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with a token created from email OTP authentication.
           content:
             application/json:
               schema:
@@ -110,7 +110,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found User
   /token/email/start:
@@ -119,14 +119,14 @@ paths:
       parameters:
         - name: email
           in: query
-          description: ID of user to return
+          description: Registered email address to send a login OTP to.
           required: true
           schema:
             type: string
             format: email
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with the email login OTP challenge.
           content:
             application/json:
               schema:
@@ -135,7 +135,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found User
   /refreshToken:
@@ -155,7 +155,7 @@ paths:
                 - refreshToken
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with refreshed user tokens.
           content:
             application/json:
               schema:
@@ -163,7 +163,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /revokeToken:
     post:
       operationId: revokeToken
@@ -185,7 +185,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /me:
     get:
       operationId: getMe
@@ -201,7 +201,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
     post:
       operationId: createUserProfile
       security:
@@ -222,7 +222,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /user_profile/{user_id}:
     get:
       operationId: getUserProfile
@@ -246,7 +246,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found User Profile
   /users/{user_id}/organized_events:
@@ -274,7 +274,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /users/{user_id}/participating_events:
     get:
       operationId: getUserParticipatingEvents
@@ -300,7 +300,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /images/upload_url:
     post:
       operationId: createImageUploadURL
@@ -316,7 +316,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /images:
     post:
       operationId: createImage
@@ -338,7 +338,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /events:
     get:
       operationId: getEvents
@@ -356,7 +356,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
     post:
       operationId: createEvent
       security:
@@ -377,7 +377,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /events/{event_id}:
     get:
       operationId: getEvent
@@ -401,7 +401,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event
     put:
@@ -432,7 +432,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event
   /events/{event_id}/participants:
@@ -458,7 +458,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event
   /events/{event_id}/questions:
@@ -490,7 +490,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event
   /events/{event_id}/questions/{question_id}:
@@ -529,7 +529,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event Question
   /events/{event_id}/questions/{question_id}/correct_answer:
@@ -568,7 +568,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event Question
     put:
@@ -606,7 +606,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event Question
   /events/{event_id}/questions/{question_id}/responses:
@@ -645,7 +645,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event Question
   /events/{event_id}/questions/{question_id}/responses/me:
@@ -684,7 +684,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
         '404':
           description: Not found Event Question
   /wine/styles:
@@ -704,7 +704,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /wine/varieties:
     get:
       operationId: getWineVarieties
@@ -722,7 +722,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /wine/region_types:
     get:
       operationId: getWineRegionTypes
@@ -740,7 +740,7 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /wine/regions:
     get:
       operationId: getWineRegions
@@ -758,14 +758,14 @@ paths:
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /users:
     get:
       operationId: getUsers
       parameters:
         - name: ids
           in: query
-          description: ID of user to return
+          description: Comma-separated user IDs to return.
           required: true
           explode: false
           schema:
@@ -775,7 +775,7 @@ paths:
               format: uuid
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response with matching users.
           content:
             application/json:
               schema:
@@ -792,18 +792,18 @@ paths:
       parameters:
         - name: email
           in: query
-          description: ID of user to return
+          description: Email address to verify for the authenticated user.
           required: true
           schema:
             type: string
             format: email
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response indicating the verification email was sent.
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
   /email/verify:
     post:
       operationId: confirmEmail
@@ -812,24 +812,24 @@ paths:
       parameters:
         - name: email
           in: query
-          description: ID of user to return
+          description: Email address being verified for the authenticated user.
           required: true
           schema:
             type: string
             format: email
         - name: password
           in: query
-          description: ID of user to return
+          description: One-time password sent to the email address.
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: A success response with a user.
+          description: A success response indicating the email address was verified.
         '400':
           description: A bad request
         '401':
-          description: Not Authorization
+          description: Unauthorized
 components:
   securitySchemes:
     bearerAuth:
