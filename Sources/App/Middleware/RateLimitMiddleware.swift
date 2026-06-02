@@ -150,10 +150,10 @@ extension HTTPField.Name {
 }
 
 struct RateLimitConfig {
-  let durationSeconds: Int
-  let ipAddressMaxCount: Int
-  let userTokenMaxCount: Int
-  let authenticationEndpointMaxCount: Int
+  var durationSeconds: Int
+  var ipAddressMaxCount: Int
+  var userTokenMaxCount: Int
+  var authenticationEndpointMaxCount: Int
 
   init(
     durationSeconds: Int,
