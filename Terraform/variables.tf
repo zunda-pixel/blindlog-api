@@ -81,6 +81,11 @@ variable "max_instance_count" {
     condition     = var.max_instance_count >= 1
     error_message = "max_instance_count must be at least 1."
   }
+
+  validation {
+    condition     = var.min_instance_count <= var.max_instance_count
+    error_message = "max_instance_count must be greater than or equal to min_instance_count."
+  }
 }
 
 variable "memory" {
@@ -148,7 +153,7 @@ variable "region" {
 variable "restrict_direct_cloud_run_ingress" {
   description = "When true, allow external traffic only through Google Cloud Load Balancing and block direct public run.app access."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "service_name" {

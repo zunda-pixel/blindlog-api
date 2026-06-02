@@ -56,8 +56,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Install Atlas Community
-        run: curl -sSf https://atlasgo.sh | sh -s -- --community
+      - name: Install Atlas
+        uses: ariga/setup-atlas@v0
+        with:
+          version: v0.38.0
 
       - name: Apply database migrations
         run: |

@@ -1,2 +1,27 @@
 .build
 .git
+.swiftpm
+.devContainer
+Packages
+*.xcodeproj
+xcuserdata
+.vscode
+.env
+.env.*
+DerivedData
+
+# Terraform local state/config
+**/.terraform
+**/.terraform/**
+**/terraform.tfvars
+**/*.tfvars
+**/*.tfstate
+**/*.tfstate.*
+
+# Local tooling and editor state
+.agents
+.claude
+.DS_Store
+**/.DS_Store
+.derived-data-log-*
+dump.rdb
