@@ -21,6 +21,36 @@ extension API {
       throw HTTPError(.tooManyRequests)
     }
     let email: String = normalizeEmail(input.query.email)
+    let isRegisteredEmail: Bool
+    do {
+      isRegisteredEmail = try await database.read { db in
+        try await UserEmail
+          .where { $0.email.eq(email) }
+          .select { $0.email }
+          .fetchOne(db) != nil
+      }
+    } catch {
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.email.registration_lookup_failed",
+        "Failed to check email registration before sending OTP",
+        metadata: AppLogMetadata.emailSHA256(email).merging([
+          "db.operation": .string("select")
+        ]) { _, new in new },
+        error: error
+      )
+      return .badRequest
+    }
+
+    guard isRegisteredEmail else {
+      AppRequestContext.current?.logger.appLog(
+        level: .debug,
+        eventName: "auth.email.unregistered_login_requested",
+        "Skipping login OTP for unregistered email",
+        metadata: AppLogMetadata.emailSHA256(email)
+      )
+      return .ok(.init(body: .json(.init([]))))
+    }
+
     let challenge = [UInt8].random(count: 32)
 
     // 2. Generate OTP

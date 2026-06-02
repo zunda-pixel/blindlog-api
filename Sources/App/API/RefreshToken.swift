@@ -13,7 +13,38 @@ extension API {
       return .badRequest
     }
 
-    let payload = try await jwtKeyCollection.verify(body.refreshToken, as: JWTPayloadData.self)
+    let payload: JWTPayloadData
+    do {
+      payload = try await jwtKeyCollection.verify(body.refreshToken, as: JWTPayloadData.self)
+    } catch {
+      AppRequestContext.current?.logger.appLog(
+        level: .debug,
+        eventName: "auth.refresh_token.verify_failed",
+        "Couldn't verify refresh token",
+        error: error
+      )
+      return .unauthorized
+    }
+
+    guard payload.issuer.value == jwtIssuer else {
+      AppRequestContext.current?.logger.appLog(
+        level: .debug,
+        eventName: "auth.refresh_token.invalid_issuer",
+        "Refresh token issuer is not accepted"
+      )
+      return .unauthorized
+    }
+    do {
+      try payload.audience.verifyIntendedAudience(includes: jwtAudience)
+    } catch {
+      AppRequestContext.current?.logger.appLog(
+        level: .debug,
+        eventName: "auth.refresh_token.invalid_audience",
+        "Refresh token audience is not accepted",
+        error: error
+      )
+      return .unauthorized
+    }
 
     guard let userID = UUID(uuidString: payload.subject.value) else {
       AppRequestContext.current?.logger.appLog(

@@ -28,7 +28,7 @@ extension API {
       let challengeData = try Data(bodyData.challenge.base64decoded())
       let key = ValkeyKey("OTPEmailAuthentication:\(challengeData.base64EncodedString())")
 
-      let data = try await cache.get(key)
+      let data = try await cache.getdel(key)
       let challenge = try data.map {
         try JSONDecoder().decode(OTPEmailAuthentication.self, from: Data($0))
       }
@@ -52,8 +52,6 @@ extension API {
       else {
         return .unauthorized
       }
-
-      try await cache.del(keys: [key])
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.email.challenge.verify_failed",

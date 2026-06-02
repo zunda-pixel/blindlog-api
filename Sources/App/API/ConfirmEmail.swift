@@ -79,11 +79,14 @@ extension API {
     }
 
     do {
-      try await cache.del(keys: [ValkeyKey("user:\(userID.uuidString)")])
+      try await cache.del(keys: [
+        ValkeyKey("user:\(userID.uuidString)"),
+        ValkeyKey("OTPEmailRegistration:\(userID.uuidString)"),
+      ])
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "user.cache_delete_failed",
-        "Failed to delete old user from cache",
+        "Failed to delete old user and email verification OTP from cache",
         metadata: AppLogMetadata.userID(userID).merging([
           "cache.operation": .string("delete")
         ]) { _, new in new },

@@ -42,7 +42,7 @@ extension API {
     do {
       let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
 
-      let data = try await cache.get(key)
+      let data = try await cache.getdel(key)
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
 
       guard let challenge else {
@@ -52,8 +52,6 @@ extension API {
       guard challenge.userID == userID && challenge.purpose == .registration else {
         return .badRequest
       }
-
-      try await cache.del(keys: [key])
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.passkey.registration_challenge_verify_failed",
@@ -72,6 +70,9 @@ extension API {
       credential = try await webAuthn.finishRegistration(
         challenge: Array(input.query.challenge.data),
         credentialCreationData: registrationCredential,
+        requireUserVerification: false,
+        supportedPublicKeyAlgorithms: .supported,
+        pemRootCertificatesByFormat: [:],
         confirmCredentialIDNotRegisteredYet: { credentialID in
           let credential = try await database.read { db in
             try await PasskeyCredential

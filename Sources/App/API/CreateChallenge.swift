@@ -32,11 +32,17 @@ extension API {
             id: Array(Data(userID.uuidString.utf8)),
             name: userID.uuidString,
             displayName: userID.uuidString
-          )
+          ),
+          timeout: .seconds(5 * 60),
+          attestation: .none,
+          publicKeyCredentialParameters: .supported
         ).challenge
       } else {
-        // SignIn
-        webAuthn.beginAuthentication().challenge
+        webAuthn.beginAuthentication(
+          timeout: .seconds(60),
+          allowCredentials: nil,
+          userVerification: .preferred
+        ).challenge
       }
 
     // 2. Save Challenge to DB with expired date

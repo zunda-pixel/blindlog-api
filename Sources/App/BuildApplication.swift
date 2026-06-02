@@ -33,7 +33,9 @@ private struct AlreadyBootstrappedObservabilityService: Service {
 
 func buildApplication(
   _ arguments: some AppArguments,
-  cloudflareImagesClient: (any CloudflareImagesClientProtocol)? = nil
+  cloudflareImagesClient: (any CloudflareImagesClientProtocol)? = nil,
+  emailService: (any EmailServiceProtocol)? = nil,
+  webAuthn: (any WebAuthnProtocol)? = nil
 ) async throws -> some ApplicationProtocol {
   let config = ConfigReader(providers: [EnvironmentVariablesProvider()])
 
@@ -85,15 +87,19 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
+  let jwtIssuer = makeJWTIssuer(config: config)
+  let jwtAudience = makeJWTAudience(config: config)
 
   let api = try API(
     cache: cache,
     database: databaseClient,
     cloudflareImagesClient: cloudflareImagesClient ?? makeCloudflareImagesClient(config: config),
     jwtKeyCollection: jwtKeyCollection,
-    webAuthn: makeWebAuth(config: config),
+    jwtIssuer: jwtIssuer,
+    jwtAudience: jwtAudience,
+    webAuthn: webAuthn ?? LiveWebAuthn(manager: makeWebAuth(config: config)),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
-    emailService: makeCloudflareEmailService(config: config),
+    emailService: emailService ?? makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)
   )
 
@@ -118,7 +124,11 @@ func buildApplication(
     router
     .group()
     .add(
-      middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+      middleware: UserTokenMiddleware(
+        jwtKeyCollection: jwtKeyCollection,
+        issuer: jwtIssuer,
+        audience: jwtAudience
+      )
     )
     .add(
       middleware: RateLimitMiddleware(
@@ -169,6 +179,14 @@ func makeRateLimitConfig(
     userTokenMaxCount: arguments.rateLimitUserTokenMaxCount
       ?? config.requiredInt(forKey: "user.token.max.count")
   )
+}
+
+func makeJWTIssuer(config: ConfigReader) -> String {
+  config.string(forKey: "jwt.issuer") ?? "blindlog-api"
+}
+
+func makeJWTAudience(config: ConfigReader) -> String {
+  config.string(forKey: "jwt.audience") ?? "blindlog-app"
 }
 
 func makeCache(
@@ -271,7 +289,9 @@ func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAss
 
 func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
   let secretKey = try config.requiredString(forKey: "otp.secret.key")
-  let secretKeyData = Data(base64Encoded: secretKey)!
+  guard let secretKeyData = Data(base64Encoded: secretKey) else {
+    throw HTTPError(.internalServerError, message: "OTP secret key must be valid Base64")
+  }
   return SymmetricKey(data: secretKeyData)
 }
 
