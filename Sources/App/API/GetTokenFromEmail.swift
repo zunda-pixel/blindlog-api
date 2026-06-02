@@ -13,7 +13,9 @@ extension API {
   func createTokenFromEmail(
     _ input: Operations.CreateTokenFromEmail.Input
   ) async throws -> Operations.CreateTokenFromEmail.Output {
-    guard let ipAddressCount = RateLimitContext.ipAddressAccessCount, ipAddressCount < 30 else {
+    guard let ipAddressCount = RateLimitContext.ipAddressAccessCount,
+      ipAddressCount < RateLimitContext.authenticationEndpointMaxCount
+    else {
       throw HTTPError(.tooManyRequests)
     }
 

@@ -12,7 +12,9 @@ extension API {
   func createTokenFromPasskey(
     _ input: Operations.CreateTokenFromPasskey.Input
   ) async throws -> Operations.CreateTokenFromPasskey.Output {
-    guard let ipAddressCount = RateLimitContext.ipAddressAccessCount, ipAddressCount < 30 else {
+    guard let ipAddressCount = RateLimitContext.ipAddressAccessCount,
+      ipAddressCount < RateLimitContext.authenticationEndpointMaxCount
+    else {
       throw HTTPError(.tooManyRequests)
     }
 

@@ -10,7 +10,10 @@ extension API {
   func getUsers(
     _ input: Operations.GetUsers.Input
   ) async throws -> Operations.GetUsers.Output {
-    let ids: [UUID] = input.query.ids.compactMap { UUID(uuidString: $0) }
+    let ids = input.query.ids.compactMap { UUID(uuidString: $0) }
+    guard ids.count == input.query.ids.count else {
+      return .badRequest
+    }
 
     // 1. Get Users from Cache and Update Expiration if exits
     let cacheUsers: [User]
@@ -28,7 +31,7 @@ extension API {
         ],
         error: error
       )
-      return .badRequest
+      cacheUsers = []
     }
 
     // 2. Get Users from DB that is not in Cache
@@ -67,7 +70,6 @@ extension API {
         ],
         error: error
       )
-      return .badRequest
     }
 
     let users: [Components.Schemas.User] = (cacheUsers + dbUsers).map {
@@ -111,34 +113,20 @@ extension API {
   fileprivate func getUsersFromCacheAndUpdateExpiration(
     ids: [User.ID]
   ) async throws -> [User] {
-    return try await cache.withConnection { connection in
-      return try await withThrowingTaskGroup(of: Optional<User>.self) { group in
-        let decoder = JSONDecoder()
+    let decoder = JSONDecoder()
+    var users: [User] = []
 
-        for id in ids {
-          group.addTask {
-            let userData = try await connection.getex(
-              ValkeyKey("user:\(id.uuidString)"),
-              expiration: .seconds(60 * 10)  // 10 minutes
-            )
+    for id in ids {
+      let userData = try await cache.getex(
+        ValkeyKey("user:\(id.uuidString)"),
+        expiration: .seconds(60 * 10)  // 10 minutes
+      )
 
-            if let userData {
-              return try decoder.decode(User.self, from: Data(userData))
-            } else {
-              return nil
-            }
-          }
-        }
-
-        var users: [User] = []
-
-        for try await user in group {
-          guard let user else { continue }
-          users.append(user)
-        }
-
-        return users
+      if let userData {
+        users.append(try decoder.decode(User.self, from: Data(userData)))
       }
     }
+
+    return users
   }
 }

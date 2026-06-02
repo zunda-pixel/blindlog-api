@@ -16,7 +16,7 @@ extension API {
     _ input: Operations.SendEmailForToken.Input
   ) async throws -> Operations.SendEmailForToken.Output {
     guard let ipAddressAccessCount = RateLimitContext.ipAddressAccessCount,
-      ipAddressAccessCount < 30
+      ipAddressAccessCount < RateLimitContext.authenticationEndpointMaxCount
     else {
       throw HTTPError(.tooManyRequests)
     }
