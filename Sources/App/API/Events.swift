@@ -585,13 +585,19 @@ extension API {
   func getWineStyles(
     _ input: Operations.GetWineStyles.Input
   ) async throws -> Operations.GetWineStyles.Output {
-    guard UserTokenContext.currentUserID != nil else { return .unauthorized }
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
       let styles = try await database.read { db in
         try await WineStyleRecord.order { $0.name }.fetchAll(db)
       }
       return .ok(.init(body: .json(styles.map(Components.Schemas.WineStyle.init))))
     } catch {
+      logEventDatabaseError(
+        "wine.styles.list_failed",
+        "Failed to fetch wine styles",
+        userID: userID,
+        error: error
+      )
       return .badRequest
     }
   }
@@ -599,7 +605,7 @@ extension API {
   func getWineVarieties(
     _ input: Operations.GetWineVarieties.Input
   ) async throws -> Operations.GetWineVarieties.Output {
-    guard UserTokenContext.currentUserID != nil else { return .unauthorized }
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
       let varieties = try await database.read { db in
         let varieties = try await WineVarietyRecord.order { $0.name }.fetchAll(db)
@@ -622,6 +628,12 @@ extension API {
         )
       )
     } catch {
+      logEventDatabaseError(
+        "wine.varieties.list_failed",
+        "Failed to fetch wine varieties",
+        userID: userID,
+        error: error
+      )
       return .badRequest
     }
   }
@@ -629,13 +641,19 @@ extension API {
   func getWineRegionTypes(
     _ input: Operations.GetWineRegionTypes.Input
   ) async throws -> Operations.GetWineRegionTypes.Output {
-    guard UserTokenContext.currentUserID != nil else { return .unauthorized }
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
       let types = try await database.read { db in
         try await WineRegionTypeRecord.order { $0.name }.fetchAll(db)
       }
       return .ok(.init(body: .json(types.map(Components.Schemas.WineRegionType.init))))
     } catch {
+      logEventDatabaseError(
+        "wine.region_types.list_failed",
+        "Failed to fetch wine region types",
+        userID: userID,
+        error: error
+      )
       return .badRequest
     }
   }
@@ -643,13 +661,19 @@ extension API {
   func getWineRegions(
     _ input: Operations.GetWineRegions.Input
   ) async throws -> Operations.GetWineRegions.Output {
-    guard UserTokenContext.currentUserID != nil else { return .unauthorized }
+    guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
       let regions = try await database.read { db in
         try await WineRegionRecord.order { $0.name }.fetchAll(db)
       }
       return .ok(.init(body: .json(regions.map(Components.Schemas.WineRegion.init))))
     } catch {
+      logEventDatabaseError(
+        "wine.regions.list_failed",
+        "Failed to fetch wine regions",
+        userID: userID,
+        error: error
+      )
       return .badRequest
     }
   }
