@@ -1,10 +1,10 @@
 services:
   valkey:
-    image: valkey/valkey:latest
+    image: valkey/valkey:8.1.4
     restart: always
 
   postgres:
-    image: postgres:latest
+    image: postgres:17.6
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -15,7 +15,7 @@ services:
       - ./Database/schema.sql:/docker-entrypoint-initdb.d/002_schema.sql:ro
 
   otel-collector:
-    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:latest
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.144.0
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./Deploy/local/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro

@@ -63,7 +63,7 @@ container run --rm \
   -e "POSTGRES_USER=test_user" \
   -e "POSTGRES_DB=test_database" \
   -p 5432:5432 \
-  postgres:latest
+  postgres:17.6
 ```
 
 - Valkey
@@ -72,7 +72,7 @@ container run --rm \
 container run --rm \
   --name blindlog-valkey \
   -p 6379:6379 \
-  valkey/valkey:latest
+  valkey/valkey:8.1.4
 ```
 
 - OpenTelemetry Collector
@@ -83,5 +83,5 @@ container run --rm \
   -p 4317:4317 \
   -p 4318:4318 \
   -v "$PWD/Deploy/local/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml" \
-  ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:latest
+  ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.144.0
 ```
