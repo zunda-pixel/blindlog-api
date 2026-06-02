@@ -1272,6 +1272,7 @@ components:
         vintage:
           type: integer
           format: int32
+          minimum: 1
         alcoholByVolume:
           type: number
           format: double
@@ -1304,6 +1305,7 @@ components:
         vintage:
           type: integer
           format: int32
+          minimum: 1
         alcoholByVolume:
           type: number
           format: double
@@ -1336,6 +1338,7 @@ components:
         vintage:
           type: integer
           format: int32
+          minimum: 1
         alcoholByVolume:
           type: number
           format: double
@@ -1373,6 +1376,7 @@ components:
         vintage:
           type: integer
           format: int32
+          minimum: 1
         alcoholByVolume:
           type: number
           format: double

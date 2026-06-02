@@ -400,7 +400,10 @@ extension API {
     }
     let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
-    guard validStyleID, validRegionID, isValidAlcoholByVolume(body.alcoholByVolume) else {
+    guard
+      validStyleID, validRegionID, isValidVintage(body.vintage),
+      isValidAlcoholByVolume(body.alcoholByVolume)
+    else {
       return .badRequest
     }
 
@@ -449,7 +452,10 @@ extension API {
     }
     let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
-    guard validStyleID, validRegionID, isValidAlcoholByVolume(body.alcoholByVolume) else {
+    guard
+      validStyleID, validRegionID, isValidVintage(body.vintage),
+      isValidAlcoholByVolume(body.alcoholByVolume)
+    else {
       return .badRequest
     }
 
@@ -496,7 +502,10 @@ extension API {
     }
     let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
-    guard validStyleID, validRegionID, isValidAlcoholByVolume(body.alcoholByVolume) else {
+    guard
+      validStyleID, validRegionID, isValidVintage(body.vintage),
+      isValidAlcoholByVolume(body.alcoholByVolume)
+    else {
       return .badRequest
     }
 
@@ -547,7 +556,10 @@ extension API {
     }
     let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
-    guard validStyleID, validRegionID, isValidAlcoholByVolume(body.alcoholByVolume) else {
+    guard
+      validStyleID, validRegionID, isValidVintage(body.vintage),
+      isValidAlcoholByVolume(body.alcoholByVolume)
+    else {
       return .badRequest
     }
 
@@ -1257,6 +1269,11 @@ extension API {
   fileprivate func isValidAlcoholByVolume(_ alcoholByVolume: Double?) -> Bool {
     guard let alcoholByVolume else { return true }
     return alcoholByVolume >= 0 && alcoholByVolume <= 100
+  }
+
+  fileprivate func isValidVintage(_ vintage: Int32?) -> Bool {
+    guard let vintage else { return true }
+    return vintage > 0
   }
 
   fileprivate func logEventDatabaseError(
