@@ -47,7 +47,8 @@ INSERT INTO public.wine_varieties (id, name) VALUES
   ('20000000-0000-4000-8000-000000000023', 'Albariño'),
   ('20000000-0000-4000-8000-000000000024', 'Muscat'),
   ('20000000-0000-4000-8000-000000000025', 'Koshu')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET name = EXCLUDED.name;
 
 INSERT INTO public.wine_variety_styles (wine_variety_id, wine_style_id) VALUES
   ('20000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001'),
@@ -108,7 +109,11 @@ INSERT INTO public.wine_regions (id, parent_region_id, wine_region_type_id, name
   ('40000000-0000-4000-8000-000000000010', NULL, '30000000-0000-4000-8000-000000000001', 'Argentina'),
   ('40000000-0000-4000-8000-000000000011', NULL, '30000000-0000-4000-8000-000000000001', 'South Africa'),
   ('40000000-0000-4000-8000-000000000012', NULL, '30000000-0000-4000-8000-000000000001', 'Japan')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET
+  parent_region_id = EXCLUDED.parent_region_id,
+  wine_region_type_id = EXCLUDED.wine_region_type_id,
+  name = EXCLUDED.name;
 
 INSERT INTO public.wine_regions (id, parent_region_id, wine_region_type_id, name) VALUES
   ('40000000-0000-4000-8000-000000000101', '40000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000003', 'Bourgogne'),
