@@ -81,6 +81,11 @@ variable "max_instance_count" {
     condition     = var.max_instance_count >= 1
     error_message = "max_instance_count must be at least 1."
   }
+
+  validation {
+    condition     = var.min_instance_count <= var.max_instance_count
+    error_message = "max_instance_count must be greater than or equal to min_instance_count."
+  }
 }
 
 variable "memory" {
