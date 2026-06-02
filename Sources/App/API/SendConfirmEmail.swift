@@ -15,7 +15,7 @@ extension API {
   ) async throws -> Operations.SendConfirmEmail.Output {
     guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     guard let userTokenAccessCount = RateLimitContext.userTokenAccessCount,
-      userTokenAccessCount < 30
+      userTokenAccessCount < RateLimitContext.authenticationEndpointMaxCount
     else {
       throw HTTPError(.tooManyRequests)
     }

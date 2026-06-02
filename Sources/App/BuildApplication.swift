@@ -167,7 +167,10 @@ func makeRateLimitConfig(
     ipAddressMaxCount: arguments.rateLimitIPAddressMaxCount
       ?? config.requiredInt(forKey: "ip.address.max.count"),
     userTokenMaxCount: arguments.rateLimitUserTokenMaxCount
-      ?? config.requiredInt(forKey: "user.token.max.count")
+      ?? config.requiredInt(forKey: "user.token.max.count"),
+    authenticationEndpointMaxCount: arguments.rateLimitAuthenticationEndpointMaxCount
+      ?? config.int(forKey: "authentication.endpoint.max.count")
+      ?? 30
   )
 }
 

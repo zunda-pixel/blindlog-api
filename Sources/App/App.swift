@@ -25,6 +25,9 @@ struct AppCommand: AsyncParsableCommand, AppArguments {
   @Option(name: .long)
   var rateLimitUserTokenMaxCount: Int?
 
+  @Option(name: .long)
+  var rateLimitAuthenticationEndpointMaxCount: Int?
+
   func run() async throws {
     let app = try await buildApplication(self)
     try await app.runService()
@@ -39,6 +42,7 @@ protocol AppArguments {
   var rateLimitDurationSeconds: Int? { get }
   var rateLimitIPAddressMaxCount: Int? { get }
   var rateLimitUserTokenMaxCount: Int? { get }
+  var rateLimitAuthenticationEndpointMaxCount: Int? { get }
 }
 
 /// Extend `Logger.Level` so it can be used as an argument
