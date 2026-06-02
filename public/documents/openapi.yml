@@ -1279,6 +1279,7 @@ components:
           maximum: 100
         wineVarietyIDs:
           type: array
+          uniqueItems: true
           items:
             type: string
             format: uuid
@@ -1310,6 +1311,7 @@ components:
           maximum: 100
         wineVarietyIDs:
           type: array
+          uniqueItems: true
           items:
             type: string
             format: uuid
@@ -1343,6 +1345,7 @@ components:
           type: string
         wineVarietyIDs:
           type: array
+          uniqueItems: true
           items:
             type: string
             format: uuid
@@ -1379,6 +1382,7 @@ components:
           type: string
         wineVarietyIDs:
           type: array
+          uniqueItems: true
           items:
             type: string
             format: uuid

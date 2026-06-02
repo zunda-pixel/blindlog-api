@@ -1216,7 +1216,10 @@ extension API {
 
   fileprivate func parseUUIDs(_ strings: [String]) -> [UUID]? {
     let ids = strings.compactMap(UUID.init(uuidString:))
-    return ids.count == strings.count ? ids : nil
+    guard ids.count == strings.count, Set(ids).count == ids.count else {
+      return nil
+    }
+    return ids
   }
 
   fileprivate func trimmedOptional(_ string: String?) -> String? {
