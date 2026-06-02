@@ -153,7 +153,7 @@ variable "region" {
 variable "restrict_direct_cloud_run_ingress" {
   description = "When true, allow external traffic only through Google Cloud Load Balancing and block direct public run.app access."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "service_name" {

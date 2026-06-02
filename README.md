@@ -63,7 +63,7 @@ container run --rm \
   -e "POSTGRES_USER=test_user" \
   -e "POSTGRES_DB=test_database" \
   -p 5432:5432 \
-  postgres:17
+  postgres:17.6
 ```
 
 - Valkey
@@ -72,7 +72,7 @@ container run --rm \
 container run --rm \
   --name blindlog-valkey \
   -p 6379:6379 \
-  valkey/valkey:8
+  valkey/valkey:8.1.4
 ```
 
 - OpenTelemetry Collector
