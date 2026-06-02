@@ -609,6 +609,183 @@ struct RouterTests {
   }
 
   @Test
+  func userEventListsSeparateOrganizedAndParticipatingEvents() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+    let now = Date().timeIntervalSinceReferenceDate
+
+    try await app.test(.router) { client in
+      func createUser() async throws -> Components.Schemas.UserToken {
+        try await client.execute(
+          uri: "/user",
+          method: .post,
+          headers: [
+            .cfConnectingIP: ipAddress
+          ]
+        ) { response in
+          #expect(response.status == .ok)
+          return try JSONDecoder().decode(Components.Schemas.UserToken.self, from: response.body)
+        }
+      }
+
+      func eventRequest(
+        title: String,
+        startsAt: Double,
+        visibility: Components.Schemas.EventVisibility,
+        publishedAt: Double?,
+        canceledAt: Double? = nil
+      ) -> Components.Schemas.CreateEventRequest {
+        .init(
+          title: title,
+          body: "\(title) body",
+          venueName: "Blind Tasting Room",
+          venueAddress: .init(addressLine1: "1 Wine Street", countryCode: "JP"),
+          eventPeriod: .init(startsAt: startsAt, endsAt: startsAt + 3600),
+          visibility: visibility,
+          publishedAt: publishedAt,
+          canceledAt: canceledAt
+        )
+      }
+
+      func createEvent(
+        token: String,
+        title: String,
+        startsAt: Double,
+        visibility: Components.Schemas.EventVisibility,
+        publishedAt: Double?,
+        canceledAt: Double? = nil
+      ) async throws -> Components.Schemas.Event {
+        let body = eventRequest(
+          title: title,
+          startsAt: startsAt,
+          visibility: visibility,
+          publishedAt: publishedAt,
+          canceledAt: canceledAt
+        )
+        return try await client.execute(
+          uri: "/events",
+          method: .post,
+          headers: [
+            .cfConnectingIP: ipAddress,
+            .authorization: "Bearer \(token)",
+          ],
+          body: ByteBuffer(data: JSONEncoder().encode(body))
+        ) { response in
+          #expect(response.status == .ok)
+          return try JSONDecoder().decode(Components.Schemas.Event.self, from: response.body)
+        }
+      }
+
+      func getEvents(uri: String, token: String) async throws -> [Components.Schemas.Event] {
+        try await client.execute(
+          uri: uri,
+          method: .get,
+          headers: [
+            .cfConnectingIP: ipAddress,
+            .authorization: "Bearer \(token)",
+          ]
+        ) { response in
+          #expect(response.status == .ok)
+          return try JSONDecoder().decode([Components.Schemas.Event].self, from: response.body)
+        }
+      }
+
+      let organizer = try await createUser()
+      let participant = try await createUser()
+      let viewer = try await createUser()
+
+      let privateDraft = try await createEvent(
+        token: organizer.token,
+        title: "Private draft",
+        startsAt: now + 1000,
+        visibility: ._private,
+        publishedAt: nil
+      )
+      let publicEvent = try await createEvent(
+        token: organizer.token,
+        title: "Public event",
+        startsAt: now + 2000,
+        visibility: ._public,
+        publishedAt: now
+      )
+      let unlistedEvent = try await createEvent(
+        token: organizer.token,
+        title: "Unlisted event",
+        startsAt: now + 3000,
+        visibility: .unlisted,
+        publishedAt: now
+      )
+      let canceledPublicEvent = try await createEvent(
+        token: organizer.token,
+        title: "Canceled public event",
+        startsAt: now + 4000,
+        visibility: ._public,
+        publishedAt: now,
+        canceledAt: now
+      )
+
+      for eventID in [publicEvent.id, unlistedEvent.id] {
+        let response = try await client.execute(
+          uri: "/events/\(eventID)/participants",
+          method: .post,
+          headers: [
+            .cfConnectingIP: ipAddress,
+            .authorization: "Bearer \(participant.token)",
+          ]
+        )
+        #expect(response.status == .ok)
+      }
+
+      let organizerOwnEvents = try await getEvents(
+        uri: "/users/\(organizer.userID)/organized_events",
+        token: organizer.token
+      )
+      #expect(
+        Set(organizerOwnEvents.map(\.id))
+          == Set([privateDraft.id, publicEvent.id, unlistedEvent.id, canceledPublicEvent.id])
+      )
+
+      let organizerPublicEvents = try await getEvents(
+        uri: "/users/\(organizer.userID)/organized_events",
+        token: viewer.token
+      )
+      #expect(organizerPublicEvents.map(\.id) == [publicEvent.id])
+
+      let participantOwnEvents = try await getEvents(
+        uri: "/users/\(participant.userID)/participating_events",
+        token: participant.token
+      )
+      #expect(Set(participantOwnEvents.map(\.id)) == Set([publicEvent.id, unlistedEvent.id]))
+
+      let participantPublicEvents = try await getEvents(
+        uri: "/users/\(participant.userID)/participating_events",
+        token: viewer.token
+      )
+      #expect(participantPublicEvents.map(\.id) == [publicEvent.id])
+
+      let invalidUUIDResponse = try await client.execute(
+        uri: "/users/not-a-uuid/organized_events",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(viewer.token)",
+        ]
+      )
+      #expect(invalidUUIDResponse.status == .badRequest)
+
+      let unauthenticatedResponse = try await client.execute(
+        uri: "/users/\(participant.userID)/participating_events",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(unauthenticatedResponse.status == .unauthorized)
+    }
+  }
+
+  @Test
   func createAndGetUsers() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
