@@ -1057,6 +1057,10 @@ components:
         canceledAt:
           type: number
           format: double
+        regionScoreRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventRegionScoreRule'
         createdAt:
           type: number
           format: double
@@ -1069,6 +1073,7 @@ components:
         - venueAddress
         - eventPeriod
         - visibility
+        - regionScoreRules
         - createdAt
     CreateEventRequest:
       type: object
@@ -1116,6 +1121,10 @@ components:
             - 'null'
           format: double
           description: For PUT requests, omit or set null to clear.
+        regionScoreRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateEventRegionScoreRuleRequest'
       required:
         - title
         - body
@@ -1123,6 +1132,38 @@ components:
         - venueAddress
         - eventPeriod
         - visibility
+    EventRegionScoreRule:
+      type: object
+      description: A point rule for matching a wine region type in an event.
+      properties:
+        wineRegionTypeID:
+          type: string
+          format: uuid
+        points:
+          type: integer
+          format: int32
+          minimum: 0
+        createdAt:
+          type: number
+          format: double
+      required:
+        - wineRegionTypeID
+        - points
+        - createdAt
+    CreateEventRegionScoreRuleRequest:
+      type: object
+      description: A request item for an event wine region type score rule.
+      properties:
+        wineRegionTypeID:
+          type: string
+          format: uuid
+        points:
+          type: integer
+          format: int32
+          minimum: 0
+      required:
+        - wineRegionTypeID
+        - points
     DateTimePeriod:
       type: object
       description: A date-time period represented by start and end instants.
