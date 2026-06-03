@@ -398,10 +398,9 @@ extension API {
     else {
       return .badRequest
     }
-    let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
     guard
-      validStyleID, validRegionID, isValidVintage(body.vintage),
+      validRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -415,7 +414,6 @@ extension API {
       }
       let answer = try await insertCorrectAnswer(
         questionID: questionID,
-        styleID: styleID,
         regionID: regionID,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
@@ -450,10 +448,9 @@ extension API {
     else {
       return .badRequest
     }
-    let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
     guard
-      validStyleID, validRegionID, isValidVintage(body.vintage),
+      validRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -468,7 +465,6 @@ extension API {
 
       let answer = try await insertCorrectAnswer(
         questionID: questionID,
-        styleID: styleID,
         regionID: regionID,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
@@ -500,10 +496,9 @@ extension API {
     else {
       return .badRequest
     }
-    let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
     guard
-      validStyleID, validRegionID, isValidVintage(body.vintage),
+      validRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -518,7 +513,6 @@ extension API {
       let response = try await insertQuestionResponse(
         questionID: questionID,
         userID: userID,
-        styleID: styleID,
         regionID: regionID,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
@@ -554,10 +548,9 @@ extension API {
     else {
       return .badRequest
     }
-    let (styleID, validStyleID) = parseOptionalUUID(body.wineStyleID)
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
     guard
-      validStyleID, validRegionID, isValidVintage(body.vintage),
+      validRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -573,7 +566,6 @@ extension API {
       let response = try await insertQuestionResponse(
         questionID: questionID,
         userID: userID,
-        styleID: styleID,
         regionID: regionID,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
@@ -1155,7 +1147,6 @@ extension API {
 
   fileprivate func insertCorrectAnswer(
     questionID: UUID,
-    styleID: UUID?,
     regionID: UUID?,
     vintage: Int?,
     alcoholByVolume: Double?,
@@ -1165,7 +1156,6 @@ extension API {
     let answer = EventQuestionCorrectAnswerRecord(
       id: UUID(uuidString: UUID.uuidV7String())!,
       eventQuestionID: questionID,
-      wineStyleID: styleID,
       wineRegionID: regionID,
       vintage: vintage,
       alcoholByVolume: alcoholByVolume,
@@ -1197,7 +1187,6 @@ extension API {
   fileprivate func insertQuestionResponse(
     questionID: UUID,
     userID: UUID,
-    styleID: UUID?,
     regionID: UUID?,
     vintage: Int?,
     alcoholByVolume: Double?,
@@ -1209,7 +1198,6 @@ extension API {
       id: UUID(uuidString: UUID.uuidV7String())!,
       eventQuestionID: questionID,
       userID: userID,
-      wineStyleID: styleID,
       wineRegionID: regionID,
       vintage: vintage,
       alcoholByVolume: alcoholByVolume,
@@ -1385,7 +1373,6 @@ extension Components.Schemas.EventQuestionCorrectAnswer {
     self.init(
       id: answer.id.uuidString,
       eventQuestionID: answer.eventQuestionID.uuidString,
-      wineStyleID: answer.wineStyleID?.uuidString,
       wineRegionID: answer.wineRegionID?.uuidString,
       vintage: answer.vintage.map(Int32.init),
       alcoholByVolume: answer.alcoholByVolume,
@@ -1401,7 +1388,6 @@ extension Components.Schemas.EventQuestionResponse {
       id: response.id.uuidString,
       eventQuestionID: response.eventQuestionID.uuidString,
       userID: response.userID.uuidString,
-      wineStyleID: response.wineStyleID?.uuidString,
       wineRegionID: response.wineRegionID?.uuidString,
       vintage: response.vintage.map(Int32.init),
       alcoholByVolume: response.alcoholByVolume,
