@@ -266,7 +266,21 @@ extension API {
   ) async throws -> Components.Schemas.UserProfile {
     let imageURL: String?
     if let cloudflareImageID = profile.cloudflareImageID {
-      imageURL = try await profileImageURL(cloudflareImageID: cloudflareImageID, userID: userID)
+      do {
+        imageURL = try await profileImageURL(cloudflareImageID: cloudflareImageID, userID: userID)
+      } catch {
+        AppRequestContext.current?.logger.appLog(
+          level: .warning,
+          eventName: "user.profile_image_url_read_failed",
+          "Failed to fetch user profile image URL",
+          metadata: AppLogMetadata.userID(userID).merging([
+            "cloudflare.operation": .string("images.image"),
+            "image.id": .string(cloudflareImageID),
+          ]) { _, new in new },
+          error: error
+        )
+        imageURL = nil
+      }
     } else {
       imageURL = nil
     }
