@@ -22,6 +22,7 @@ private enum EventRegistrationError: Error {
 
 private enum EventRevisionMutationError: Error {
   case alreadyExists
+  case missingExistingRevision
 }
 
 extension API {
@@ -467,9 +468,12 @@ extension API {
         regionID: regionID,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
-        varietyIDs: varietyIDs
+        varietyIDs: varietyIDs,
+        requireExistingAnswer: true
       )
       return .ok(.init(body: .json(.init(answer, wineVarietyIDs: varietyIDs))))
+    } catch EventRevisionMutationError.missingExistingRevision {
+      return .notFound
     } catch {
       logEventDatabaseError(
         "event.correct_answer_update_failed",
@@ -569,9 +573,12 @@ extension API {
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
         note: body.note,
-        varietyIDs: varietyIDs
+        varietyIDs: varietyIDs,
+        requireExistingResponse: true
       )
       return .ok(.init(body: .json(.init(response, wineVarietyIDs: varietyIDs))))
+    } catch EventRevisionMutationError.missingExistingRevision {
+      return .notFound
     } catch {
       logEventDatabaseError(
         "event.response_update_failed",
@@ -1146,7 +1153,8 @@ extension API {
     vintage: Int?,
     alcoholByVolume: Double?,
     varietyIDs: [UUID],
-    requireNoExistingAnswer: Bool = false
+    requireNoExistingAnswer: Bool = false,
+    requireExistingAnswer: Bool = false
   ) async throws -> EventQuestionCorrectAnswerRecord {
     let answer = EventQuestionCorrectAnswerRecord(
       id: UUID(uuidString: UUID.uuidV7String())!,
@@ -1157,11 +1165,18 @@ extension API {
       createdAt: Date()
     )
     try await database.withTransaction { db in
-      if requireNoExistingAnswer {
+      if requireNoExistingAnswer || requireExistingAnswer {
         try await lockEventQuestion(questionID: questionID, db: db)
+      }
+      if requireNoExistingAnswer {
         guard try await eventQuestionCorrectAnswerExists(questionID: questionID, db: db) == false
         else {
           throw EventRevisionMutationError.alreadyExists
+        }
+      }
+      if requireExistingAnswer {
+        guard try await eventQuestionCorrectAnswerExists(questionID: questionID, db: db) else {
+          throw EventRevisionMutationError.missingExistingRevision
         }
       }
       try await EventQuestionCorrectAnswerRecord.insert { answer }.execute(db)
@@ -1187,7 +1202,8 @@ extension API {
     alcoholByVolume: Double?,
     note: String?,
     varietyIDs: [UUID],
-    requireNoExistingResponse: Bool = false
+    requireNoExistingResponse: Bool = false,
+    requireExistingResponse: Bool = false
   ) async throws -> EventQuestionResponseRecord {
     let response = EventQuestionResponseRecord(
       id: UUID(uuidString: UUID.uuidV7String())!,
@@ -1200,8 +1216,10 @@ extension API {
       submittedAt: Date()
     )
     try await database.withTransaction { db in
-      if requireNoExistingResponse {
+      if requireNoExistingResponse || requireExistingResponse {
         try await lockEventQuestion(questionID: questionID, db: db)
+      }
+      if requireNoExistingResponse {
         guard
           try await eventQuestionResponseExists(
             questionID: questionID,
@@ -1210,6 +1228,17 @@ extension API {
           ) == false
         else {
           throw EventRevisionMutationError.alreadyExists
+        }
+      }
+      if requireExistingResponse {
+        guard
+          try await eventQuestionResponseExists(
+            questionID: questionID,
+            userID: userID,
+            db: db
+          )
+        else {
+          throw EventRevisionMutationError.missingExistingRevision
         }
       }
       try await EventQuestionResponseRecord.insert { response }.execute(db)
