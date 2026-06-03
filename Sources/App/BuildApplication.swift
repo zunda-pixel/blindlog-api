@@ -5,13 +5,11 @@ import EmailService
 import Foundation
 import HTTPClient
 import Hummingbird
-import HummingbirdPostgres
 import Images
 import JWTKit
 import Logging
 import OTel
 import OpenAPIHummingbird
-import PostgresMigrations
 import PostgresNIO
 import ServiceLifecycle
 import Synchronization
@@ -70,7 +68,7 @@ func buildApplication(
     logger: logger
   )
 
-  let (databaseClient, database) = try await makeDatabase(
+  let databaseClient = try await makeDatabase(
     arguments: arguments,
     config: config,
     logger: logger
@@ -138,7 +136,6 @@ func buildApplication(
     services: [
       observability,
       databaseClient,
-      database,
       cache,
     ],
     logger: logger
@@ -206,7 +203,7 @@ func makeDatabase(
   arguments: some AppArguments,
   config: ConfigReader,
   logger: Logger
-) async throws -> (PostgresClient, PostgresPersistDriver) {
+) async throws -> PostgresClient {
   let postgresTLS: PostgresClient.Configuration.TLS =
     switch arguments.env {
     case .develop:
@@ -232,15 +229,7 @@ func makeDatabase(
     )
   }
 
-  let migrations = DatabaseMigrations()
-
-  let database = await PostgresPersistDriver(
-    client: databaseClient,
-    migrations: migrations,
-    logger: logger
-  )
-
-  return (databaseClient, database)
+  return databaseClient
 }
 
 func makeWebAuth(config: ConfigReader) throws -> WebAuthnManager {
