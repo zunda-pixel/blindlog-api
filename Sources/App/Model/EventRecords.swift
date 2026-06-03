@@ -37,7 +37,7 @@ struct EventRevisionRecord: Codable, Identifiable, Hashable {
   @Column("ends_at") var endsAt: Date
   @Column("answers_published_at") var answersPublishedAt: Date?
   var capacity: Int?
-  @Column("entry_fee_minor_amount") var entryFeeMinorAmount: Int?
+  @Column("entry_fee_minor_amount") var entryFeeMinorAmount: Int64?
   @Column("entry_fee_currency_code") var entryFeeCurrencyCode: String?
   var visibility: EventRecord.Visibility
   @Column("published_at") var publishedAt: Date?
