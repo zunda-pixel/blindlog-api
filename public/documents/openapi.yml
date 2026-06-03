@@ -1100,8 +1100,11 @@ components:
         eventPeriod:
           $ref: '#/components/schemas/DateTimePeriod'
         answersPublishedAt:
-          type: number
+          type:
+            - number
+            - 'null'
           format: double
+          description: For PUT requests, omit or set null to clear.
         capacity:
           type: integer
           format: int32
@@ -1110,11 +1113,17 @@ components:
         visibility:
           $ref: '#/components/schemas/EventVisibility'
         publishedAt:
-          type: number
+          type:
+            - number
+            - 'null'
           format: double
+          description: For PUT requests, omit or set null to clear.
         canceledAt:
-          type: number
+          type:
+            - number
+            - 'null'
           format: double
+          description: For PUT requests, omit or set null to clear.
       required:
         - title
         - body

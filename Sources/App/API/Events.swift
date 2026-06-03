@@ -188,8 +188,7 @@ extension API {
       guard
         let revision = eventRevisionRecord(
           from: body,
-          eventID: eventID,
-          preservingLifecycleFrom: current.revision
+          eventID: eventID
         )
       else {
         return .badRequest
@@ -686,8 +685,7 @@ extension API {
 extension API {
   fileprivate func eventRevisionRecord(
     from body: Components.Schemas.CreateEventRequest,
-    eventID: UUID,
-    preservingLifecycleFrom currentRevision: EventRevisionRecord? = nil
+    eventID: UUID
   ) -> EventRevisionRecord? {
     let title = body.title.trimmingCharacters(in: .whitespacesAndNewlines)
     let venueName = body.venueName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -747,18 +745,15 @@ extension API {
       },
       startsAt: Date(timeIntervalSinceReferenceDate: body.eventPeriod.startsAt),
       endsAt: Date(timeIntervalSinceReferenceDate: body.eventPeriod.endsAt),
-      answersPublishedAt: body.answersPublishedAt.map(Date.init(timeIntervalSinceReferenceDate:))
-        ?? currentRevision?.answersPublishedAt,
+      answersPublishedAt: body.answersPublishedAt.map(Date.init(timeIntervalSinceReferenceDate:)),
       capacity: body.capacity.map(Int.init),
       entryFeeMinorAmount: body.entryFee?.minorAmount,
       entryFeeCurrencyCode: body.entryFee?.currencyCode.trimmingCharacters(
         in: .whitespacesAndNewlines
       ).uppercased(),
       visibility: visibility,
-      publishedAt: body.publishedAt.map(Date.init(timeIntervalSinceReferenceDate:))
-        ?? currentRevision?.publishedAt,
-      canceledAt: body.canceledAt.map(Date.init(timeIntervalSinceReferenceDate:))
-        ?? currentRevision?.canceledAt,
+      publishedAt: body.publishedAt.map(Date.init(timeIntervalSinceReferenceDate:)),
+      canceledAt: body.canceledAt.map(Date.init(timeIntervalSinceReferenceDate:)),
       createdAt: Date()
     )
   }
