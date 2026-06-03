@@ -121,7 +121,6 @@ struct WineRegionRecord: Codable, Identifiable, Hashable {
 struct EventQuestionCorrectAnswerRecord: Codable, Identifiable, Hashable {
   var id: UUID
   @Column("event_question_id") var eventQuestionID: UUID
-  @Column("wine_style_id") var wineStyleID: UUID?
   @Column("wine_region_id") var wineRegionID: UUID?
   var vintage: Int?
   @Column("alcohol_by_volume") var alcoholByVolume: Double?
@@ -140,7 +139,6 @@ struct EventQuestionResponseRecord: Codable, Identifiable, Hashable {
   var id: UUID
   @Column("event_question_id") var eventQuestionID: UUID
   @Column("user_id") var userID: UUID
-  @Column("wine_style_id") var wineStyleID: UUID?
   @Column("wine_region_id") var wineRegionID: UUID?
   var vintage: Int?
   @Column("alcohol_by_volume") var alcoholByVolume: Double?

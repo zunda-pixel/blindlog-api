@@ -1263,9 +1263,6 @@ components:
       type: object
       description: A request to create the correct answer for a question.
       properties:
-        wineStyleID:
-          type: string
-          format: uuid
         wineRegionID:
           type: string
           format: uuid
@@ -1294,9 +1291,6 @@ components:
           type: string
           format: uuid
         eventQuestionID:
-          type: string
-          format: uuid
-        wineStyleID:
           type: string
           format: uuid
         wineRegionID:
@@ -1329,9 +1323,6 @@ components:
       type: object
       description: A request to submit a response for a question.
       properties:
-        wineStyleID:
-          type: string
-          format: uuid
         wineRegionID:
           type: string
           format: uuid
@@ -1365,9 +1356,6 @@ components:
           type: string
           format: uuid
         userID:
-          type: string
-          format: uuid
-        wineStyleID:
           type: string
           format: uuid
         wineRegionID:
