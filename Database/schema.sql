@@ -43,6 +43,7 @@ CREATE TABLE public.images (
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT images_pk PRIMARY KEY (id),
   CONSTRAINT images_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE RESTRICT,
+  CONSTRAINT images_id_user_id_key UNIQUE (id, user_id),
   CONSTRAINT images_cloudflare_image_id_key UNIQUE (cloudflare_image_id)
 );
 
@@ -57,6 +58,7 @@ CREATE TABLE public.user_profiles (
   CONSTRAINT user_profiles_pk PRIMARY KEY (id),
   CONSTRAINT user_profiles_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE RESTRICT,
   CONSTRAINT user_profiles_image_fk FOREIGN KEY (image_id) REFERENCES public.images (id) ON DELETE RESTRICT,
+  CONSTRAINT user_profiles_image_owner_fk FOREIGN KEY (image_id, user_id) REFERENCES public.images (id, user_id) ON DELETE RESTRICT,
   CONSTRAINT user_profiles_name_length CHECK (char_length(trim(name)) BETWEEN 1 AND 100)
 );
 
@@ -171,6 +173,79 @@ CREATE TABLE public.event_question_revisions (
 
 CREATE INDEX event_question_revisions_event_question_latest_idx ON public.event_question_revisions(event_question_id, created_at DESC, id DESC);
 CREATE INDEX event_question_revisions_image_id_idx ON public.event_question_revisions(image_id);
+
+CREATE FUNCTION public.enforce_event_revision_image_owner()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  image_owner_id uuid;
+  organizer_user_id uuid;
+BEGIN
+  IF NEW.image_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT user_id INTO image_owner_id
+  FROM public.images
+  WHERE id = NEW.image_id;
+
+  SELECT organizer_user_id INTO organizer_user_id
+  FROM public.events
+  WHERE id = NEW.event_id;
+
+  IF image_owner_id IS NOT NULL
+    AND organizer_user_id IS NOT NULL
+    AND image_owner_id <> organizer_user_id THEN
+    RAISE EXCEPTION 'event revision image must be owned by the event organizer'
+      USING ERRCODE = '23503';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER event_revisions_image_owner_trg
+BEFORE INSERT OR UPDATE OF event_id, image_id ON public.event_revisions
+FOR EACH ROW
+EXECUTE FUNCTION public.enforce_event_revision_image_owner();
+
+CREATE FUNCTION public.enforce_event_question_revision_image_owner()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  image_owner_id uuid;
+  organizer_user_id uuid;
+BEGIN
+  IF NEW.image_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT user_id INTO image_owner_id
+  FROM public.images
+  WHERE id = NEW.image_id;
+
+  SELECT e.organizer_user_id INTO organizer_user_id
+  FROM public.event_questions q
+  JOIN public.events e ON e.id = q.event_id
+  WHERE q.id = NEW.event_question_id;
+
+  IF image_owner_id IS NOT NULL
+    AND organizer_user_id IS NOT NULL
+    AND image_owner_id <> organizer_user_id THEN
+    RAISE EXCEPTION 'event question revision image must be owned by the event organizer'
+      USING ERRCODE = '23503';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER event_question_revisions_image_owner_trg
+BEFORE INSERT OR UPDATE OF event_question_id, image_id ON public.event_question_revisions
+FOR EACH ROW
+EXECUTE FUNCTION public.enforce_event_question_revision_image_owner();
 
 CREATE TABLE public.wine_styles (
   id uuid NOT NULL,
