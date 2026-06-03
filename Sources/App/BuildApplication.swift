@@ -5,13 +5,11 @@ import EmailService
 import Foundation
 import HTTPClient
 import Hummingbird
-import HummingbirdPostgres
 import Images
 import JWTKit
 import Logging
 import OTel
 import OpenAPIHummingbird
-import PostgresMigrations
 import PostgresNIO
 import ServiceLifecycle
 import Synchronization
@@ -70,7 +68,7 @@ func buildApplication(
     logger: logger
   )
 
-  let (databaseClient, database, migrations) = try await makeDatabase(
+  let databaseClient = try await makeDatabase(
     arguments: arguments,
     config: config,
     logger: logger
@@ -130,7 +128,7 @@ func buildApplication(
 
   try api.registerHandlers(on: apiRouter)
 
-  var app = Application(
+  let app = Application(
     router: router,
     configuration: .init(
       address: .hostname(arguments.hostname, port: arguments.port)
@@ -138,20 +136,10 @@ func buildApplication(
     services: [
       observability,
       databaseClient,
-      database,
       cache,
     ],
     logger: logger
   )
-
-  app.beforeServerStarts {
-    try await migrations.apply(
-      client: databaseClient,
-      groups: [.persist],
-      logger: Logger(label: "Postgres Migrations"),
-      dryRun: false
-    )
-  }
 
   return app
 }
@@ -215,7 +203,7 @@ func makeDatabase(
   arguments: some AppArguments,
   config: ConfigReader,
   logger: Logger
-) async throws -> (PostgresClient, PostgresPersistDriver, DatabaseMigrations) {
+) async throws -> PostgresClient {
   let postgresTLS: PostgresClient.Configuration.TLS =
     switch arguments.env {
     case .develop:
@@ -241,15 +229,7 @@ func makeDatabase(
     )
   }
 
-  let migrations = DatabaseMigrations()
-
-  let database = await PostgresPersistDriver(
-    client: databaseClient,
-    migrations: migrations,
-    logger: logger
-  )
-
-  return (databaseClient, database, migrations)
+  return databaseClient
 }
 
 func makeWebAuth(config: ConfigReader) throws -> WebAuthnManager {

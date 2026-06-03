@@ -30,7 +30,7 @@ extension API {
       let challengeData = try Data(bodyData.challenge.base64decoded())
       let key = ValkeyKey("OTPEmailAuthentication:\(challengeData.base64EncodedString())")
 
-      let data = try await cache.get(key)
+      let data = try await cache.getdel(key)
       let challenge = try data.map {
         try JSONDecoder().decode(OTPEmailAuthentication.self, from: Data($0))
       }
@@ -55,13 +55,12 @@ extension API {
         return .unauthorized
       }
 
-      try await cache.del(keys: [key])
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.email.challenge.verify_failed",
         "Failed to verify and delete authentication challenge",
         metadata: [
-          "cache.operation": .string("get_delete"),
+          "cache.operation": .string("getdel"),
           "auth.flow": .string("email_token"),
         ],
         error: error
