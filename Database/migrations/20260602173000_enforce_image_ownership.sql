@@ -44,7 +44,7 @@ ALTER TABLE public.user_profiles
   REFERENCES public.images (id, user_id)
   ON DELETE RESTRICT;
 
-CREATE FUNCTION public.enforce_event_revision_image_owner()
+CREATE OR REPLACE FUNCTION public.enforce_event_revision_image_owner()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
@@ -75,12 +75,14 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS event_revisions_image_owner_trg ON public.event_revisions;
+
 CREATE TRIGGER event_revisions_image_owner_trg
 BEFORE INSERT OR UPDATE OF event_id, image_id ON public.event_revisions
 FOR EACH ROW
 EXECUTE FUNCTION public.enforce_event_revision_image_owner();
 
-CREATE FUNCTION public.enforce_event_question_revision_image_owner()
+CREATE OR REPLACE FUNCTION public.enforce_event_question_revision_image_owner()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
@@ -111,6 +113,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+DROP TRIGGER IF EXISTS event_question_revisions_image_owner_trg ON public.event_question_revisions;
 
 CREATE TRIGGER event_question_revisions_image_owner_trg
 BEFORE INSERT OR UPDATE OF event_question_id, image_id ON public.event_question_revisions
