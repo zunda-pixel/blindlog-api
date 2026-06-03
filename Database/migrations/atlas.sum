@@ -1,4 +1,5 @@
-h1:HqKHL8VZa+i9AB3htDeYatYFploSnxarziSfpli7MZQ=
+h1:/UYG1xgt8p2cIacvP9vQ8JDozlQt9sZTvJT5Z3TaLX0=
 000001_initial_schema.sql h1:iQH63d3ckYBCOcFnKf6nkOsitlGdpumeDPFZMcnCuz4=
-20260531034124_events.sql h1:anhe0dXEllbDmsPNR9nwINIw9yPxGVCqdx9YzckdYqo=
-20260531060000_seed_wine_master_data.sql h1:r1vWrXnOH2o9JM/F5Qq8/iOjlKJIluRd0ECakEBThdY=
+20260531034124_events.sql h1:PedeyzF85utC/LHxKCc9z5Gs8puDptsTNkRapWNKjrI=
+20260531060000_seed_wine_master_data.sql h1:54BEUlfrgkN/2W4aM32RYFg5x74O9IeSS/lR0v04t7g=
+20260602180000_event_entry_fee_minor_amount_bigint.sql h1:Nskgodx2WNgictwuGJMAYs/Pli0emUuICLoU1ho6q/A=
