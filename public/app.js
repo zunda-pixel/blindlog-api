@@ -1729,11 +1729,12 @@
       },
 
       async confirmEmailAddress({ email, code, token }) {
-        const url = new URL('/email/verify', window.location.origin);
-        url.searchParams.set('email', email);
-        url.searchParams.set('password', code);
-        await post(url, {
-          headers: { Authorization: `Bearer ${token}` },
+        await post('/email/verify', {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ email, otp: code }),
           message: 'メールアドレスの確認に失敗しました。',
         });
       },

@@ -809,20 +809,12 @@ paths:
       operationId: confirmEmail
       security:
         - bearerAuth: []
-      parameters:
-        - name: email
-          in: query
-          description: Email address being verified for the authenticated user.
-          required: true
-          schema:
-            type: string
-            format: email
-        - name: password
-          in: query
-          description: One-time password sent to the email address.
-          required: true
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmEmailRequest'
       responses:
         '200':
           description: A success response indicating the email address was verified.
@@ -1610,5 +1602,19 @@ components:
           description: Raw credential identifier in Base64URL format.
       required:
         - challenge
+        - email
+        - otp
+    ConfirmEmailRequest:
+      type: object
+      description: Email verification payload.
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address being verified for the authenticated user.
+        otp:
+          type: string
+          description: One-time password sent to the email address.
+      required:
         - email
         - otp

@@ -20,7 +20,11 @@ extension API {
       throw HTTPError(.tooManyRequests)
     }
 
-    let email = normalizeEmail(input.query.email)
+    guard case .json(let bodyData) = input.body else {
+      return .badRequest
+    }
+
+    let email = normalizeEmail(bodyData.email)
     // 1. Verify otp
     do {
       let otpData = try await cache.get(ValkeyKey("OTPEmailRegistration:\(userID.uuidString)"))
@@ -33,7 +37,7 @@ extension API {
       guard otp.userID == userID && otp.email == email else {
         return .badRequest
       }
-      let message = Data(input.query.password.utf8)
+      let message = Data(bodyData.otp.utf8)
       guard
         HMAC<SHA256>.isValidAuthenticationCode(
           otp.hashedPassword,
