@@ -78,6 +78,14 @@ struct EventQuestionRevisionRecord: Codable, Identifiable, Hashable {
   @Column("created_at") var createdAt: Date
 }
 
+@Table("event_region_score_rules")
+struct EventRegionScoreRuleRecord: Codable, Hashable {
+  @Column("event_id") var eventID: UUID
+  @Column("wine_region_type_id") var wineRegionTypeID: UUID
+  var points: Int
+  @Column("created_at") var createdAt: Date
+}
+
 @Table("wine_styles")
 struct WineStyleRecord: Codable, Identifiable, Hashable {
   var id: UUID

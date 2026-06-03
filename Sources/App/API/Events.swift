@@ -9,6 +9,7 @@ import UUIDV7
 private struct EventSnapshot {
   var event: EventRecord
   var revision: EventRevisionRecord
+  var regionScoreRules: [EventRegionScoreRuleRecord]
 }
 
 private struct EventQuestionSnapshot {
@@ -114,6 +115,9 @@ extension API {
     guard let revision = eventRevisionRecord(from: body, eventID: eventID) else {
       return .badRequest
     }
+    guard let regionScoreRules = eventRegionScoreRuleRecords(from: body, eventID: eventID) else {
+      return .badRequest
+    }
     let event = EventRecord(id: eventID, organizerUserID: userID, createdAt: Date())
 
     do {
@@ -125,8 +129,19 @@ extension API {
       try await database.withTransaction { db in
         try await EventRecord.insert { event }.execute(db)
         try await EventRevisionRecord.insert { revision }.execute(db)
+        if !regionScoreRules.isEmpty {
+          try await EventRegionScoreRuleRecord.insert { regionScoreRules }.execute(db)
+        }
       }
-      return .ok(.init(body: .json(.init(.init(event: event, revision: revision)))))
+      return .ok(
+        .init(
+          body: .json(
+            .init(
+              .init(event: event, revision: revision, regionScoreRules: regionScoreRules)
+            )
+          )
+        )
+      )
     } catch {
       logEventDatabaseError(
         "event.create_failed",
@@ -194,15 +209,31 @@ extension API {
       else {
         return .badRequest
       }
+      guard let regionScoreRules = eventRegionScoreRuleRecords(from: body, eventID: eventID) else {
+        return .badRequest
+      }
       if let imageID = revision.imageID {
         guard try await ownedImageExists(imageID: imageID, userID: userID) else {
           return .badRequest
         }
       }
-      try await database.write { db in
+      try await database.withTransaction { db in
         try await EventRevisionRecord.insert { revision }.execute(db)
+        try await replaceEventRegionScoreRules(regionScoreRules, eventID: eventID, db: db)
       }
-      return .ok(.init(body: .json(.init(.init(event: current.event, revision: revision)))))
+      return .ok(
+        .init(
+          body: .json(
+            .init(
+              .init(
+                event: current.event,
+                revision: revision,
+                regionScoreRules: regionScoreRules
+              )
+            )
+          )
+        )
+      )
     } catch {
       logEventDatabaseError(
         "event.update_failed",
@@ -765,6 +796,42 @@ extension API {
     )
   }
 
+  fileprivate func eventRegionScoreRuleRecords(
+    from body: Components.Schemas.CreateEventRequest,
+    eventID: UUID
+  ) -> [EventRegionScoreRuleRecord]? {
+    let rules = body.regionScoreRules ?? []
+    let wineRegionTypeIDs = rules.compactMap { UUID(uuidString: $0.wineRegionTypeID) }
+    guard wineRegionTypeIDs.count == rules.count,
+      Set(wineRegionTypeIDs).count == wineRegionTypeIDs.count
+    else {
+      return nil
+    }
+    guard rules.allSatisfy({ $0.points >= 0 }) else { return nil }
+    let now = Date()
+    return zip(rules, wineRegionTypeIDs).map { rule, wineRegionTypeID in
+      EventRegionScoreRuleRecord(
+        eventID: eventID,
+        wineRegionTypeID: wineRegionTypeID,
+        points: Int(rule.points),
+        createdAt: now
+      )
+    }
+  }
+
+  fileprivate func replaceEventRegionScoreRules(
+    _ rules: [EventRegionScoreRuleRecord],
+    eventID: UUID,
+    db: any Database.Connection.`Protocol`
+  ) async throws {
+    let query: QueryFragment =
+      "DELETE FROM public.event_region_score_rules WHERE event_id = \(eventID, as: UUID.self)"
+    try await db.executeFragment(query)
+    if !rules.isEmpty {
+      try await EventRegionScoreRuleRecord.insert { rules }.execute(db)
+    }
+  }
+
   fileprivate func latestEventsVisible(to userID: UUID) async throws -> [EventSnapshot] {
     try await database.read { db in
       let rows =
@@ -788,9 +855,7 @@ extension API {
         }
         .selectStar()
         .fetchAll(db)
-      return rows.map { event, revision in
-        EventSnapshot(event: event, revision: revision)
-      }
+      return try await snapshots(from: rows, db: db)
     }
   }
 
@@ -814,9 +879,7 @@ extension API {
           }
           .selectStar()
           .fetchAll(db)
-        return rows.map { event, revision in
-          EventSnapshot(event: event, revision: revision)
-        }
+        return try await snapshots(from: rows, db: db)
       } else {
         let rows =
           try await EventRecord
@@ -837,9 +900,7 @@ extension API {
           }
           .selectStar()
           .fetchAll(db)
-        return rows.map { event, revision in
-          EventSnapshot(event: event, revision: revision)
-        }
+        return try await snapshots(from: rows, db: db)
       }
     }
   }
@@ -876,9 +937,8 @@ extension API {
           }
           .selectStar()
           .fetchAll(db)
-        return rows.map { event, _, revision in
-          EventSnapshot(event: event, revision: revision)
-        }
+        let eventRows = rows.map { event, _, revision in (event, revision) }
+        return try await snapshots(from: eventRows, db: db)
       } else {
         let rows =
           try await EventRecord
@@ -909,9 +969,8 @@ extension API {
           }
           .selectStar()
           .fetchAll(db)
-        return rows.map { event, _, revision in
-          EventSnapshot(event: event, revision: revision)
-        }
+        let eventRows = rows.map { event, _, revision in (event, revision) }
+        return try await snapshots(from: eventRows, db: db)
       }
     }
   }
@@ -939,8 +998,28 @@ extension API {
       .limit(1)
       .fetchAll(db)
       .first
-    return row.map { event, revision in
-      EventSnapshot(event: event, revision: revision)
+    guard let row else { return nil }
+    return try await snapshots(from: [row], db: db).first
+  }
+
+  fileprivate func snapshots(
+    from rows: [(EventRecord, EventRevisionRecord)],
+    db: any Database.Connection.`Protocol`
+  ) async throws -> [EventSnapshot] {
+    let eventIDs = rows.map(\.0.id)
+    guard !eventIDs.isEmpty else { return [] }
+    let scoreRules =
+      try await EventRegionScoreRuleRecord
+      .where { $0.eventID.in(eventIDs) }
+      .order { ($0.eventID, $0.wineRegionTypeID) }
+      .fetchAll(db)
+    let scoreRulesByEventID = Dictionary(grouping: scoreRules, by: \.eventID)
+    return rows.map { event, revision in
+      EventSnapshot(
+        event: event,
+        revision: revision,
+        regionScoreRules: scoreRulesByEventID[event.id, default: []]
+      )
     }
   }
 
@@ -1360,7 +1439,20 @@ extension Components.Schemas.Event {
       visibility: visibility,
       publishedAt: revision.publishedAt?.timeIntervalSinceReferenceDate,
       canceledAt: revision.canceledAt?.timeIntervalSinceReferenceDate,
+      regionScoreRules: snapshot.regionScoreRules.map(
+        Components.Schemas.EventRegionScoreRule.init
+      ),
       createdAt: event.createdAt.timeIntervalSinceReferenceDate
+    )
+  }
+}
+
+extension Components.Schemas.EventRegionScoreRule {
+  fileprivate init(_ rule: EventRegionScoreRuleRecord) {
+    self.init(
+      wineRegionTypeID: rule.wineRegionTypeID.uuidString,
+      points: Int32(rule.points),
+      createdAt: rule.createdAt.timeIntervalSinceReferenceDate
     )
   }
 }
