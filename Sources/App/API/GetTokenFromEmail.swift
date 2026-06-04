@@ -25,7 +25,9 @@ extension API {
     }
 
     // 2. Verify and delete challenge atomically
-    let email: String = normalizeEmail(bodyData.email)
+    guard let email = validatedEmail(bodyData.email) else {
+      return .badRequest
+    }
     do {
       let challengeData = try Data(bodyData.challenge.base64decoded())
       let key = ValkeyKey("OTPEmailAuthentication:\(challengeData.base64EncodedString())")
