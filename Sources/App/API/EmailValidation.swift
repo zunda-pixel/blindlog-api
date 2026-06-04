@@ -7,10 +7,12 @@ func normalizeEmail(_ email: String) -> String {
 
 func validatedEmail(_ email: String) -> String? {
   let normalizedEmail = normalizeEmail(email)
-  guard normalizedEmail.count <= 254,
+  // https://html.spec.whatwg.org/multipage/input.html#email-state-(type=email)
+  let emailRegex = #"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"#
+  guard
     normalizedEmail.range(
-      of: #"^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$"#,
-      options: [.regularExpression, .caseInsensitive]
+      of: emailRegex,
+      options: .regularExpression
     ) != nil
   else {
     return nil
