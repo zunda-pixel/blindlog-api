@@ -108,13 +108,14 @@ extension API {
     let userID = passkeyCredential.userID
 
     // 4. Verify assertion with WebAuthn
-    let verifiedAuthentication: VerifiedAuthentication
+    let verifiedAuthentication: WebAuthnAuthenticationResult
     do {
       verifiedAuthentication = try webAuthn.finishAuthentication(
         credential: credential,
         expectedChallenge: bodyData.challenge.base64decoded(),
         credentialPublicKey: Array(passkeyCredential.publicKey),
-        credentialCurrentSignCount: UInt32(signCount)
+        credentialCurrentSignCount: UInt32(signCount),
+        requireUserVerification: false
       )
     } catch {
       AppRequestContext.current?.logger.appError(
@@ -134,7 +135,7 @@ extension API {
         try await PasskeyCredentialSignCount.insert {
           PasskeyCredentialSignCount(
             id: UUID(uuidString: UUID.uuidV7String())!,
-            passkeyCredentialID: verifiedAuthentication.credentialID.asString(),
+            passkeyCredentialID: verifiedAuthentication.credentialID,
             signCount: Int64(verifiedAuthentication.newSignCount)
           )
         }

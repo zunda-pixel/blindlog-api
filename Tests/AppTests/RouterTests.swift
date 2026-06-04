@@ -4,6 +4,7 @@ import HummingbirdTesting
 import Logging
 import NIOCore
 import Testing
+import WebAuthn
 
 @testable import App
 
@@ -1113,6 +1114,86 @@ struct RouterTests {
   }
 
   @Test
+  func passkeyRegistrationAndAuthenticationWithInjectedWebAuthn() async throws {
+    let arguments = TestArguments()
+    let credentialID = "credential-1"
+    let webAuthn = TestWebAuthn(credentialID: credentialID)
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient(),
+      webAuthn: webAuthn
+    )
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      try #require(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      let registrationChallengeResponse = try await client.execute(
+        uri: "/challenge",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      )
+      #expect(registrationChallengeResponse.status == .ok)
+      let registrationChallenge = try decodedChallenge(from: registrationChallengeResponse.body)
+
+      let addPasskeyResponse = try await client.execute(
+        uri: "/passkey?challenge=\(registrationChallenge.base64EncodedString())",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: passkeyRegistrationBody(credentialID: credentialID))
+      )
+      #expect(addPasskeyResponse.status == .ok)
+
+      let authenticationChallengeResponse = try await client.execute(
+        uri: "/challenge",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      #expect(authenticationChallengeResponse.status == .ok)
+      let authenticationChallenge = try decodedChallenge(from: authenticationChallengeResponse.body)
+
+      let tokenResponse = try await client.execute(
+        uri: "/token/passkey",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(
+          data: passkeyAuthenticationBody(
+            credentialID: credentialID,
+            challenge: authenticationChallenge.base64EncodedString()
+          ))
+      )
+
+      #expect(tokenResponse.status == .ok)
+      let token = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: tokenResponse.body
+      )
+      #expect(token.userID == newUser.userID)
+    }
+  }
+
+  @Test
   func sendConfirmEmailAPI() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(
@@ -1330,6 +1411,132 @@ private struct TestEmailService: EmailServiceProtocol {
     EmailResponse.Result(delivered: [], permanentBounces: [], queued: [])
   }
 }
+
+private func decodedChallenge(from body: ByteBuffer) throws -> Data {
+  if let challenge = Data(base64Encoded: String(buffer: body)) {
+    return challenge
+  }
+  let challenge = try JSONDecoder().decode(String.self, from: body)
+  return try #require(Data(base64Encoded: challenge))
+}
+
+private func credentialIDBase64URL(_ credentialID: String) -> String {
+  Array(credentialID.utf8).base64URLEncodedString().asString()
+}
+
+private func passkeyRegistrationBody(credentialID: String) -> Data {
+  let encodedCredentialID = credentialIDBase64URL(credentialID)
+  return Data(
+    """
+    {
+      "id": "\(encodedCredentialID)",
+      "rawId": "\(encodedCredentialID)",
+      "type": "public-key",
+      "response": {
+        "clientDataJSON": "e30",
+        "attestationObject": "AA"
+      }
+    }
+    """.utf8)
+}
+
+private func passkeyAuthenticationBody(credentialID: String, challenge: String) -> Data {
+  let encodedCredentialID = credentialIDBase64URL(credentialID)
+  return Data(
+    """
+    {
+      "challenge": "\(challenge)",
+      "id": "\(encodedCredentialID)",
+      "rawId": "\(encodedCredentialID)",
+      "type": "public-key",
+      "response": {
+        "clientDataJSON": "e30",
+        "authenticatorData": "AA",
+        "signature": "AA"
+      }
+    }
+    """.utf8)
+}
+
+private struct TestWebAuthn: WebAuthnProtocol {
+  var credentialID: String
+  var registrationChallenge = Array("test-registration-challenge".utf8)
+  var authenticationChallenge = Array("test-authentication-challenge".utf8)
+
+  func beginRegistration(
+    user: PublicKeyCredentialUserEntity,
+    timeout: Duration?,
+    attestation: AttestationConveyancePreference,
+    publicKeyCredentialParameters: [PublicKeyCredentialParameters]
+  ) -> PublicKeyCredentialCreationOptions {
+    PublicKeyCredentialCreationOptions(
+      challenge: registrationChallenge,
+      user: user,
+      relyingParty: .init(id: "localhost", name: "Local Host Relying Party"),
+      publicKeyCredentialParameters: publicKeyCredentialParameters,
+      timeout: timeout,
+      attestation: attestation
+    )
+  }
+
+  func finishRegistration(
+    challenge: [UInt8],
+    credentialCreationData: RegistrationCredential,
+    requireUserVerification: Bool,
+    supportedPublicKeyAlgorithms: [PublicKeyCredentialParameters],
+    pemRootCertificatesByFormat: [AttestationFormat: [Data]],
+    confirmCredentialIDNotRegisteredYet: @Sendable @concurrent (String) async throws -> Bool
+  ) async throws -> WebAuthnRegistrationResult {
+    guard challenge == registrationChallenge else {
+      throw TestWebAuthnError()
+    }
+    guard credentialCreationData.id.asString() == credentialIDBase64URL(credentialID) else {
+      throw TestWebAuthnError()
+    }
+    guard try await confirmCredentialIDNotRegisteredYet(credentialCreationData.id.asString()) else {
+      throw TestWebAuthnError()
+    }
+    return WebAuthnRegistrationResult(
+      publicKey: Array("test-public-key".utf8),
+      signCount: 1
+    )
+  }
+
+  func beginAuthentication(
+    timeout: Duration?,
+    allowCredentials: [PublicKeyCredentialDescriptor]?,
+    userVerification: UserVerificationRequirement
+  ) -> PublicKeyCredentialRequestOptions {
+    PublicKeyCredentialRequestOptions(
+      challenge: authenticationChallenge,
+      timeout: timeout,
+      relyingPartyID: "localhost",
+      allowCredentials: allowCredentials,
+      userVerification: userVerification
+    )
+  }
+
+  func finishAuthentication(
+    credential: AuthenticationCredential,
+    expectedChallenge: [UInt8],
+    credentialPublicKey: [UInt8],
+    credentialCurrentSignCount: UInt32,
+    requireUserVerification: Bool
+  ) throws -> WebAuthnAuthenticationResult {
+    guard expectedChallenge == authenticationChallenge else {
+      throw TestWebAuthnError()
+    }
+    guard credential.id.asString() == credentialIDBase64URL(credentialID) else {
+      throw TestWebAuthnError()
+    }
+    return WebAuthnAuthenticationResult(
+      credentialID: credential.id.asString(),
+      newSignCount: credentialCurrentSignCount + 1
+    )
+  }
+}
+
+private struct TestWebAuthnError: Error {}
 
 private actor TestCloudflareImagesCallRecorder {
   private(set) var createDirectUploadURLCount = 0

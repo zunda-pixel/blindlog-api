@@ -39,6 +39,7 @@ func buildApplication(
   _ arguments: some AppArguments,
   cloudflareImagesClient: (any CloudflareImagesClientProtocol)? = nil,
   emailService: (any EmailServiceProtocol)? = nil
+  webAuthn: (any WebAuthnProtocol)? = nil
 ) async throws -> some ApplicationProtocol {
   let config = ConfigReader(providers: [EnvironmentVariablesProvider()])
 
@@ -96,7 +97,7 @@ func buildApplication(
     database: databaseClient,
     cloudflareImagesClient: cloudflareImagesClient ?? makeCloudflareImagesClient(config: config),
     jwtKeyCollection: jwtKeyCollection,
-    webAuthn: makeWebAuth(config: config),
+    webAuthn: webAuthn ?? LiveWebAuthn(manager: makeWebAuth(config: config)),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
     emailService: emailService ?? makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)

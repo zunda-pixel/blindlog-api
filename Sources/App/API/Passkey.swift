@@ -66,11 +66,14 @@ extension API {
     }
 
     // 3. Validate WebAuthn registration data
-    let credential: Credential
+    let credential: WebAuthnRegistrationResult
     do {
       credential = try await webAuthn.finishRegistration(
         challenge: Array(input.query.challenge.data),
         credentialCreationData: registrationCredential,
+        requireUserVerification: false,
+        supportedPublicKeyAlgorithms: .supported,
+        pemRootCertificatesByFormat: [:],
         confirmCredentialIDNotRegisteredYet: { credentialID in
           let credential = try await database.read { db in
             try await PasskeyCredential
