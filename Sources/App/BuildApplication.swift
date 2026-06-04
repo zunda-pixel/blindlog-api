@@ -254,7 +254,9 @@ func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAss
 
 func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
   let secretKey = try config.requiredString(forKey: "otp.secret.key")
-  let secretKeyData = Data(base64Encoded: secretKey)!
+  guard let secretKeyData = Data(base64Encoded: secretKey) else {
+    throw HTTPError(.internalServerError, message: "OTP secret key must be valid Base64")
+  }
   return SymmetricKey(data: secretKeyData)
 }
 
