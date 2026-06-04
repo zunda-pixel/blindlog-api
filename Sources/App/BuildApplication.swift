@@ -23,6 +23,12 @@ import WebAuthn
 // for graceful shutdown. Production only ever calls buildApplication once.
 private let observabilityBootstrapped: Mutex<Bool> = .init(false)
 
+struct OTPSecretKeyConfigurationError: Error, CustomStringConvertible {
+  var description: String {
+    "OTP secret key must be valid Base64"
+  }
+}
+
 private struct AlreadyBootstrappedObservabilityService: Service {
   func run() async throws {
     try await gracefulShutdown()
@@ -254,7 +260,9 @@ func makeAppleAppSiteAssociation(config: ConfigReader) throws -> AppleAppSiteAss
 
 func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
   let secretKey = try config.requiredString(forKey: "otp.secret.key")
-  let secretKeyData = Data(base64Encoded: secretKey)!
+  guard let secretKeyData = Data(base64Encoded: secretKey) else {
+    throw OTPSecretKeyConfigurationError()
+  }
   return SymmetricKey(data: secretKeyData)
 }
 
