@@ -1,3 +1,4 @@
+import EmailService
 import Foundation
 import HummingbirdTesting
 import Logging
@@ -1091,7 +1092,11 @@ struct RouterTests {
   @Test
   func sendConfirmEmailAPI() async throws {
     let arguments = TestArguments()
-    let app = try await buildApplication(arguments)
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient(),
+      emailService: TestEmailService()
+    )
     let ipAddress = UUID().uuidString
 
     try await app.test(.router) { client in
@@ -1294,6 +1299,25 @@ private struct TestCloudflareImagesClient: CloudflareImagesClientProtocol {
       throw imageURLError
     }
     return URL(string: "https://imagedelivery.net/account-hash/\(id)/public")!
+  }
+}
+
+private struct TestEmailService: EmailServiceProtocol {
+  func send(_ email: EmailMessage) async throws -> EmailResponse.Result {
+    let data = Data(
+      """
+      {
+        "result": {
+          "delivered": [],
+          "permanent_bounces": [],
+          "queued": []
+        },
+        "success": true,
+        "errors": [],
+        "messages": []
+      }
+      """.utf8)
+    return try JSONDecoder().decode(EmailResponse.self, from: data).result!
   }
 }
 

@@ -31,7 +31,8 @@ private struct AlreadyBootstrappedObservabilityService: Service {
 
 func buildApplication(
   _ arguments: some AppArguments,
-  cloudflareImagesClient: (any CloudflareImagesClientProtocol)? = nil
+  cloudflareImagesClient: (any CloudflareImagesClientProtocol)? = nil,
+  emailService: (any EmailServiceProtocol)? = nil
 ) async throws -> some ApplicationProtocol {
   let config = ConfigReader(providers: [EnvironmentVariablesProvider()])
 
@@ -91,7 +92,7 @@ func buildApplication(
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: makeWebAuth(config: config),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
-    emailService: makeCloudflareEmailService(config: config),
+    emailService: emailService ?? makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)
   )
 
