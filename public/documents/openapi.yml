@@ -5,16 +5,39 @@ info:
 servers:
   - url: https://api.blindlog.me
     description: Blindlog API server
+tags:
+  - name: System
+    description: Health checks and platform integration documents.
+  - name: Authentication
+    description: User creation, passkey authentication, email OTP login, and token lifecycle endpoints.
+  - name: Current User
+    description: Authenticated user profile and email verification endpoints.
+  - name: Users
+    description: Public user and user-profile lookup endpoints.
+  - name: Images
+    description: Cloudflare Images direct upload and image registration endpoints.
+  - name: Events
+    description: Blind tasting event, participant, question, answer, and response endpoints.
+  - name: Wine Master Data
+    description: Read-only wine style, variety, and region reference data.
 paths:
   /health:
     get:
       operationId: getHealth
+      tags:
+        - System
+      summary: Check API health
+      description: Returns a lightweight success response used by load balancers, uptime checks, and deployment smoke tests.
       responses:
         '200':
           description: A success response indicating the server is healthy.
   /.well-known/apple-app-site-association:
     get:
       operationId: getAppleAppSiteAssociation
+      tags:
+        - System
+      summary: Get Apple app site association
+      description: Returns the Apple App Site Association document used by iOS for passkeys, App Clips, and Universal Links.
       responses:
         '200':
           description: A success response with the Apple App Site Association document.
@@ -25,6 +48,10 @@ paths:
   /challenge:
     post:
       operationId: createChallenge
+      tags:
+        - Authentication
+      summary: Create passkey challenge
+      description: Issues a Base64URL-encoded challenge that clients use before registering or authenticating with a passkey.
       responses:
         '200':
           description: A success response with a newly issued passkey challenge.
@@ -38,12 +65,16 @@ paths:
   /passkey:
     post:
       operationId: addPasskey
+      tags:
+        - Authentication
+      summary: Register passkey
+      description: Registers a new passkey credential for the authenticated user using a challenge previously returned by the API.
       security:
         - bearerAuth: []
       parameters:
         - name: challenge
           in: query
-          description: Base64URL-encoded challenge returned by `/challenge`.
+          description: Base64URL-encoded challenge returned by `POST /challenge` for this passkey registration.
           required: true
           schema:
             type: string
@@ -64,6 +95,10 @@ paths:
   /user:
     post:
       operationId: createUser
+      tags:
+        - Authentication
+      summary: Create anonymous user
+      description: Creates a user account and returns the initial access and refresh tokens for that user.
       responses:
         '200':
           description: A success response with a token for the created user.
@@ -76,6 +111,10 @@ paths:
   /token/passkey:
     post:
       operationId: createTokenFromPasskey
+      tags:
+        - Authentication
+      summary: Create token from passkey
+      description: Authenticates a user with a passkey assertion and returns a fresh access token and refresh token.
       requestBody:
         required: true
         content:
@@ -94,6 +133,10 @@ paths:
   /token/email:
     post:
       operationId: createTokenFromEmail
+      tags:
+        - Authentication
+      summary: Create token from email OTP
+      description: Authenticates a user with an email one-time password challenge and returns a fresh access token and refresh token.
       requestBody:
         required: true
         content:
@@ -116,10 +159,14 @@ paths:
   /token/email/start:
     post:
       operationId: sendEmailForToken
+      tags:
+        - Authentication
+      summary: Start email OTP login
+      description: Sends a one-time password to a registered email address and returns the challenge required to complete email login.
       parameters:
         - name: email
           in: query
-          description: Registered email address to send a login OTP to.
+          description: Registered email address that receives the one-time password for login.
           required: true
           schema:
             type: string
@@ -141,6 +188,10 @@ paths:
   /refreshToken:
     post:
       operationId: refreshToken
+      tags:
+        - Authentication
+      summary: Refresh user tokens
+      description: Exchanges a valid refresh token for a new access token and refresh token pair.
       requestBody:
         required: true
         content:
@@ -167,6 +218,10 @@ paths:
   /revokeToken:
     post:
       operationId: revokeToken
+      tags:
+        - Authentication
+      summary: Revoke refresh token
+      description: Revokes a refresh token so it can no longer be used to issue new user tokens.
       requestBody:
         required: true
         content:
@@ -189,6 +244,10 @@ paths:
   /me:
     get:
       operationId: getMe
+      tags:
+        - Current User
+      summary: Get current user
+      description: Returns the authenticated user ID, current profile summary, and registered email addresses.
       security:
         - bearerAuth: []
       responses:
@@ -204,6 +263,10 @@ paths:
           description: Unauthorized
     post:
       operationId: createUserProfile
+      tags:
+        - Current User
+      summary: Create current user profile
+      description: Creates the authenticated user profile, including the display name and optional profile image.
       security:
         - bearerAuth: []
       requestBody:
@@ -226,6 +289,10 @@ paths:
   /user_profile/{user_id}:
     get:
       operationId: getUserProfile
+      tags:
+        - Users
+      summary: Get user profile
+      description: Returns the latest profile for the requested user.
       security:
         - bearerAuth: []
       parameters:
@@ -235,7 +302,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: User id.
+          description: Target user ID in UUID format.
       responses:
         '200':
           description: A success response with the latest user profile.
@@ -252,6 +319,10 @@ paths:
   /users/{user_id}/organized_events:
     get:
       operationId: getUserOrganizedEvents
+      tags:
+        - Users
+      summary: List organized events
+      description: Returns blind tasting events organized by the requested user.
       security:
         - bearerAuth: []
       parameters:
@@ -261,7 +332,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: User id.
+          description: Target user ID in UUID format.
       responses:
         '200':
           description: A success response with events organized by the user.
@@ -278,6 +349,10 @@ paths:
   /users/{user_id}/participating_events:
     get:
       operationId: getUserParticipatingEvents
+      tags:
+        - Users
+      summary: List participating events
+      description: Returns blind tasting events where the requested user is registered as a participant.
       security:
         - bearerAuth: []
       parameters:
@@ -287,7 +362,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: User id.
+          description: Target user ID in UUID format.
       responses:
         '200':
           description: A success response with events the user participates in.
@@ -304,6 +379,10 @@ paths:
   /images/upload_url:
     post:
       operationId: createImageUploadURL
+      tags:
+        - Images
+      summary: Create image upload URL
+      description: Creates a Cloudflare Images direct upload URL that clients can use before registering the uploaded image.
       security:
         - bearerAuth: []
       responses:
@@ -320,6 +399,10 @@ paths:
   /images:
     post:
       operationId: createImage
+      tags:
+        - Images
+      summary: Register uploaded image
+      description: Registers an image after the client has uploaded it to Cloudflare Images.
       security:
         - bearerAuth: []
       requestBody:
@@ -342,6 +425,10 @@ paths:
   /events:
     get:
       operationId: getEvents
+      tags:
+        - Events
+      summary: List events
+      description: Returns blind tasting events visible to the authenticated user.
       security:
         - bearerAuth: []
       responses:
@@ -359,6 +446,10 @@ paths:
           description: Unauthorized
     post:
       operationId: createEvent
+      tags:
+        - Events
+      summary: Create event
+      description: Creates a blind tasting event with venue, schedule, visibility, and scoring rule settings.
       security:
         - bearerAuth: []
       requestBody:
@@ -381,6 +472,10 @@ paths:
   /events/{event_id}:
     get:
       operationId: getEvent
+      tags:
+        - Events
+      summary: Get event
+      description: Returns the latest revision of a blind tasting event.
       security:
         - bearerAuth: []
       parameters:
@@ -390,7 +485,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
       responses:
         '200':
           description: A success response with the event.
@@ -406,6 +501,10 @@ paths:
           description: Not found Event
     put:
       operationId: updateEvent
+      tags:
+        - Events
+      summary: Update event
+      description: Updates event details and returns the latest event revision.
       security:
         - bearerAuth: []
       parameters:
@@ -415,7 +514,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
       requestBody:
         required: true
         content:
@@ -438,6 +537,10 @@ paths:
   /events/{event_id}/participants:
     post:
       operationId: registerEventParticipant
+      tags:
+        - Events
+      summary: Register event participant
+      description: Registers the authenticated user as a participant for the specified event.
       security:
         - bearerAuth: []
       parameters:
@@ -447,7 +550,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
       responses:
         '200':
           description: A success response with the event participant.
@@ -464,6 +567,10 @@ paths:
   /events/{event_id}/questions:
     post:
       operationId: createEventQuestion
+      tags:
+        - Events
+      summary: Create event question
+      description: Creates a blind tasting question within an event.
       security:
         - bearerAuth: []
       parameters:
@@ -473,7 +580,7 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
       requestBody:
         required: true
         content:
@@ -496,6 +603,10 @@ paths:
   /events/{event_id}/questions/{question_id}:
     put:
       operationId: updateEventQuestion
+      tags:
+        - Events
+      summary: Update event question
+      description: Updates a blind tasting question and returns its latest revision.
       security:
         - bearerAuth: []
       parameters:
@@ -505,14 +616,14 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
         - name: question_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: Event question id.
+          description: Target event question ID in UUID format.
       requestBody:
         required: true
         content:
@@ -535,6 +646,10 @@ paths:
   /events/{event_id}/questions/{question_id}/correct_answer:
     post:
       operationId: createEventQuestionCorrectAnswer
+      tags:
+        - Events
+      summary: Create correct answer
+      description: Creates the official correct answer for a blind tasting question.
       security:
         - bearerAuth: []
       parameters:
@@ -544,14 +659,14 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
         - name: question_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: Event question id.
+          description: Target event question ID in UUID format.
       requestBody:
         required: true
         content:
@@ -573,6 +688,10 @@ paths:
           description: Not found Event Question
     put:
       operationId: updateEventQuestionCorrectAnswer
+      tags:
+        - Events
+      summary: Update correct answer
+      description: Updates the official correct answer for a blind tasting question.
       security:
         - bearerAuth: []
       parameters:
@@ -582,14 +701,14 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
         - name: question_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: Event question id.
+          description: Target event question ID in UUID format.
       requestBody:
         required: true
         content:
@@ -612,6 +731,10 @@ paths:
   /events/{event_id}/questions/{question_id}/responses:
     post:
       operationId: createEventQuestionResponse
+      tags:
+        - Events
+      summary: Submit question response
+      description: Submits the authenticated user response for a blind tasting question.
       security:
         - bearerAuth: []
       parameters:
@@ -621,14 +744,14 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
         - name: question_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: Event question id.
+          description: Target event question ID in UUID format.
       requestBody:
         required: true
         content:
@@ -651,6 +774,10 @@ paths:
   /events/{event_id}/questions/{question_id}/responses/me:
     put:
       operationId: updateMyEventQuestionResponse
+      tags:
+        - Events
+      summary: Update my question response
+      description: Updates the authenticated user response for a blind tasting question.
       security:
         - bearerAuth: []
       parameters:
@@ -660,14 +787,14 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Event id.
+          description: Target event ID in UUID format.
         - name: question_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
-          description: Event question id.
+          description: Target event question ID in UUID format.
       requestBody:
         required: true
         content:
@@ -690,6 +817,10 @@ paths:
   /wine/styles:
     get:
       operationId: getWineStyles
+      tags:
+        - Wine Master Data
+      summary: List wine styles
+      description: Returns the wine style master data used to classify grape varieties.
       security:
         - bearerAuth: []
       responses:
@@ -708,6 +839,10 @@ paths:
   /wine/varieties:
     get:
       operationId: getWineVarieties
+      tags:
+        - Wine Master Data
+      summary: List wine varieties
+      description: Returns the wine variety master data and related wine style IDs.
       security:
         - bearerAuth: []
       responses:
@@ -726,6 +861,10 @@ paths:
   /wine/region_types:
     get:
       operationId: getWineRegionTypes
+      tags:
+        - Wine Master Data
+      summary: List wine region types
+      description: Returns the wine region type master data used by event scoring rules.
       security:
         - bearerAuth: []
       responses:
@@ -744,6 +883,10 @@ paths:
   /wine/regions:
     get:
       operationId: getWineRegions
+      tags:
+        - Wine Master Data
+      summary: List wine regions
+      description: Returns the hierarchical wine region master data.
       security:
         - bearerAuth: []
       responses:
@@ -762,10 +905,14 @@ paths:
   /users:
     get:
       operationId: getUsers
+      tags:
+        - Users
+      summary: Get users by ID
+      description: Returns user records for the requested comma-separated user IDs.
       parameters:
         - name: ids
           in: query
-          description: Comma-separated user IDs to return.
+          description: Comma-separated UUIDs of users to return, for example `id1,id2,id3`.
           required: true
           explode: false
           schema:
@@ -787,12 +934,16 @@ paths:
   /email/verify/start:
     post:
       operationId: sendConfirmEmail
+      tags:
+        - Current User
+      summary: Start email verification
+      description: Sends a one-time password to verify an email address for the authenticated user.
       security:
         - bearerAuth: []
       parameters:
         - name: email
           in: query
-          description: Email address to verify for the authenticated user.
+          description: Email address that receives the one-time password for verification.
           required: true
           schema:
             type: string
@@ -807,6 +958,10 @@ paths:
   /email/verify:
     post:
       operationId: confirmEmail
+      tags:
+        - Current User
+      summary: Confirm email verification
+      description: Verifies an email address for the authenticated user using the one-time password sent by email.
       security:
         - bearerAuth: []
       requestBody:
