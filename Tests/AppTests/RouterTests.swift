@@ -1232,6 +1232,32 @@ struct RouterTests {
   }
 
   @Test
+  func sendEmailForTokenSkipsUnregisteredEmail() async throws {
+    let arguments = TestArguments()
+    let emailRecorder = TestEmailServiceCallRecorder()
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient(),
+      emailService: TestEmailService(recorder: emailRecorder)
+    )
+    let ipAddress = UUID().uuidString
+    let email = "\(UUID().uuidString)@example.com"
+
+    try await app.test(.router) { client in
+      let response = try await client.execute(
+        uri: "/token/email/start?email=\(email)",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+
+      #expect(response.status == .ok)
+      #expect(await emailRecorder.sendCount == 0)
+    }
+  }
+
+  @Test
   func ipAddressRateLimit() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
@@ -1408,8 +1434,11 @@ private struct TestCloudflareImagesClient: CloudflareImagesClientProtocol {
 }
 
 private struct TestEmailService: EmailServiceProtocol {
+  var recorder: TestEmailServiceCallRecorder? = nil
+
   func send(_ email: EmailMessage) async throws -> EmailResponse.Result {
-    EmailResponse.Result(delivered: [], permanentBounces: [], queued: [])
+    await recorder?.recordSend()
+    return EmailResponse.Result(delivered: [], permanentBounces: [], queued: [])
   }
 }
 
@@ -1579,6 +1608,14 @@ private struct TestWebAuthn: WebAuthnProtocol {
 }
 
 private struct TestWebAuthnError: Error {}
+
+private actor TestEmailServiceCallRecorder {
+  private(set) var sendCount = 0
+
+  func recordSend() {
+    sendCount += 1
+  }
+}
 
 private actor TestCloudflareImagesCallRecorder {
   private(set) var createDirectUploadURLCount = 0
