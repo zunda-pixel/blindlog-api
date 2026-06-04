@@ -26,6 +26,26 @@ extension API {
       return .unauthorized
     }
 
+    guard payload.issuer.value == jwtIssuer else {
+      AppRequestContext.current?.logger.appLog(
+        level: .debug,
+        eventName: "auth.refresh_token.invalid_issuer",
+        "Refresh token issuer is not accepted"
+      )
+      return .unauthorized
+    }
+    do {
+      try payload.audience.verifyIntendedAudience(includes: jwtAudience)
+    } catch {
+      AppRequestContext.current?.logger.appLog(
+        level: .debug,
+        eventName: "auth.refresh_token.invalid_audience",
+        "Refresh token audience is not accepted",
+        error: error
+      )
+      return .unauthorized
+    }
+
     guard let userID = UUID(uuidString: payload.subject.value) else {
       AppRequestContext.current?.logger.appLog(
         level: .debug,

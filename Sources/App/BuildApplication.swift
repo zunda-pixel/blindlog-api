@@ -91,6 +91,8 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
+  let jwtIssuer = makeJWTIssuer(config: config)
+  let jwtAudience = makeJWTAudience(config: config)
 
   let api = try API(
     cache: cache,
@@ -98,6 +100,8 @@ func buildApplication(
     cloudflareImagesClient: cloudflareImagesClient ?? makeCloudflareImagesClient(config: config),
     jwtKeyCollection: jwtKeyCollection,
     webAuthn: webAuthn ?? LiveWebAuthn(manager: makeWebAuth(config: config)),
+    jwtIssuer: jwtIssuer,
+    jwtAudience: jwtAudience,
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
     emailService: emailService ?? makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)
@@ -124,7 +128,11 @@ func buildApplication(
     router
     .group()
     .add(
-      middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+      middleware: UserTokenMiddleware(
+        jwtKeyCollection: jwtKeyCollection,
+        issuer: jwtIssuer,
+        audience: jwtAudience
+      )
     )
     .add(
       middleware: RateLimitMiddleware(
@@ -168,6 +176,14 @@ func makeRateLimitConfig(
       ?? config.int(forKey: "authentication.endpoint.max.count")
       ?? 30
   )
+}
+
+func makeJWTIssuer(config: ConfigReader) -> String {
+  config.string(forKey: "jwt.issuer") ?? "blindlog-api"
+}
+
+func makeJWTAudience(config: ConfigReader) -> String {
+  config.string(forKey: "jwt.audience") ?? "blindlog-app"
 }
 
 func makeCache(
