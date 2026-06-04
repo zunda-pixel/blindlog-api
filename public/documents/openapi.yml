@@ -1637,10 +1637,11 @@ components:
           description: Base64URL-encoded challenge issued by the server.
         email:
           type: string
-          description: Credential identifier encoded in Base64URL.
+          format: email
+          description: Email address used for OTP authentication.
         otp:
           type: string
-          description: Raw credential identifier in Base64URL format.
+          description: One-time password sent to the email address.
       required:
         - challenge
         - email

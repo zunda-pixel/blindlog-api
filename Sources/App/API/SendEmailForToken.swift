@@ -20,7 +20,9 @@ extension API {
     else {
       throw HTTPError(.tooManyRequests)
     }
-    let email: String = normalizeEmail(input.query.email)
+    guard let email = validatedEmail(input.query.email) else {
+      return .badRequest
+    }
     let challenge = [UInt8].random(count: 32)
 
     // 2. Generate OTP

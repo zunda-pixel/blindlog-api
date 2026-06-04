@@ -20,7 +20,9 @@ extension API {
       throw HTTPError(.tooManyRequests)
     }
 
-    let normalizedEmail = normalizeEmail(input.query.email)
+    guard let normalizedEmail = validatedEmail(input.query.email) else {
+      return .badRequest
+    }
     let otpPassword = OTPGenerator().generate(length: 6)
 
     let message = EmailMessage(
@@ -75,9 +77,5 @@ extension API {
     }
 
     return .ok
-  }
-
-  func normalizeEmail(_ email: String) -> String {
-    email.trimming(while: \.isWhitespace).lowercased()
   }
 }

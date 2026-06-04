@@ -24,7 +24,9 @@ extension API {
       return .badRequest
     }
 
-    let email = normalizeEmail(bodyData.email)
+    guard let email = validatedEmail(bodyData.email) else {
+      return .badRequest
+    }
     // 1. Verify otp
     do {
       let otpData = try await cache.get(ValkeyKey("OTPEmailRegistration:\(userID.uuidString)"))
