@@ -1303,7 +1303,8 @@ private struct TestCloudflareImagesClient: CloudflareImagesClientProtocol {
 }
 
 private struct TestEmailService: EmailServiceProtocol {
-  func sendEmail(_ email: EmailMessage) async throws {
+  func send(_ email: EmailMessage) async throws -> EmailResponse.Result {
+    EmailResponse.Result(delivered: [], permanentBounces: [], queued: [])
   }
 }
 

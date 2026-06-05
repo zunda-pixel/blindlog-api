@@ -1,11 +1,7 @@
 import EmailService
 
 protocol EmailServiceProtocol: Sendable {
-  func sendEmail(_ email: EmailMessage) async throws
+  func send(_ email: EmailMessage) async throws -> EmailResponse.Result
 }
 
-extension EmailService.Client: EmailServiceProtocol {
-  func sendEmail(_ email: EmailMessage) async throws {
-    _ = try await send(email)
-  }
-}
+extension EmailService.Client: EmailServiceProtocol {}
