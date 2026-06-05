@@ -68,7 +68,7 @@ extension API {
     )
 
     do {
-      _ = try await emailService.send(emailMessage)
+      try await emailService.sendEmail(emailMessage)
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.email.send_failed",

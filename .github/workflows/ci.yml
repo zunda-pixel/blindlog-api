@@ -23,8 +23,8 @@ jobs:
       RELYING_PARTY_ORIGIN: http://localhost:8080
       RELYING_PARTY_ID: localhost
       RELYING_PARTY_NAME: Local Host Relying Party
-      CLOUDFLARE_ACCOUNT_ID: dummy
-      CLOUDFLARE_API_TOKEN: dummy
+      CLOUDFLARE_ACCOUNT_ID: test-account-id
+      CLOUDFLARE_API_TOKEN: test-api-token
       OTP_SECRET_KEY: 14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE=
     steps:
       - name: Checkout
