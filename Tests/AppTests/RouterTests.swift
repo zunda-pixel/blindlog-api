@@ -1157,7 +1157,7 @@ struct RouterTests {
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
-        body: ByteBuffer(data: passkeyRegistrationBody(credentialID: credentialID))
+        body: ByteBuffer(data: try passkeyRegistrationBody(credentialID: credentialID))
       )
       #expect(addPasskeyResponse.status == .ok)
 
@@ -1178,7 +1178,7 @@ struct RouterTests {
           .cfConnectingIP: ipAddress
         ],
         body: ByteBuffer(
-          data: passkeyAuthenticationBody(
+          data: try passkeyAuthenticationBody(
             credentialID: credentialID,
             challenge: authenticationChallenge.base64EncodedString()
           ))
@@ -1424,38 +1424,60 @@ private func credentialIDBase64URL(_ credentialID: String) -> String {
   Array(credentialID.utf8).base64URLEncodedString().asString()
 }
 
-private func passkeyRegistrationBody(credentialID: String) -> Data {
+private func passkeyRegistrationBody(credentialID: String) throws -> Data {
   let encodedCredentialID = credentialIDBase64URL(credentialID)
-  return Data(
-    """
-    {
-      "id": "\(encodedCredentialID)",
-      "rawId": "\(encodedCredentialID)",
-      "type": "public-key",
-      "response": {
-        "clientDataJSON": "e30",
-        "attestationObject": "AA"
-      }
-    }
-    """.utf8)
+  return try JSONEncoder().encode(
+    PasskeyRegistrationFixture(
+      id: encodedCredentialID,
+      rawId: encodedCredentialID,
+      type: "public-key",
+      response: .init(
+        clientDataJSON: "e30",
+        attestationObject: "AA"
+      )
+    ))
 }
 
-private func passkeyAuthenticationBody(credentialID: String, challenge: String) -> Data {
+private func passkeyAuthenticationBody(credentialID: String, challenge: String) throws -> Data {
   let encodedCredentialID = credentialIDBase64URL(credentialID)
-  return Data(
-    """
-    {
-      "challenge": "\(challenge)",
-      "id": "\(encodedCredentialID)",
-      "rawId": "\(encodedCredentialID)",
-      "type": "public-key",
-      "response": {
-        "clientDataJSON": "e30",
-        "authenticatorData": "AA",
-        "signature": "AA"
-      }
-    }
-    """.utf8)
+  return try JSONEncoder().encode(
+    PasskeyAuthenticationFixture(
+      challenge: challenge,
+      id: encodedCredentialID,
+      rawId: encodedCredentialID,
+      type: "public-key",
+      response: .init(
+        clientDataJSON: "e30",
+        authenticatorData: "AA",
+        signature: "AA"
+      )
+    ))
+}
+
+private struct PasskeyRegistrationFixture: Encodable {
+  var id: String
+  var rawId: String
+  var type: String
+  var response: Response
+
+  struct Response: Encodable {
+    var clientDataJSON: String
+    var attestationObject: String
+  }
+}
+
+private struct PasskeyAuthenticationFixture: Encodable {
+  var challenge: String
+  var id: String
+  var rawId: String
+  var type: String
+  var response: Response
+
+  struct Response: Encodable {
+    var clientDataJSON: String
+    var authenticatorData: String
+    var signature: String
+  }
 }
 
 private struct TestWebAuthn: WebAuthnProtocol {
