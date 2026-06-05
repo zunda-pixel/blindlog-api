@@ -901,6 +901,29 @@ struct RouterTests {
   }
 
   @Test
+  func refreshTokenRejectsInvalidJWT() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient()
+    )
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let response = try await client.execute(
+        uri: "/refreshToken",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ],
+        body: ByteBuffer(data: JSONEncoder().encode(["refreshToken": "invalid-token"]))
+      )
+
+      #expect(response.status == .unauthorized)
+    }
+  }
+
+  @Test
   func revokeToken() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(arguments)
