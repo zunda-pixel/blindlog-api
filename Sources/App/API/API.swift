@@ -1,6 +1,4 @@
-import AsyncHTTPClient
 import Crypto
-import EmailService
 import Foundation
 import JWTKit
 import PostgresNIO
@@ -14,6 +12,6 @@ struct API: APIProtocol {
   var jwtKeyCollection: JWTKeyCollection
   var webAuthn: WebAuthnManager
   var appleAppSiteAssociation: AppleAppSiteAssociation
-  var emailService: EmailService.Client<AsyncHTTPClient.HTTPClient>
+  var emailService: any EmailServiceProtocol
   var otpSecretKey: SymmetricKey
 }
