@@ -38,7 +38,7 @@ private struct AlreadyBootstrappedObservabilityService: Service {
 func buildApplication(
   _ arguments: some AppArguments,
   cloudflareImagesClient: (any CloudflareImagesClientProtocol)? = nil,
-  emailService: (any EmailServiceProtocol)? = nil
+  emailService: (any EmailServiceProtocol)? = nil,
   webAuthn: (any WebAuthnProtocol)? = nil
 ) async throws -> some ApplicationProtocol {
   let config = ConfigReader(providers: [EnvironmentVariablesProvider()])
