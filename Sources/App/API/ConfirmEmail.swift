@@ -27,9 +27,9 @@ extension API {
     guard let email = validatedEmail(bodyData.email) else {
       return .badRequest
     }
-    // 1. Verify otp
+    // 1. Verify and delete otp atomically
     do {
-      let otpData = try await cache.get(ValkeyKey("OTPEmailRegistration:\(userID.uuidString)"))
+      let otpData = try await cache.getdel(ValkeyKey("OTPEmailRegistration:\(userID.uuidString)"))
       guard let otpData else {
         return .badRequest
       }
@@ -52,10 +52,10 @@ extension API {
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "user.email.otp_verify_failed",
-        "Failed to verify otp",
+        "Failed to verify and delete otp",
         metadata: AppLogMetadata.userID(userID)
           .merging(AppLogMetadata.emailSHA256(email)) { _, new in new }
-          .merging(["cache.operation": .string("get")]) { _, new in new },
+          .merging(["cache.operation": .string("getdel")]) { _, new in new },
         error: error
       )
       return .badRequest

@@ -1232,6 +1232,70 @@ struct RouterTests {
   }
 
   @Test
+  func confirmEmailRejectsReusedOTP() async throws {
+    let arguments = TestArguments()
+    let emailRecorder = TestEmailServiceCallRecorder()
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient(),
+      emailService: TestEmailService(recorder: emailRecorder)
+    )
+    let ipAddress = UUID().uuidString
+    let email = "\(UUID().uuidString)@example.com"
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      try #require(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+
+      let sendResponse = try await client.execute(
+        uri: "/email/verify/start?email=\(email)",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      )
+      #expect(sendResponse.status == .ok)
+
+      let otp = try #require(await emailRecorder.sentEmails.last?.text)
+
+      // 1. First confirmation with the valid OTP succeeds.
+      let firstResponse = try await client.execute(
+        uri: "/email/verify",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: try JSONEncoder().encode(["email": email, "otp": otp]))
+      )
+      #expect(firstResponse.status == .ok)
+
+      // 2. Reusing the same OTP fails because it is deleted after the first use.
+      let secondResponse = try await client.execute(
+        uri: "/email/verify",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: try JSONEncoder().encode(["email": email, "otp": otp]))
+      )
+      #expect(secondResponse.status == .badRequest)
+    }
+  }
+
+  @Test
   func sendEmailForTokenSkipsUnregisteredEmail() async throws {
     let arguments = TestArguments()
     let emailRecorder = TestEmailServiceCallRecorder()
@@ -1437,7 +1501,7 @@ private struct TestEmailService: EmailServiceProtocol {
   var recorder: TestEmailServiceCallRecorder? = nil
 
   func send(_ email: EmailMessage) async throws -> EmailResponse.Result {
-    await recorder?.recordSend()
+    await recorder?.recordSend(email)
     return EmailResponse.Result(delivered: [], permanentBounces: [], queued: [])
   }
 }
@@ -1611,9 +1675,11 @@ private struct TestWebAuthnError: Error {}
 
 private actor TestEmailServiceCallRecorder {
   private(set) var sendCount = 0
+  private(set) var sentEmails: [EmailMessage] = []
 
-  func recordSend() {
+  func recordSend(_ email: EmailMessage) {
     sendCount += 1
+    sentEmails.append(email)
   }
 }
 
