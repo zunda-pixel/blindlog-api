@@ -44,5 +44,7 @@ services:
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
       OTP_SECRET_KEY: ${OTP_SECRET_KEY}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
       # Override default http://localhost:4318 since the collector is a sibling container.
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
