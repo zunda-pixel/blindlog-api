@@ -108,7 +108,7 @@ extension API {
     let userID = passkeyCredential.userID
 
     // 4. Verify assertion with WebAuthn
-    let verifiedAuthentication: WebAuthnAuthenticationResult
+    let verifiedAuthentication: VerifiedAuthentication
     do {
       verifiedAuthentication = try webAuthn.finishAuthentication(
         credential: credential,
@@ -135,7 +135,7 @@ extension API {
         try await PasskeyCredentialSignCount.insert {
           PasskeyCredentialSignCount(
             id: UUID(uuidString: UUID.uuidV7String())!,
-            passkeyCredentialID: verifiedAuthentication.credentialID,
+            passkeyCredentialID: verifiedAuthentication.credentialID.asString(),
             signCount: Int64(verifiedAuthentication.newSignCount)
           )
         }

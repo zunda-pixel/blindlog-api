@@ -1544,16 +1544,18 @@ private struct TestWebAuthn: WebAuthnProtocol {
     credentialPublicKey: [UInt8],
     credentialCurrentSignCount: UInt32,
     requireUserVerification: Bool
-  ) throws -> WebAuthnAuthenticationResult {
+  ) throws -> VerifiedAuthentication {
     guard expectedChallenge == authenticationChallenge else {
       throw TestWebAuthnError()
     }
     guard credential.id.asString() == credentialIDBase64URL(credentialID) else {
       throw TestWebAuthnError()
     }
-    return WebAuthnAuthenticationResult(
-      credentialID: credential.id.asString(),
-      newSignCount: credentialCurrentSignCount + 1
+    return VerifiedAuthentication(
+      credentialID: credential.id,
+      newSignCount: credentialCurrentSignCount + 1,
+      credentialDeviceType: .singleDevice,
+      credentialBackedUp: false
     )
   }
 }

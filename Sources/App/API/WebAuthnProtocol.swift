@@ -6,11 +6,6 @@ struct WebAuthnRegistrationResult: Sendable {
   var signCount: UInt32
 }
 
-struct WebAuthnAuthenticationResult: Sendable {
-  var credentialID: String
-  var newSignCount: UInt32
-}
-
 protocol WebAuthnProtocol: Sendable {
   func beginRegistration(
     user: PublicKeyCredentialUserEntity,
@@ -40,7 +35,7 @@ protocol WebAuthnProtocol: Sendable {
     credentialPublicKey: [UInt8],
     credentialCurrentSignCount: UInt32,
     requireUserVerification: Bool
-  ) throws -> WebAuthnAuthenticationResult
+  ) throws -> VerifiedAuthentication
 }
 
 struct LiveWebAuthn: WebAuthnProtocol {
@@ -100,17 +95,13 @@ struct LiveWebAuthn: WebAuthnProtocol {
     credentialPublicKey: [UInt8],
     credentialCurrentSignCount: UInt32,
     requireUserVerification: Bool
-  ) throws -> WebAuthnAuthenticationResult {
-    let verifiedAuthentication = try manager.finishAuthentication(
+  ) throws -> VerifiedAuthentication {
+    try manager.finishAuthentication(
       credential: credential,
       expectedChallenge: expectedChallenge,
       credentialPublicKey: credentialPublicKey,
       credentialCurrentSignCount: credentialCurrentSignCount,
       requireUserVerification: requireUserVerification
-    )
-    return WebAuthnAuthenticationResult(
-      credentialID: verifiedAuthentication.credentialID.asString(),
-      newSignCount: verifiedAuthentication.newSignCount
     )
   }
 }
