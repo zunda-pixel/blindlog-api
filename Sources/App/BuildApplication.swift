@@ -178,7 +178,7 @@ func makeRateLimitConfig(
 func makeJWTConfiguration(config: ConfigReader) throws -> JWTConfiguration {
   try JWTConfiguration(
     issuer: config.requiredString(forKey: "jwt.issuer"),
-    audience: config.requiredString(forKey: "jwt.jwks.url"),
+    audience: config.requiredString(forKey: "jwt.audience"),
   )
 }
 
