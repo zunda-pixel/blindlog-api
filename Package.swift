@@ -27,7 +27,7 @@ let package = Package(
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
     .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),
-    .package(url: "https://github.com/brokenhandsio/swift-webauthn.git", from: "1.0.0-beta.1"),
+    .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "add-init"),
     .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
     .package(
       url: "https://github.com/swift-otel/swift-otel.git",

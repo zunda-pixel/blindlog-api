@@ -71,6 +71,9 @@ extension API {
       credential = try await webAuthn.finishRegistration(
         challenge: Array(input.query.challenge.data),
         credentialCreationData: registrationCredential,
+        requireUserVerification: false,
+        supportedPublicKeyAlgorithms: .supported,
+        pemRootCertificatesByFormat: [:],
         confirmCredentialIDNotRegisteredYet: { credentialID in
           let credential = try await database.read { db in
             try await PasskeyCredential

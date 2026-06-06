@@ -114,7 +114,8 @@ extension API {
         credential: credential,
         expectedChallenge: bodyData.challenge.base64decoded(),
         credentialPublicKey: Array(passkeyCredential.publicKey),
-        credentialCurrentSignCount: UInt32(signCount)
+        credentialCurrentSignCount: UInt32(signCount),
+        requireUserVerification: false
       )
     } catch {
       AppRequestContext.current?.logger.appError(
