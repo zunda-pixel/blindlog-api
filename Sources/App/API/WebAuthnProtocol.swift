@@ -1,11 +1,6 @@
 import Foundation
 import WebAuthn
 
-struct WebAuthnRegistrationResult: Sendable {
-  var publicKey: [UInt8]
-  var signCount: UInt32
-}
-
 protocol WebAuthnProtocol: Sendable {
   func beginRegistration(
     user: PublicKeyCredentialUserEntity,
@@ -21,7 +16,7 @@ protocol WebAuthnProtocol: Sendable {
     supportedPublicKeyAlgorithms: [PublicKeyCredentialParameters],
     pemRootCertificatesByFormat: [AttestationFormat: [Data]],
     confirmCredentialIDNotRegisteredYet: @Sendable @concurrent (String) async throws -> Bool
-  ) async throws -> WebAuthnRegistrationResult
+  ) async throws -> Credential
 
   func beginAuthentication(
     timeout: Duration?,
@@ -62,18 +57,14 @@ struct LiveWebAuthn: WebAuthnProtocol {
     supportedPublicKeyAlgorithms: [PublicKeyCredentialParameters],
     pemRootCertificatesByFormat: [AttestationFormat: [Data]],
     confirmCredentialIDNotRegisteredYet: @Sendable @concurrent (String) async throws -> Bool
-  ) async throws -> WebAuthnRegistrationResult {
-    let credential = try await manager.finishRegistration(
+  ) async throws -> Credential {
+    try await manager.finishRegistration(
       challenge: challenge,
       credentialCreationData: credentialCreationData,
       requireUserVerification: requireUserVerification,
       supportedPublicKeyAlgorithms: supportedPublicKeyAlgorithms,
       pemRootCertificatesByFormat: pemRootCertificatesByFormat,
       confirmCredentialIDNotRegisteredYet: confirmCredentialIDNotRegisteredYet
-    )
-    return WebAuthnRegistrationResult(
-      publicKey: credential.publicKey,
-      signCount: credential.signCount
     )
   }
 

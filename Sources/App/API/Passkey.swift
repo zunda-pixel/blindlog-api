@@ -66,7 +66,7 @@ extension API {
     }
 
     // 3. Validate WebAuthn registration data
-    let credential: WebAuthnRegistrationResult
+    let credential: Credential
     do {
       credential = try await webAuthn.finishRegistration(
         challenge: Array(input.query.challenge.data),

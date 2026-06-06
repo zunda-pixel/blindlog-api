@@ -3,10 +3,11 @@ import Foundation
 import HummingbirdTesting
 import Logging
 import NIOCore
+@preconcurrency import SwiftCBOR
 import Testing
-import WebAuthn
 
 @testable import App
+@testable import WebAuthn
 
 struct TestArguments: AppArguments {
   var hostname: String = "127.0.0.1"
@@ -1508,7 +1509,7 @@ private struct TestWebAuthn: WebAuthnProtocol {
     supportedPublicKeyAlgorithms: [PublicKeyCredentialParameters],
     pemRootCertificatesByFormat: [AttestationFormat: [Data]],
     confirmCredentialIDNotRegisteredYet: @Sendable @concurrent (String) async throws -> Bool
-  ) async throws -> WebAuthnRegistrationResult {
+  ) async throws -> Credential {
     guard challenge == registrationChallenge else {
       throw TestWebAuthnError()
     }
@@ -1518,9 +1519,26 @@ private struct TestWebAuthn: WebAuthnProtocol {
     guard try await confirmCredentialIDNotRegisteredYet(credentialCreationData.id.asString()) else {
       throw TestWebAuthnError()
     }
-    return WebAuthnRegistrationResult(
+    let authenticatorData = try AuthenticatorData(bytes: Array(repeating: 0, count: 37))
+    let attestationObject = AttestationObject(
+      authenticatorData: authenticatorData,
+      rawAuthenticatorData: Array(repeating: 0, count: 37),
+      format: .none,
+      attestationStatement: .map([:])
+    )
+    return Credential(
+      type: .publicKey,
+      id: credentialCreationData.id.asString(),
       publicKey: Array("test-public-key".utf8),
-      signCount: 1
+      signCount: 1,
+      backupEligible: false,
+      isBackedUp: false,
+      attestationObject: attestationObject,
+      attestationClientDataJSON: CollectedClientData(
+        type: .create,
+        challenge: challenge.base64URLEncodedString(),
+        origin: "http://localhost:8080"
+      )
     )
   }
 
