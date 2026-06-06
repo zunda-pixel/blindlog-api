@@ -91,12 +91,14 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
+  let jwtConfiguration = try makeJWTConfiguration(config: config)
 
   let api = try API(
     cache: cache,
     database: databaseClient,
     cloudflareImagesClient: cloudflareImagesClient ?? makeCloudflareImagesClient(config: config),
     jwtKeyCollection: jwtKeyCollection,
+    jwtConfiguration: jwtConfiguration,
     webAuthn: webAuthn ?? LiveWebAuthn(manager: makeWebAuth(config: config)),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
     emailService: emailService ?? makeCloudflareEmailService(config: config),
@@ -124,7 +126,10 @@ func buildApplication(
     router
     .group()
     .add(
-      middleware: UserTokenMiddleware(jwtKeyCollection: jwtKeyCollection)
+      middleware: UserTokenMiddleware(
+        jwtKeyCollection: jwtKeyCollection,
+        jwtConfiguration: jwtConfiguration
+      )
     )
     .add(
       middleware: RateLimitMiddleware(
@@ -167,6 +172,13 @@ func makeRateLimitConfig(
     authenticationEndpointMaxCount: arguments.rateLimitAuthenticationEndpointMaxCount
       ?? config.int(forKey: "authentication.endpoint.max.count")
       ?? 30
+  )
+}
+
+func makeJWTConfiguration(config: ConfigReader) throws -> JWTConfiguration {
+  try JWTConfiguration(
+    issuer: config.requiredString(forKey: "jwt.issuer"),
+    audience: config.requiredString(forKey: "jwt.audience"),
   )
 }
 

@@ -6,6 +6,7 @@ import PostgresNIO
 
 struct UserTokenMiddleware<Context: RequestContext>: RouterMiddleware {
   var jwtKeyCollection: JWTKeyCollection
+  var jwtConfiguration: JWTConfiguration
 
   func userID(
     _ request: Request,
@@ -22,6 +23,25 @@ struct UserTokenMiddleware<Context: RequestContext>: RouterMiddleware {
         level: .debug,
         eventName: "auth.user_token.verify_failed",
         "Couldn't verify token",
+        error: error
+      )
+      return nil
+    }
+    guard payload.issuer.value == jwtConfiguration.issuer else {
+      context.logger.appLog(
+        level: .debug,
+        eventName: "auth.user_token.invalid_issuer",
+        "Token issuer is not accepted"
+      )
+      return nil
+    }
+    do {
+      try payload.audience.verifyIntendedAudience(includes: jwtConfiguration.audience)
+    } catch {
+      context.logger.appLog(
+        level: .debug,
+        eventName: "auth.user_token.invalid_audience",
+        "Token audience is not accepted",
         error: error
       )
       return nil

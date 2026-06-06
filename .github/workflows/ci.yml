@@ -26,6 +26,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: test-account-id
       CLOUDFLARE_API_TOKEN: test-api-token
       OTP_SECRET_KEY: 14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE=
+      JWT_ISSUER: blindlog-api
+      JWT_AUDIENCE: blindlog-app
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
