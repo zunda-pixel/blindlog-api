@@ -158,7 +158,11 @@ Cloud Run service, OTel Collector sidecar, WIF pool/provider, deployer SA, IAM b
 
 ### 10.5. `api.blindlog.me` の二段階 rollout
 
-初回は `restrict_direct_cloud_run_ingress = false` のまま apply し、Load Balancer / Cloud Armor / Certificate Manager / Cloudflare DNS を作る。既存の `api.blindlog.me` DNS record が Cloudflare にある場合は、先に削除するか Terraform に import してから apply する。
+`restrict_direct_cloud_run_ingress` はデフォルトで `true` になっており、Cloud Run の `*.run.app` 直アクセスを拒否する。初回 bootstrap では Load Balancer / Cloud Armor / Certificate Manager / Cloudflare DNS を作るため、`terraform.tfvars` に以下を一時的に追加して apply する。既存の `api.blindlog.me` DNS record が Cloudflare にある場合は、先に削除するか Terraform に import してから apply する。
+
+```hcl
+restrict_direct_cloud_run_ingress = false
+```
 
 ```sh
 terraform apply
@@ -167,11 +171,7 @@ terraform output -raw api_health_url
 
 Certificate Manager の証明書と certificate map entry が `ACTIVE` になり、`https://api.blindlog.me/health` が 200 を返すまで待つ。証明書発行には数分から 1 時間程度かかる場合がある。
 
-疎通確認後、`terraform.tfvars` で以下を有効化して再 apply する。
-
-```hcl
-restrict_direct_cloud_run_ingress = true
-```
+疎通確認後、`terraform.tfvars` から `restrict_direct_cloud_run_ingress = false` を削除して再 apply する。`allow_unauthenticated = true` と `restrict_direct_cloud_run_ingress = false` を常用すると、Cloudflare / Cloud Armor を通らない direct access で `CF-Connecting-IP` を信頼できなくなるため、bootstrap 後は必ず direct ingress を制限する。
 
 ```sh
 terraform apply
