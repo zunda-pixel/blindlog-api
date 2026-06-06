@@ -26,7 +26,7 @@ extension API {
       return .unauthorized
     }
 
-    guard payload.issuer.value == jwtIssuer else {
+    guard payload.issuer.value == jwtConfiguration.issuer else {
       AppRequestContext.current?.logger.appLog(
         level: .debug,
         eventName: "auth.refresh_token.invalid_issuer",
@@ -35,7 +35,7 @@ extension API {
       return .unauthorized
     }
     do {
-      try payload.audience.verifyIntendedAudience(includes: jwtAudience)
+      try payload.audience.verifyIntendedAudience(includes: jwtConfiguration.audience)
     } catch {
       AppRequestContext.current?.logger.appLog(
         level: .debug,

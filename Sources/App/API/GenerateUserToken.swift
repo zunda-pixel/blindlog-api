@@ -11,8 +11,8 @@ extension API {
     let tokenPayload = JWTPayloadData(
       tokenType: .token,
       id: .init(value: UUID().uuidString),
-      issuer: .init(value: jwtIssuer),
-      audience: .init(value: [jwtAudience]),
+      issuer: .init(value: jwtConfiguration.issuer),
+      audience: .init(value: [jwtConfiguration.audience]),
       issuedAt: .init(value: issuedAt),
       subject: .init(value: userID.uuidString),
       expiration: .init(value: tokenExpiredDate)
@@ -23,8 +23,8 @@ extension API {
     let refreshTokenPayload = JWTPayloadData(
       tokenType: .refreshToken,
       id: .init(value: UUID().uuidString),
-      issuer: .init(value: jwtIssuer),
-      audience: .init(value: [jwtAudience]),
+      issuer: .init(value: jwtConfiguration.issuer),
+      audience: .init(value: [jwtConfiguration.audience]),
       issuedAt: .init(value: issuedAt),
       subject: .init(value: userID.uuidString),
       expiration: .init(value: refreshTokenExpiredDate)

@@ -9,9 +9,8 @@ struct API: APIProtocol {
   var database: PostgresClient
   var cloudflareImagesClient: any CloudflareImagesClientProtocol
   var jwtKeyCollection: JWTKeyCollection
+  var jwtConfiguration: JWTConfiguration
   var webAuthn: any WebAuthnProtocol
-  var jwtIssuer: String
-  var jwtAudience: String
   var appleAppSiteAssociation: AppleAppSiteAssociation
   var emailService: any EmailServiceProtocol
   var otpSecretKey: SymmetricKey

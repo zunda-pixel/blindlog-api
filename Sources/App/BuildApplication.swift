@@ -91,17 +91,15 @@ func buildApplication(
   )
 
   await jwtKeyCollection.add(eddsa: privateKey)
-  let jwtIssuer = makeJWTIssuer(config: config)
-  let jwtAudience = makeJWTAudience(config: config)
+  let jwtConfiguration = try makeJWTConfiguration(config: config)
 
   let api = try API(
     cache: cache,
     database: databaseClient,
     cloudflareImagesClient: cloudflareImagesClient ?? makeCloudflareImagesClient(config: config),
     jwtKeyCollection: jwtKeyCollection,
+    jwtConfiguration: jwtConfiguration,
     webAuthn: webAuthn ?? LiveWebAuthn(manager: makeWebAuth(config: config)),
-    jwtIssuer: jwtIssuer,
-    jwtAudience: jwtAudience,
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
     emailService: emailService ?? makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config)
@@ -130,8 +128,7 @@ func buildApplication(
     .add(
       middleware: UserTokenMiddleware(
         jwtKeyCollection: jwtKeyCollection,
-        issuer: jwtIssuer,
-        audience: jwtAudience
+        jwtConfiguration: jwtConfiguration
       )
     )
     .add(
@@ -178,12 +175,11 @@ func makeRateLimitConfig(
   )
 }
 
-func makeJWTIssuer(config: ConfigReader) -> String {
-  config.string(forKey: "jwt.issuer") ?? "blindlog-api"
-}
-
-func makeJWTAudience(config: ConfigReader) -> String {
-  config.string(forKey: "jwt.audience") ?? "blindlog-app"
+func makeJWTConfiguration(config: ConfigReader) throws -> JWTConfiguration {
+  try JWTConfiguration(
+    issuer: config.requiredString(forKey: "jwt.issuer"),
+    audience: config.requiredString(forKey: "jwt.jwks.url"),
+  )
 }
 
 func makeCache(
