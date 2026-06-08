@@ -1,5 +1,6 @@
 import AsyncHTTPClient
 import Foundation
+import HTTPClient
 import Images
 
 protocol CloudflareImagesClientProtocol: Sendable {
