@@ -102,7 +102,8 @@ func buildApplication(
     webAuthn: webAuthn ?? LiveWebAuthn(manager: makeWebAuth(config: config)),
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
     emailService: emailService ?? makeCloudflareEmailService(config: config),
-    otpSecretKey: makeOTPSecretKey(config: config)
+    otpSecretKey: makeOTPSecretKey(config: config),
+    passConfiguration: makePassConfiguration(config: config)
   )
 
   router.add(
@@ -278,6 +279,43 @@ func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
     throw OTPSecretKeyConfigurationError()
   }
   return SymmetricKey(data: secretKeyData)
+}
+
+func makePassConfiguration(config: ConfigReader) throws -> PassConfiguration? {
+  let config = config.scoped(to: "pass")
+  guard
+    let certificateBase64 = config.string(forKey: "certificate"),
+    let wwdrBase64 = config.string(forKey: "wwdr.certificate"),
+    let passTypeIdentifier = config.string(forKey: "type.identifier"),
+    let teamIdentifier = config.string(forKey: "team.identifier"),
+    let organizationName = config.string(forKey: "organization.name")
+  else {
+    // Pass signing is optional; without certificates the endpoint is disabled.
+    return nil
+  }
+  guard
+    let certificateData = Data(base64Encoded: certificateBase64),
+    let wwdrData = Data(base64Encoded: wwdrBase64)
+  else {
+    throw PassConfigurationError.invalidCertificate
+  }
+
+  let directory = FileManager.default.temporaryDirectory
+    .appendingPathComponent("blindlog-pass-certificates", isDirectory: true)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  let passCertificateURL = directory.appendingPathComponent("pass.p12")
+  let wwdrCertificateURL = directory.appendingPathComponent("wwdr.cer")
+  try certificateData.write(to: passCertificateURL)
+  try wwdrData.write(to: wwdrCertificateURL)
+
+  return PassConfiguration(
+    passCertificateURL: passCertificateURL,
+    passCertificatePassword: config.string(forKey: "certificate.password"),
+    wwdrCertificateURL: wwdrCertificateURL,
+    passTypeIdentifier: passTypeIdentifier,
+    teamIdentifier: teamIdentifier,
+    organizationName: organizationName
+  )
 }
 
 func makeCloudflareEmailService(

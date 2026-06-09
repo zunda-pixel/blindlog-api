@@ -27,6 +27,7 @@ let package = Package(
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
     .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),
+    .package(url: "https://github.com/zunda-pixel/pass-builder.git", branch: "fix-dependencies-version"),
     .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "add-init"),
     .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
     .package(
@@ -54,6 +55,7 @@ let package = Package(
         .product(name: "CloudflareImages", package: "cloudflare-swift"),
         .product(name: "UUIDV7", package: "UUIDV7"),
         .product(name: "OTel", package: "swift-otel"),
+        .product(name: "PassBuilder", package: "pass-builder"),
       ],
       swiftSettings: [
         .enableUpcomingFeature("ExistentialAny"),
