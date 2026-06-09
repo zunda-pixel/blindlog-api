@@ -90,7 +90,8 @@ func makeEventPassData(
 
   var barcode = Pass.Barcode()
   barcode.format = .qr
-  barcode.message = "blindlog://events/\(content.eventID.uuidString)/tickets/\(content.serialNumber)"
+  barcode.message =
+    "blindlog://events/\(content.eventID.uuidString)/tickets/\(content.serialNumber)"
   barcode.messageEncoding = "iso-8859-1"
   barcode.altText = content.serialNumber
   package.pass.barcodes = [barcode]
