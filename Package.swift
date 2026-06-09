@@ -22,18 +22,21 @@ let package = Package(
     .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.4.0"),
-    .package(url: "https://github.com/zunda-pixel/cloudflare-swift.git", from: "0.8.2"),
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
-    .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
+    .package(url: "https://github.com/zunda-pixel/cloudflare-swift.git", from: "0.8.2"),
     .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),
-    .package(url: "https://github.com/zunda-pixel/pass-builder.git", branch: "fix-dependencies-version"),
-    .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "add-init"),
-    .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
     .package(
       url: "https://github.com/swift-otel/swift-otel.git",
       from: "1.0.0",
       traits: ["OTLPHTTP"]
+    ),
+    .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
+    .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "add-init"),
+    .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
+    .package(
+      url: "https://github.com/zunda-pixel/pass-builder.git",
+      branch: "fix-dependencies-version"
     ),
   ],
   targets: [
