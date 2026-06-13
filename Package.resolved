@@ -1,5 +1,5 @@
 {
-  "originHash" : "349f90bdd5ad162015e528079519aa85a7e56ec93297a9d7e28d0ac2893f9606",
+  "originHash" : "d33a3b31fae9dea7869c2975323edf258a36bc2bb21c4b5e51ce3c01e77e3f81",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -98,6 +98,15 @@
       "state" : {
         "revision" : "57b6318128e3f901c93f4fbf98d1c1464ec168d3",
         "version" : "6.2.0"
+      }
+    },
+    {
+      "identity" : "pass-builder",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/zunda-pixel/pass-builder.git",
+      "state" : {
+        "branch" : "fix-dependencies-version",
+        "revision" : "13d65aeacfa0a66e8ae5fb1a7119baa7dbdcc35f"
       }
     },
     {
@@ -476,6 +485,15 @@
       "state" : {
         "branch" : "fix/issue-5",
         "revision" : "3f899caa10aec94efa4ef00e2cabac323914c3a6"
+      }
+    },
+    {
+      "identity" : "swift-subprocess",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-subprocess",
+      "state" : {
+        "revision" : "11633673a41f509f8945f23c96c7acd4adafd679",
+        "version" : "0.5.0"
       }
     },
     {
