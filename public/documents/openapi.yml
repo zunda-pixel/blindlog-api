@@ -1030,10 +1030,6 @@ components:
       type: object
       description: A value with the user profile contents.
       properties:
-        id:
-          type: string
-          format: uuid
-          description: User profile id.
         userID:
           type: string
           format: uuid
@@ -1052,7 +1048,6 @@ components:
           format: double
           description: User profile created date.
       required:
-        - id
         - userID
         - name
         - createdAt

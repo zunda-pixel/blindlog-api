@@ -218,7 +218,7 @@ struct RouterTests {
         #expect(response.status == .ok)
         return try JSONDecoder().decode(Components.Schemas.UserProfile.self, from: response.body)
       }
-      #expect(firstProfile.id != secondProfile.id)
+      #expect(secondProfile.userID == newUser.userID)
       #expect(secondProfile.name == "Bob")
       #expect(secondProfile.imageURL == nil)
 
@@ -235,7 +235,7 @@ struct RouterTests {
           Components.Schemas.UserProfile.self,
           from: response.body
         )
-        #expect(profile.id == secondProfile.id)
+        #expect(profile.userID == secondProfile.userID)
         #expect(profile.name == "Bob")
         #expect(profile.imageURL == nil)
       }
@@ -314,7 +314,7 @@ struct RouterTests {
           Components.Schemas.UserProfile.self,
           from: response.body
         )
-        #expect(latestProfile.id == profile.id)
+        #expect(latestProfile.userID == profile.userID)
         #expect(
           latestProfile.imageURL
             == "https://imagedelivery.net/account-hash/\(cloudflareImageID)/public")
@@ -334,7 +334,7 @@ struct RouterTests {
           Components.Schemas.UserProfile.self,
           from: response.body
         )
-        #expect(latestProfile.id == profile.id)
+        #expect(latestProfile.userID == profile.userID)
         #expect(
           latestProfile.imageURL
             == "https://imagedelivery.net/account-hash/\(cloudflareImageID)/public")

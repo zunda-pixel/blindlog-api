@@ -150,11 +150,18 @@ struct EventQuestionCorrectAnswerVarietyRecord: Codable, Hashable {
   @Column("created_at") var createdAt: Date
 }
 
-@Table("event_question_response_revisions")
+@Table("event_question_responses")
 struct EventQuestionResponseRecord: Codable, Identifiable, Hashable {
   var id: UUID
   @Column("event_question_id") var eventQuestionID: UUID
   @Column("user_id") var userID: UUID
+  @Column("created_at") var createdAt: Date
+}
+
+@Table("event_question_response_revisions")
+struct EventQuestionResponseRevisionRecord: Codable, Identifiable, Hashable {
+  var id: UUID
+  @Column("event_question_response_id") var eventQuestionResponseID: UUID
   @Column("wine_region_id") var wineRegionID: UUID?
   var vintage: Int?
   @Column("alcohol_by_volume") var alcoholByVolume: Double?
@@ -164,7 +171,7 @@ struct EventQuestionResponseRecord: Codable, Identifiable, Hashable {
 
 @Table("event_question_response_revision_varieties")
 struct EventQuestionResponseVarietyRecord: Codable, Hashable {
-  @Column("event_question_response_revision_id") var eventQuestionResponseID: UUID
+  @Column("event_question_response_revision_id") var eventQuestionResponseRevisionID: UUID
   @Column("wine_variety_id") var wineVarietyID: UUID
   @Column("created_at") var createdAt: Date
 }

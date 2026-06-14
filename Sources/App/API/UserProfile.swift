@@ -366,7 +366,6 @@ extension API {
 extension Components.Schemas.UserProfile {
   fileprivate init(_ profile: UserProfile, imageURL: String?) {
     self.init(
-      id: profile.id.uuidString,
       userID: profile.userID!.uuidString,
       name: profile.name!,
       imageURL: imageURL,
