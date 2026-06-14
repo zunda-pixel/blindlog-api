@@ -1253,8 +1253,6 @@ extension API {
       if requireNoExistingAnswer || requireExistingAnswer {
         try await lockEventQuestion(questionID: questionID, db: db)
       }
-      // The aggregate carries the stable id and creation time; each update only
-      // appends a new revision, mirroring the events ↔ event_revisions pattern.
       let existing = try await correctAnswer(questionID: questionID, db: db)
       if requireNoExistingAnswer, existing != nil {
         throw EventRevisionMutationError.alreadyExists
