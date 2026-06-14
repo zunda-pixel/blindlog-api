@@ -271,25 +271,35 @@ CREATE TABLE public.event_question_correct_answer_revision_varieties (
 
 CREATE INDEX event_question_correct_answer_revision_varieties_wine_variety_id_idx ON public.event_question_correct_answer_revision_varieties(wine_variety_id);
 
-CREATE TABLE public.event_question_response_revisions (
+CREATE TABLE public.event_question_responses (
   id uuid NOT NULL,
   event_question_id uuid NOT NULL,
   user_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT event_question_responses_pk PRIMARY KEY (id),
+  CONSTRAINT event_question_responses_event_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_responses_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_responses_event_question_user_key UNIQUE (event_question_id, user_id)
+);
+
+CREATE INDEX event_question_responses_user_id_idx ON public.event_question_responses(user_id);
+
+CREATE TABLE public.event_question_response_revisions (
+  id uuid NOT NULL,
+  event_question_response_id uuid NOT NULL,
   wine_region_id uuid,
   vintage integer,
   alcohol_by_volume double precision,
   note text,
   submitted_at timestamptz NOT NULL,
   CONSTRAINT event_question_response_revisions_pk PRIMARY KEY (id),
-  CONSTRAINT event_question_response_revisions_event_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
-  CONSTRAINT event_question_response_revisions_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_response_revisions_response_fk FOREIGN KEY (event_question_response_id) REFERENCES public.event_question_responses (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_response_revisions_wine_region_fk FOREIGN KEY (wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_response_revisions_vintage_positive CHECK (vintage IS NULL OR vintage > 0),
   CONSTRAINT event_question_response_revisions_alcohol_by_volume_range CHECK (alcohol_by_volume IS NULL OR (alcohol_by_volume >= 0 AND alcohol_by_volume <= 100))
 );
 
-CREATE INDEX event_question_response_revisions_event_question_user_latest_idx ON public.event_question_response_revisions(event_question_id, user_id, submitted_at DESC, id DESC);
-CREATE INDEX event_question_response_revisions_user_id_idx ON public.event_question_response_revisions(user_id);
+CREATE INDEX event_question_response_revisions_response_latest_idx ON public.event_question_response_revisions(event_question_response_id, submitted_at DESC, id DESC);
 CREATE INDEX event_question_response_revisions_wine_region_id_idx ON public.event_question_response_revisions(wine_region_id);
 
 CREATE TABLE public.event_question_response_revision_varieties (
