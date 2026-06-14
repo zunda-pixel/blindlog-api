@@ -443,7 +443,7 @@ extension API {
       else {
         return .notFound
       }
-      let answer = try await insertCorrectAnswer(
+      let result = try await insertCorrectAnswer(
         questionID: questionID,
         regionID: regionID,
         vintage: body.vintage.map(Int.init),
@@ -451,7 +451,14 @@ extension API {
         varietyIDs: varietyIDs,
         requireNoExistingAnswer: true
       )
-      return .ok(.init(body: .json(.init(answer, wineVarietyIDs: varietyIDs))))
+      return .ok(
+        .init(
+          body: .json(
+            .init(
+              answer: result.answer,
+              revision: result.revision,
+              wineVarietyIDs: varietyIDs
+            ))))
     } catch EventRevisionMutationError.alreadyExists {
       return .badRequest
     } catch {
@@ -494,7 +501,7 @@ extension API {
         return .notFound
       }
 
-      let answer = try await insertCorrectAnswer(
+      let result = try await insertCorrectAnswer(
         questionID: questionID,
         regionID: regionID,
         vintage: body.vintage.map(Int.init),
@@ -502,7 +509,14 @@ extension API {
         varietyIDs: varietyIDs,
         requireExistingAnswer: true
       )
-      return .ok(.init(body: .json(.init(answer, wineVarietyIDs: varietyIDs))))
+      return .ok(
+        .init(
+          body: .json(
+            .init(
+              answer: result.answer,
+              revision: result.revision,
+              wineVarietyIDs: varietyIDs
+            ))))
     } catch EventRevisionMutationError.missingExistingRevision {
       return .notFound
     } catch {
@@ -1198,16 +1212,14 @@ extension API {
     }
   }
 
-  fileprivate func eventQuestionCorrectAnswerExists(
+  fileprivate func correctAnswer(
     questionID: UUID,
     db: any Database.Connection.`Protocol`
-  ) async throws -> Bool {
-    let answer =
-      try await EventQuestionCorrectAnswerRecord
+  ) async throws -> EventQuestionCorrectAnswerRecord? {
+    try await EventQuestionCorrectAnswerRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .limit(1)
       .fetchOne(db)
-    return answer != nil
   }
 
   fileprivate func eventQuestionResponseExists(
@@ -1234,34 +1246,43 @@ extension API {
     varietyIDs: [UUID],
     requireNoExistingAnswer: Bool = false,
     requireExistingAnswer: Bool = false
-  ) async throws -> EventQuestionCorrectAnswerRecord {
-    let answer = EventQuestionCorrectAnswerRecord(
-      id: UUID(uuidString: UUID.uuidV7String())!,
-      eventQuestionID: questionID,
-      wineRegionID: regionID,
-      vintage: vintage,
-      alcoholByVolume: alcoholByVolume,
-      createdAt: Date()
-    )
+  ) async throws -> (
+    answer: EventQuestionCorrectAnswerRecord, revision: EventQuestionCorrectAnswerRevisionRecord
+  ) {
     try await database.withTransaction { db in
       if requireNoExistingAnswer || requireExistingAnswer {
         try await lockEventQuestion(questionID: questionID, db: db)
       }
-      if requireNoExistingAnswer {
-        guard try await eventQuestionCorrectAnswerExists(questionID: questionID, db: db) == false
-        else {
-          throw EventRevisionMutationError.alreadyExists
-        }
+      let existing = try await correctAnswer(questionID: questionID, db: db)
+      if requireNoExistingAnswer, existing != nil {
+        throw EventRevisionMutationError.alreadyExists
       }
-      if requireExistingAnswer {
-        guard try await eventQuestionCorrectAnswerExists(questionID: questionID, db: db) else {
-          throw EventRevisionMutationError.missingExistingRevision
-        }
+      if requireExistingAnswer, existing == nil {
+        throw EventRevisionMutationError.missingExistingRevision
       }
-      try await EventQuestionCorrectAnswerRecord.insert { answer }.execute(db)
+      let answer: EventQuestionCorrectAnswerRecord
+      if let existing {
+        answer = existing
+      } else {
+        answer = EventQuestionCorrectAnswerRecord(
+          id: UUID(uuidString: UUID.uuidV7String())!,
+          eventQuestionID: questionID,
+          createdAt: Date()
+        )
+        try await EventQuestionCorrectAnswerRecord.insert { answer }.execute(db)
+      }
+      let revision = EventQuestionCorrectAnswerRevisionRecord(
+        id: UUID(uuidString: UUID.uuidV7String())!,
+        eventQuestionCorrectAnswerID: answer.id,
+        wineRegionID: regionID,
+        vintage: vintage,
+        alcoholByVolume: alcoholByVolume,
+        createdAt: Date()
+      )
+      try await EventQuestionCorrectAnswerRevisionRecord.insert { revision }.execute(db)
       let answerVarieties = varietyIDs.map { varietyID in
         EventQuestionCorrectAnswerVarietyRecord(
-          eventQuestionCorrectAnswerID: answer.id,
+          eventQuestionCorrectAnswerRevisionID: revision.id,
           wineVarietyID: varietyID,
           createdAt: Date()
         )
@@ -1269,8 +1290,8 @@ extension API {
       if !answerVarieties.isEmpty {
         try await EventQuestionCorrectAnswerVarietyRecord.insert { answerVarieties }.execute(db)
       }
+      return (answer, revision)
     }
-    return answer
   }
 
   fileprivate func insertQuestionResponse(
@@ -1485,13 +1506,17 @@ extension Components.Schemas.EventQuestion {
 }
 
 extension Components.Schemas.EventQuestionCorrectAnswer {
-  init(_ answer: EventQuestionCorrectAnswerRecord, wineVarietyIDs: [UUID]) {
+  init(
+    answer: EventQuestionCorrectAnswerRecord,
+    revision: EventQuestionCorrectAnswerRevisionRecord,
+    wineVarietyIDs: [UUID]
+  ) {
     self.init(
       id: answer.id.uuidString,
       eventQuestionID: answer.eventQuestionID.uuidString,
-      wineRegionID: answer.wineRegionID?.uuidString,
-      vintage: answer.vintage.map(Int32.init),
-      alcoholByVolume: answer.alcoholByVolume,
+      wineRegionID: revision.wineRegionID?.uuidString,
+      vintage: revision.vintage.map(Int32.init),
+      alcoholByVolume: revision.alcoholByVolume,
       wineVarietyIDs: wineVarietyIDs.map(\.uuidString),
       createdAt: answer.createdAt.timeIntervalSinceReferenceDate
     )
