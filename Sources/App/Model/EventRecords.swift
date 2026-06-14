@@ -144,7 +144,8 @@ struct EventQuestionCorrectAnswerRevisionRecord: Codable, Identifiable, Hashable
 
 @Table("event_question_correct_answer_revision_varieties")
 struct EventQuestionCorrectAnswerVarietyRecord: Codable, Hashable {
-  @Column("event_question_correct_answer_revision_id") var eventQuestionCorrectAnswerRevisionID: UUID
+  @Column("event_question_correct_answer_revision_id")
+  var eventQuestionCorrectAnswerRevisionID: UUID
   @Column("wine_variety_id") var wineVarietyID: UUID
   @Column("created_at") var createdAt: Date
 }
