@@ -1,6 +1,7 @@
-h1:fhiGHkKGE9niMd08x5S6tJhkTh0/DsENiSD1L1owPXg=
+h1:c6MxtF0E8ldv2hzXVHSBIdnGKtnHuey0Lqv92Fc5edQ=
 000001_initial_schema.sql h1:iQH63d3ckYBCOcFnKf6nkOsitlGdpumeDPFZMcnCuz4=
 20260531034124_events.sql h1:PedeyzF85utC/LHxKCc9z5Gs8puDptsTNkRapWNKjrI=
 20260531060000_seed_wine_master_data.sql h1:54BEUlfrgkN/2W4aM32RYFg5x74O9IeSS/lR0v04t7g=
 20260602180000_event_entry_fee_minor_amount_bigint.sql h1:Nskgodx2WNgictwuGJMAYs/Pli0emUuICLoU1ho6q/A=
 20260603120000_remove_answer_wine_style_id.sql h1:rD0HPVkxOK6bueWprhfrpD0no9c3hvP/+OvEKOEGNic=
+20260614000000_event_numeric_to_double.sql h1:Y/mX0do7T7VvhoFNypQG4GdlrwJhM7Gt1IwmLuPCUZM=
