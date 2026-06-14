@@ -234,21 +234,30 @@ CREATE INDEX wine_regions_parent_region_id_idx ON public.wine_regions(parent_reg
 CREATE INDEX wine_regions_wine_region_type_id_idx ON public.wine_regions(wine_region_type_id);
 CREATE UNIQUE INDEX wine_regions_root_name_key ON public.wine_regions(name) WHERE parent_region_id IS NULL;
 
-CREATE TABLE public.event_question_correct_answer_revisions (
+CREATE TABLE public.event_question_correct_answers (
   id uuid NOT NULL,
   event_question_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT event_question_correct_answers_pk PRIMARY KEY (id),
+  CONSTRAINT event_question_correct_answers_event_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_correct_answers_event_question_key UNIQUE (event_question_id)
+);
+
+CREATE TABLE public.event_question_correct_answer_revisions (
+  id uuid NOT NULL,
+  event_question_correct_answer_id uuid NOT NULL,
   wine_region_id uuid,
   vintage integer,
   alcohol_by_volume double precision,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT event_question_correct_answer_revisions_pk PRIMARY KEY (id),
-  CONSTRAINT event_question_correct_answer_revisions_event_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_correct_answer_revisions_answer_fk FOREIGN KEY (event_question_correct_answer_id) REFERENCES public.event_question_correct_answers (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_correct_answer_revisions_wine_region_fk FOREIGN KEY (wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_correct_answer_revisions_vintage_positive CHECK (vintage IS NULL OR vintage > 0),
   CONSTRAINT event_question_correct_answer_revisions_alcohol_by_volume_range CHECK (alcohol_by_volume IS NULL OR (alcohol_by_volume >= 0 AND alcohol_by_volume <= 100))
 );
 
-CREATE INDEX event_question_correct_answer_revisions_event_question_latest_idx ON public.event_question_correct_answer_revisions(event_question_id, created_at DESC, id DESC);
+CREATE INDEX event_question_correct_answer_revisions_answer_latest_idx ON public.event_question_correct_answer_revisions(event_question_correct_answer_id, created_at DESC, id DESC);
 CREATE INDEX event_question_correct_answer_revisions_wine_region_id_idx ON public.event_question_correct_answer_revisions(wine_region_id);
 
 CREATE TABLE public.event_question_correct_answer_revision_varieties (
