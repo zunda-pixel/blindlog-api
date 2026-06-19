@@ -45,7 +45,7 @@ extension API {
         return .badRequest
       }
 
-      guard challenge.challenge == Data(base64Encoded: bodyData.challenge) else {
+      guard challenge.challenge == challengeData else {
         return .unauthorized
       }
 
