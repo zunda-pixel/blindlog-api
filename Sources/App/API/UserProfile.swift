@@ -306,7 +306,6 @@ extension API {
   }
 
   fileprivate func replaceCachedLatestProfile(_ profile: UserProfile, userID: UUID) async throws {
-    try await cache.del(keys: [latestUserProfileCacheKey(userID)])
     try await cacheLatestProfile(profile, userID: userID)
   }
 
