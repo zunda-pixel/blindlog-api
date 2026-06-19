@@ -6,8 +6,11 @@ resource "google_cloud_run_v2_service" "api" {
     google_secret_manager_secret_iam_member.runtime_access,
   ]
 
-  name                = var.service_name
-  location            = var.region
+  name     = var.service_name
+  location = var.region
+  # Must be true in production. When false, Cloud Run accepts direct *.run.app
+  # ingress, which bypasses the Cloudflare -> GCP LB trust boundary (rate
+  # limiting / IP allowlisting). See terraform.tfvars (prod sets this to true).
   ingress             = var.restrict_direct_cloud_run_ingress ? "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER" : "INGRESS_TRAFFIC_ALL"
   deletion_protection = true
 
