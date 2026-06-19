@@ -111,6 +111,27 @@ extension API {
       )
       return .badRequest
     }
+
+    // Rotate the refresh token: revoke the presented (old) token so it cannot be
+    // reused. A subsequent refresh with the same token is rejected by the
+    // `isRefreshTokenRevoked` check above (reuse detection). Revoke only after the
+    // new token pair has been issued; if revocation fails we withhold the new
+    // tokens (return badRequest) so the client retries with the still-valid old
+    // token rather than ending up with an un-revoked old token in circulation.
+    do {
+      try await revokeRefreshToken(payload)
+    } catch {
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.refresh_token.rotate_failed",
+        "Failed to revoke old refresh token during rotation",
+        metadata: AppLogMetadata.userID(userID).merging([
+          "cache.operation": .string("set")
+        ]) { _, new in new },
+        error: error
+      )
+      return .badRequest
+    }
+
     return .ok(.init(body: .json(userToken)))
   }
 
