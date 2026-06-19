@@ -106,7 +106,7 @@
       "location" : "https://github.com/zunda-pixel/pass-builder.git",
       "state" : {
         "branch" : "fix-dependencies-version",
-        "revision" : "13d65aeacfa0a66e8ae5fb1a7119baa7dbdcc35f"
+        "revision" : "b8de3db04eeb3e80ad90a3253d335084ef526e43"
       }
     },
     {
