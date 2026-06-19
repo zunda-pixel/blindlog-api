@@ -12,6 +12,10 @@ extension API {
   func getUserProfile(
     _ input: Operations.GetUserProfile.Input
   ) async throws -> Operations.GetUserProfile.Output {
+    // A user profile (display name and image) is intentionally public to any
+    // authenticated user: profiles are meant to be visible between users, e.g.
+    // among participants of the same event. Authentication is required, but no
+    // relationship/ownership check is applied by design.
     guard UserTokenContext.currentUserID != nil else {
       return .unauthorized
     }
