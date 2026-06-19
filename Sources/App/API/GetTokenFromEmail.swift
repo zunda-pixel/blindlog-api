@@ -45,7 +45,10 @@ extension API {
         return .badRequest
       }
 
-      guard challenge.challenge == Data(base64Encoded: bodyData.challenge) else {
+      // Compare against the value already decoded above rather than decoding
+      // `bodyData.challenge` a second time with a different (Foundation) decoder.
+      // A single decode path avoids URL-safe vs standard base64 mismatches.
+      guard challenge.challenge == challengeData else {
         return .unauthorized
       }
 
