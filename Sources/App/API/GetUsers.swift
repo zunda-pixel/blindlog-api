@@ -113,18 +113,31 @@ extension API {
   fileprivate func getUsersFromCacheAndUpdateExpiration(
     ids: [User.ID]
   ) async throws -> [User] {
-    let decoder = JSONDecoder()
-    var users: [User] = []
+    guard !ids.isEmpty else { return [] }
 
-    for id in ids {
-      let userData = try await cache.getex(
+    let decoder = JSONDecoder()
+
+    // Fetch every key in a single pipelined round trip instead of one `getex`
+    // per id, mirroring the write side (`addUsersToCache`). Each GETEX refreshes
+    // the 10 minute TTL just like the previous sequential calls did.
+    let commands: [any ValkeyCommand] = ids.map { id in
+      GETEX(
         ValkeyKey("user:\(id.uuidString)"),
         expiration: .seconds(60 * 10)  // 10 minutes
       )
+    }
 
-      if let userData {
-        users.append(try decoder.decode(User.self, from: Data(userData)))
+    let results = try await cache.withConnection { connection in
+      await connection.execute(commands)
+    }
+
+    var users: [User] = []
+    for result in results {
+      let token = try result.get()
+      guard let userData = try token.decode(as: RESPBulkString?.self) else {
+        continue
       }
+      users.append(try decoder.decode(User.self, from: Data(userData)))
     }
 
     return users
