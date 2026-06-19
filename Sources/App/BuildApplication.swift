@@ -122,6 +122,12 @@ func buildApplication(
   router.add(middleware: LogRequestsMiddleware(.info))
   router.add(middleware: FileMiddleware(searchForIndexHtml: true))
 
+  // No app-layer CORS middleware is configured by design. The API is consumed
+  // by the native app and the same-origin docs/HTML page (which is test-only),
+  // so there is no cross-origin browser client to support. The request trust
+  // boundary is enforced at the network layer (Cloudflare → GCP LB); see the
+  // note in RateLimitMiddleware. Add CORSMiddleware here if a cross-origin
+  // browser client is introduced.
   let apiRouter =
     router
     .group()
