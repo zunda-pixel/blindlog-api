@@ -117,9 +117,6 @@ extension API {
 
     let decoder = JSONDecoder()
 
-    // Fetch every key in a single pipelined round trip instead of one `getex`
-    // per id, mirroring the write side (`addUsersToCache`). Each GETEX refreshes
-    // the 10 minute TTL just like the previous sequential calls did.
     let commands: [any ValkeyCommand] = ids.map { id in
       GETEX(
         ValkeyKey("user:\(id.uuidString)"),
