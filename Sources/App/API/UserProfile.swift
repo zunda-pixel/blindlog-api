@@ -306,7 +306,9 @@ extension API {
   }
 
   fileprivate func replaceCachedLatestProfile(_ profile: UserProfile, userID: UUID) async throws {
-    try await cache.del(keys: [latestUserProfileCacheKey(userID)])
+    // A single SET overwrites the existing value atomically. The previous
+    // del-then-set left a small window where a concurrent request could miss
+    // the cache and fall through to the database.
     try await cacheLatestProfile(profile, userID: userID)
   }
 
