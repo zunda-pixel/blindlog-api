@@ -12,6 +12,11 @@ jobs:
       - run: swift format lint -r -p -s .
   test:
     runs-on: ubuntu-latest
+    # These env values are disposable, test-only credentials used solely to run
+    # the suite in CI. They have no relationship to production: real secrets
+    # (EDDSA_PRIVATE_KEY, OTP_SECRET_KEY, CLOUDFLARE_API_TOKEN, POSTGRES_PASSWORD,
+    # VALKEY_PASSWORD) are provisioned via Secret Manager in deploy.yml. Keeping
+    # the throwaway keys inline keeps CI self-contained and reproducible.
     env:
       APPLE_APP_ID: XXXXXXXX.com.apple.memo
       VALKEY_HOSTNAME: valkey
