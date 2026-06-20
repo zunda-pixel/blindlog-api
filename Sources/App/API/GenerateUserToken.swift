@@ -18,7 +18,7 @@ extension API {
       expiration: .init(value: tokenExpiredDate)
     )
 
-    let refreshTokenExpiredDate = Date(timeIntervalSinceNow: 30 * 24 * 60 * 60)  // 30 days
+    let refreshTokenExpiredDate = Date(timeIntervalSinceNow: 365 * 24 * 60 * 60)  // 1 year
 
     let refreshTokenPayload = JWTPayloadData(
       tokenType: .refreshToken,
