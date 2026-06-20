@@ -111,6 +111,21 @@ extension API {
       )
       return .badRequest
     }
+
+    do {
+      try await revokeRefreshToken(payload)
+    } catch {
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.refresh_token.rotate_failed",
+        "Failed to revoke old refresh token during rotation",
+        metadata: AppLogMetadata.userID(userID).merging([
+          "cache.operation": .string("set")
+        ]) { _, new in new },
+        error: error
+      )
+      return .badRequest
+    }
+
     return .ok(.init(body: .json(userToken)))
   }
 
