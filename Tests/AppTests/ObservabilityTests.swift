@@ -1,4 +1,5 @@
 import Configuration
+import Foundation
 import Logging
 import OTel
 import Testing
@@ -75,6 +76,40 @@ struct ObservabilityTests {
     // stringified error description (which can contain user data).
     #expect(metadata["error.message"] == nil)
     #expect(stringValue(metadata["error.type"])?.contains("TestLogError") == true)
+  }
+
+  @Test
+  func structuredLogRecordKeepsCloudLoggingFieldsAndSanitizesMetadata() throws {
+    let metadata = AppLogMetadata.make(
+      eventName: "auth.passkey.registration_validate_failed",
+      metadata: [
+        "credential": "raw-credential",
+        "db.operation": "select",
+        "user.id": "user-123",
+      ],
+      error: TestLogError.example
+    )
+
+    let record = AppStructuredLog.makeRecord(
+      level: .error,
+      eventName: "auth.passkey.registration_validate_failed",
+      message: "Failed to validate WebAuthn registration",
+      metadata: metadata
+    )
+
+    #expect(record["severity"] as? String == "ERROR")
+    #expect(record["eventName"] as? String == "auth.passkey.registration_validate_failed")
+    #expect(record["message"] as? String == "Failed to validate WebAuthn registration")
+
+    let recordMetadata = try #require(record["metadata"] as? [String: Any])
+    #expect(recordMetadata["credential"] == nil)
+    #expect(recordMetadata["db.operation"] as? String == "select")
+    #expect(recordMetadata["user.id"] as? String == "user-123")
+    #expect(recordMetadata["event.name"] as? String == "auth.passkey.registration_validate_failed")
+
+    let error = try #require(record["error"] as? [String: String])
+    #expect(error["type"]?.contains("TestLogError") == true)
+    #expect(JSONSerialization.isValidJSONObject(record))
   }
 
   @Test
