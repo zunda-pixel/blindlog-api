@@ -20,7 +20,7 @@ extension API {
       throw HTTPError(.tooManyRequests)
     }
     // 1. Parse request payload
-    guard case .json(let body) = input.body else { return .badRequest }
+    guard case .json(let body) = input.body else { return .badRequest(.invalidRequest) }
     let registrationCredential: RegistrationCredential
     do {
       let bodyData = try JSONEncoder().encode(body)
@@ -35,7 +35,7 @@ extension API {
         metadata: AppLogMetadata.userID(userID),
         error: error
       )
-      return .badRequest
+      return .badRequest(.registrationDecodeFailed)
     }
     // 2. Verify and delete challenge atomically
     let challengeData = Data(input.query.challenge.data)
@@ -46,11 +46,23 @@ extension API {
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
 
       guard let challenge else {
-        return .badRequest
+        AppRequestContext.current?.logger.appLog(
+          level: .warning,
+          eventName: "auth.passkey.registration_challenge_missing",
+          "Registration challenge was not found",
+          metadata: AppLogMetadata.userID(userID)
+        )
+        return .badRequest(.challengeVerifyFailed)
       }
 
       guard challenge.userID == userID && challenge.purpose == .registration else {
-        return .badRequest
+        AppRequestContext.current?.logger.appLog(
+          level: .warning,
+          eventName: "auth.passkey.registration_challenge_mismatch",
+          "Registration challenge did not match the current user or purpose",
+          metadata: AppLogMetadata.userID(userID)
+        )
+        return .badRequest(.challengeVerifyFailed)
       }
 
     } catch {
@@ -62,7 +74,7 @@ extension API {
         ]) { _, new in new },
         error: error
       )
-      return .badRequest
+      return .badRequest(.challengeVerifyFailed)
     }
 
     // 3. Validate WebAuthn registration data
@@ -82,9 +94,20 @@ extension API {
               .fetchOne(db)
           }
 
-          return credential == nil
+          guard credential == nil else {
+            throw PasskeyRegistrationError.credentialIDAlreadyExists
+          }
+          return true
         }
       )
+    } catch PasskeyRegistrationError.credentialIDAlreadyExists {
+      AppRequestContext.current?.logger.appLog(
+        level: .warning,
+        eventName: "auth.passkey.credential_already_exists",
+        "Passkey credential is already registered",
+        metadata: AppLogMetadata.userID(userID)
+      )
+      return .badRequest(.credentialAlreadyExists)
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.passkey.registration_validate_failed",
@@ -92,7 +115,7 @@ extension API {
         metadata: AppLogMetadata.userID(userID),
         error: error
       )
-      return .badRequest
+      return .badRequest(.registrationValidateFailed)
     }
     // 4. Persist credential metadata
     do {
@@ -126,9 +149,13 @@ extension API {
         ]) { _, new in new },
         error: error
       )
-      return .badRequest
+      return .badRequest(.persistFailed)
     }
 
     return .ok
   }
+}
+
+private enum PasskeyRegistrationError: Error {
+  case credentialIDAlreadyExists
 }

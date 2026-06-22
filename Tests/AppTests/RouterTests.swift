@@ -1195,6 +1195,81 @@ struct RouterTests {
   }
 
   @Test
+  func duplicatePasskeyRegistrationReturnsErrorCode() async throws {
+    let arguments = TestArguments()
+    let credentialID = "credential-duplicate"
+    let webAuthn = TestWebAuthn(credentialID: credentialID)
+    let app = try await buildApplication(
+      arguments,
+      cloudflareImagesClient: TestCloudflareImagesClient(),
+      webAuthn: webAuthn
+    )
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let newUserResponse = try await client.execute(
+        uri: "/user",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+      try #require(newUserResponse.status == .ok)
+      let newUser = try JSONDecoder().decode(
+        Components.Schemas.UserToken.self,
+        from: newUserResponse.body
+      )
+      let body = try passkeyRegistrationBody(credentialID: credentialID)
+
+      let firstChallengeResponse = try await client.execute(
+        uri: "/challenge",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      )
+      let firstChallenge = try decodedChallenge(from: firstChallengeResponse.body)
+      let firstResponse = try await client.execute(
+        uri: "/passkey?challenge=\(firstChallenge.base64EncodedString())",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: body)
+      )
+      #expect(firstResponse.status == .ok)
+
+      let secondChallengeResponse = try await client.execute(
+        uri: "/challenge",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ]
+      )
+      let secondChallenge = try decodedChallenge(from: secondChallengeResponse.body)
+      let duplicateResponse = try await client.execute(
+        uri: "/passkey?challenge=\(secondChallenge.base64EncodedString())",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(newUser.token)",
+        ],
+        body: ByteBuffer(data: body)
+      )
+
+      #expect(duplicateResponse.status == .badRequest)
+      let error = try JSONDecoder().decode(
+        Components.Schemas.APIError.self,
+        from: duplicateResponse.body
+      )
+      #expect(error.error == APIErrorCode.credentialAlreadyExists.rawValue)
+    }
+  }
+
+  @Test
   func sendConfirmEmailAPI() async throws {
     let arguments = TestArguments()
     let app = try await buildApplication(
