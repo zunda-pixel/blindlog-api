@@ -85,12 +85,14 @@ enum AppStructuredLog {
     message: Logger.Message,
     metadata: Logger.Metadata
   ) {
-    guard let data = makeLineData(
-      level: level,
-      eventName: eventName,
-      message: message,
-      metadata: metadata
-    ) else {
+    guard
+      let data = makeLineData(
+        level: level,
+        eventName: eventName,
+        message: message,
+        metadata: metadata
+      )
+    else {
       return
     }
 
