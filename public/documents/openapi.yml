@@ -564,6 +564,40 @@ paths:
           description: Unauthorized
         '404':
           description: Not found Event
+  /events/{event_id}/pass:
+    get:
+      operationId: getEventPass
+      tags:
+        - Events
+      summary: Get event Apple Wallet pass
+      description: >-
+        Returns a signed Apple Wallet pass (.pkpass) event ticket for the
+        authenticated user. The user must be an active participant
+        (registered, waitlisted, or attended) of the event.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event ID in UUID format.
+      responses:
+        '200':
+          description: A success response with the signed .pkpass file.
+          content:
+            application/vnd.apple.pkpass:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: A bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found Event
   /events/{event_id}/questions:
     post:
       operationId: createEventQuestion

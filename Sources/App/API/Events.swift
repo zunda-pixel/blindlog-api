@@ -1,6 +1,7 @@
 import Currency
 import Foundation
 import Hummingbird
+import OpenAPIRuntime
 import PostgresNIO
 import Records
 import StructuredQueriesPostgres
@@ -24,6 +25,26 @@ private enum EventRegistrationError: Error {
 private enum EventRevisionMutationError: Error {
   case alreadyExists
   case missingExistingRevision
+}
+
+private func formatVenueAddress(_ revision: EventRevisionRecord) -> String {
+  var lines: [String] = [revision.venueAddressLine1]
+  if let line2 = revision.venueAddressLine2, !line2.isEmpty {
+    lines.append(line2)
+  }
+  let cityLine = [
+    revision.venueLocality,
+    revision.venueAdministrativeArea,
+    revision.venuePostalCode,
+  ]
+  .compactMap { $0 }
+  .filter { !$0.isEmpty }
+  .joined(separator: " ")
+  if !cityLine.isEmpty {
+    lines.append(cityLine)
+  }
+  lines.append(revision.venueCountryCode)
+  return lines.joined(separator: "\n")
 }
 
 extension API {
@@ -175,6 +196,62 @@ extension API {
       logEventDatabaseError(
         "event.read_failed",
         "Failed to fetch event",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getEventPass(
+    _ input: Operations.GetEventPass.Input
+  ) async throws -> Operations.GetEventPass.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard let eventID = UUID(uuidString: input.path.eventId) else {
+      return .badRequest
+    }
+    guard let passConfiguration else {
+      // Pass signing isn't configured for this deployment.
+      return .badRequest
+    }
+
+    do {
+      guard let event = try await latestEventSnapshot(eventID: eventID) else {
+        return .notFound
+      }
+      let participant = try await database.read { db in
+        try await eventParticipant(eventID: eventID, userID: userID, db: db)
+      }
+      guard let participant,
+        participant.status == .registered
+          || participant.status == .waitlisted
+          || participant.status == .attended
+      else {
+        return .notFound
+      }
+
+      let attendeeName = (try? await getProfile(userID: userID))?.name
+      let content = EventPassContent(
+        eventID: eventID,
+        serialNumber: participant.id.uuidString,
+        title: event.revision.title,
+        startsAt: event.revision.startsAt,
+        endsAt: event.revision.endsAt,
+        venueName: event.revision.venueName,
+        venueAddress: formatVenueAddress(event.revision),
+        attendeeName: attendeeName
+      )
+      let passData = try await makeEventPassData(
+        configuration: passConfiguration,
+        content: content
+      )
+      return .ok(.init(body: .applicationVnd_apple_pkpass(.init(passData))))
+    } catch {
+      logEventDatabaseError(
+        "event.pass_generate_failed",
+        "Failed to generate event pass",
         userID: userID,
         error: error
       )
