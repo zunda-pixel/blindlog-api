@@ -1029,7 +1029,7 @@ struct RouterTests {
       )
 
       #expect(challengeResponse.status == .ok)
-      let challenge = try challengeString(from: challengeResponse.body)
+      let challenge = try JSONDecoder().decode(String.self, from: challengeResponse.body)
       #expect(isBase64URL(challenge))
       #expect(try !challenge.base64URLDecodedBytes().isEmpty)
     }
@@ -1051,7 +1051,7 @@ struct RouterTests {
       )
 
       #expect(response.status == .ok)
-      let challenge = try challengeString(from: response.body)
+      let challenge = try JSONDecoder().decode(String.self, from: response.body)
       #expect(isBase64URL(challenge))
       #expect(try !challenge.base64URLDecodedBytes().isEmpty)
     }
@@ -1088,7 +1088,7 @@ struct RouterTests {
       )
 
       #expect(challengeResponse.status == .ok)
-      let challenge = try challengeString(from: challengeResponse.body)
+      let challenge = try JSONDecoder().decode(String.self, from: challengeResponse.body)
 
       let body = Components.Schemas.AddPasskey(
         challenge: challenge,
@@ -1152,7 +1152,7 @@ struct RouterTests {
         ]
       )
       #expect(registrationChallengeResponse.status == .ok)
-      let registrationChallenge = try challengeString(from: registrationChallengeResponse.body)
+      let registrationChallenge = try JSONDecoder().decode(String.self, from: registrationChallengeResponse.body)
 
       let addPasskeyResponse = try await client.execute(
         uri: "/passkey",
@@ -1177,7 +1177,7 @@ struct RouterTests {
         ]
       )
       #expect(authenticationChallengeResponse.status == .ok)
-      let authenticationChallenge = try challengeString(from: authenticationChallengeResponse.body)
+      let authenticationChallenge = try JSONDecoder().decode(String.self, from: authenticationChallengeResponse.body)
 
       let tokenResponse = try await client.execute(
         uri: "/token/passkey",
@@ -1234,7 +1234,7 @@ struct RouterTests {
           .authorization: "Bearer \(newUser.token)",
         ]
       )
-      let firstChallenge = try challengeString(from: firstChallengeResponse.body)
+      let firstChallenge = try JSONDecoder().decode(String.self, from: firstChallengeResponse.body)
       let firstResponse = try await client.execute(
         uri: "/passkey",
         method: .post,
@@ -1258,7 +1258,7 @@ struct RouterTests {
           .authorization: "Bearer \(newUser.token)",
         ]
       )
-      let secondChallenge = try challengeString(from: secondChallengeResponse.body)
+      let secondChallenge = try JSONDecoder().decode(String.self, from: secondChallengeResponse.body)
       let duplicateResponse = try await client.execute(
         uri: "/passkey",
         method: .post,
@@ -1592,10 +1592,6 @@ private struct TestEmailService: EmailServiceProtocol {
     await recorder?.recordSend(email)
     return EmailResponse.Result(delivered: [], permanentBounces: [], queued: [])
   }
-}
-
-private func challengeString(from body: ByteBuffer) throws -> String {
-  try JSONDecoder().decode(String.self, from: body)
 }
 
 private func isBase64URL(_ value: String) -> Bool {
