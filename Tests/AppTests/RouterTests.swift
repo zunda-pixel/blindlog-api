@@ -1029,8 +1029,9 @@ struct RouterTests {
       )
 
       #expect(challengeResponse.status == .ok)
-      let challenge = Data(buffer: challengeResponse.body)
-      print(challenge)
+      let challenge = try challengeString(from: challengeResponse.body)
+      #expect(isBase64URL(challenge))
+      #expect(try !base64URLDecodedBytes(challenge).isEmpty)
     }
   }
 
@@ -1050,8 +1051,9 @@ struct RouterTests {
       )
 
       #expect(response.status == .ok)
-      let challenge = Data(buffer: response.body)
-      print(challenge)
+      let challenge = try challengeString(from: response.body)
+      #expect(isBase64URL(challenge))
+      #expect(try !base64URLDecodedBytes(challenge).isEmpty)
     }
   }
 
@@ -1086,9 +1088,10 @@ struct RouterTests {
       )
 
       #expect(challengeResponse.status == .ok)
-      let challenge = try #require(Data(base64Encoded: String(buffer: challengeResponse.body)))
+      let challenge = try challengeString(from: challengeResponse.body)
 
       let body = Components.Schemas.AddPasskey(
+        challenge: challenge,
         id: .init(),
         rawId: .init(),
         _type: .init(),
@@ -1101,7 +1104,7 @@ struct RouterTests {
       let bodyData = try JSONEncoder().encode(body)
 
       let addPasskeyResponse = try await client.execute(
-        uri: "/passkey?challenge=\(challenge.base64EncodedString())",
+        uri: "/passkey",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -1149,16 +1152,20 @@ struct RouterTests {
         ]
       )
       #expect(registrationChallengeResponse.status == .ok)
-      let registrationChallenge = try decodedChallenge(from: registrationChallengeResponse.body)
+      let registrationChallenge = try challengeString(from: registrationChallengeResponse.body)
 
       let addPasskeyResponse = try await client.execute(
-        uri: "/passkey?challenge=\(registrationChallenge.base64EncodedString())",
+        uri: "/passkey",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
-        body: ByteBuffer(data: try passkeyRegistrationBody(credentialID: credentialID))
+        body: ByteBuffer(
+          data: try passkeyRegistrationBody(
+            credentialID: credentialID,
+            challenge: registrationChallenge
+          ))
       )
       #expect(addPasskeyResponse.status == .ok)
 
@@ -1170,7 +1177,7 @@ struct RouterTests {
         ]
       )
       #expect(authenticationChallengeResponse.status == .ok)
-      let authenticationChallenge = try decodedChallenge(from: authenticationChallengeResponse.body)
+      let authenticationChallenge = try challengeString(from: authenticationChallengeResponse.body)
 
       let tokenResponse = try await client.execute(
         uri: "/token/passkey",
@@ -1181,7 +1188,7 @@ struct RouterTests {
         body: ByteBuffer(
           data: try passkeyAuthenticationBody(
             credentialID: credentialID,
-            challenge: authenticationChallenge.base64EncodedString()
+            challenge: authenticationChallenge
           ))
       )
 
@@ -1219,8 +1226,6 @@ struct RouterTests {
         Components.Schemas.UserToken.self,
         from: newUserResponse.body
       )
-      let body = try passkeyRegistrationBody(credentialID: credentialID)
-
       let firstChallengeResponse = try await client.execute(
         uri: "/challenge",
         method: .post,
@@ -1229,15 +1234,19 @@ struct RouterTests {
           .authorization: "Bearer \(newUser.token)",
         ]
       )
-      let firstChallenge = try decodedChallenge(from: firstChallengeResponse.body)
+      let firstChallenge = try challengeString(from: firstChallengeResponse.body)
       let firstResponse = try await client.execute(
-        uri: "/passkey?challenge=\(firstChallenge.base64EncodedString())",
+        uri: "/passkey",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
-        body: ByteBuffer(data: body)
+        body: ByteBuffer(
+          data: try passkeyRegistrationBody(
+            credentialID: credentialID,
+            challenge: firstChallenge
+          ))
       )
       #expect(firstResponse.status == .ok)
 
@@ -1249,15 +1258,19 @@ struct RouterTests {
           .authorization: "Bearer \(newUser.token)",
         ]
       )
-      let secondChallenge = try decodedChallenge(from: secondChallengeResponse.body)
+      let secondChallenge = try challengeString(from: secondChallengeResponse.body)
       let duplicateResponse = try await client.execute(
-        uri: "/passkey?challenge=\(secondChallenge.base64EncodedString())",
+        uri: "/passkey",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
           .authorization: "Bearer \(newUser.token)",
         ],
-        body: ByteBuffer(data: body)
+        body: ByteBuffer(
+          data: try passkeyRegistrationBody(
+            credentialID: credentialID,
+            challenge: secondChallenge
+          ))
       )
 
       #expect(duplicateResponse.status == .badRequest)
@@ -1581,22 +1594,36 @@ private struct TestEmailService: EmailServiceProtocol {
   }
 }
 
-private func decodedChallenge(from body: ByteBuffer) throws -> Data {
-  if let challenge = Data(base64Encoded: String(buffer: body)) {
-    return challenge
+private func challengeString(from body: ByteBuffer) throws -> String {
+  try JSONDecoder().decode(String.self, from: body)
+}
+
+private func isBase64URL(_ value: String) -> Bool {
+  !value.contains("+") && !value.contains("/") && !value.contains("=")
+}
+
+private func base64URLDecodedBytes(_ value: String) throws -> [UInt8] {
+  let remainder = value.count % 4
+  try #require(remainder != 1)
+
+  var base64 = value.replacingOccurrences(of: "-", with: "+")
+    .replacingOccurrences(of: "_", with: "/")
+  if remainder > 0 {
+    base64 += String(repeating: "=", count: 4 - remainder)
   }
-  let challenge = try JSONDecoder().decode(String.self, from: body)
-  return try #require(Data(base64Encoded: challenge))
+
+  return try Array(#require(Data(base64Encoded: base64)))
 }
 
 private func credentialIDBase64URL(_ credentialID: String) -> String {
   Array(credentialID.utf8).base64URLEncodedString().asString()
 }
 
-private func passkeyRegistrationBody(credentialID: String) throws -> Data {
+private func passkeyRegistrationBody(credentialID: String, challenge: String) throws -> Data {
   let encodedCredentialID = credentialIDBase64URL(credentialID)
   return try JSONEncoder().encode(
     PasskeyRegistrationFixture(
+      challenge: challenge,
       id: encodedCredentialID,
       rawId: encodedCredentialID,
       type: "public-key",
@@ -1624,6 +1651,7 @@ private func passkeyAuthenticationBody(credentialID: String, challenge: String) 
 }
 
 private struct PasskeyRegistrationFixture: Encodable {
+  var challenge: String
   var id: String
   var rawId: String
   var type: String
