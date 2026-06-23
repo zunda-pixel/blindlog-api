@@ -1030,8 +1030,9 @@ struct RouterTests {
 
       #expect(challengeResponse.status == .ok)
       let challenge = try JSONDecoder().decode(String.self, from: challengeResponse.body)
-      #expect(isBase64URL(challenge))
-      #expect(try !challenge.base64URLDecodedBytes().isEmpty)
+      let challengeBytes = try challenge.base64URLDecodedBytes()
+      #expect(!challengeBytes.isEmpty)
+      #expect(challengeBytes.base64URLEncodedStringValue() == challenge)
     }
   }
 
@@ -1052,8 +1053,9 @@ struct RouterTests {
 
       #expect(response.status == .ok)
       let challenge = try JSONDecoder().decode(String.self, from: response.body)
-      #expect(isBase64URL(challenge))
-      #expect(try !challenge.base64URLDecodedBytes().isEmpty)
+      let challengeBytes = try challenge.base64URLDecodedBytes()
+      #expect(!challengeBytes.isEmpty)
+      #expect(challengeBytes.base64URLEncodedStringValue() == challenge)
     }
   }
 
@@ -1601,10 +1603,6 @@ private struct TestEmailService: EmailServiceProtocol {
     await recorder?.recordSend(email)
     return EmailResponse.Result(delivered: [], permanentBounces: [], queued: [])
   }
-}
-
-private func isBase64URL(_ value: String) -> Bool {
-  !value.contains("+") && !value.contains("/") && !value.contains("=")
 }
 
 private func credentialIDBase64URL(_ credentialID: String) -> String {
