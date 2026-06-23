@@ -1088,7 +1088,10 @@ struct RouterTests {
       )
 
       #expect(challengeResponse.status == .ok)
-      let challenge = try JSONDecoder().decode(String.self, from: challengeResponse.body)
+      let challenge = try JSONDecoder().decode(
+        String.self,
+        from: challengeResponse.body
+      )
 
       let body = Components.Schemas.AddPasskey(
         challenge: challenge,
@@ -1152,7 +1155,10 @@ struct RouterTests {
         ]
       )
       #expect(registrationChallengeResponse.status == .ok)
-      let registrationChallenge = try JSONDecoder().decode(String.self, from: registrationChallengeResponse.body)
+      let registrationChallenge = try JSONDecoder().decode(
+        String.self,
+        from: registrationChallengeResponse.body
+      )
 
       let addPasskeyResponse = try await client.execute(
         uri: "/passkey",
@@ -1177,7 +1183,10 @@ struct RouterTests {
         ]
       )
       #expect(authenticationChallengeResponse.status == .ok)
-      let authenticationChallenge = try JSONDecoder().decode(String.self, from: authenticationChallengeResponse.body)
+      let authenticationChallenge = try JSONDecoder().decode(
+        String.self,
+        from: authenticationChallengeResponse.body
+      )
 
       let tokenResponse = try await client.execute(
         uri: "/token/passkey",
