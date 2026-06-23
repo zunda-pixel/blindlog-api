@@ -41,7 +41,18 @@ extension Operations.ConfirmEmail.Output {
   }
 }
 
-extension Operations.CreateChallenge.Output {
+extension Operations.CreateRegistrationChallenge.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.CreateAuthenticationChallenge.Output {
   static var badRequest: Self { badRequest(.badRequest) }
   static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
     .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))

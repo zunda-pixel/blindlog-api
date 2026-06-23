@@ -1020,7 +1020,7 @@ struct RouterTests {
       )
       // 2. Get User to DB
       let challengeResponse = try await client.execute(
-        uri: "/challenge",
+        uri: "/challenge/registration",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -1044,7 +1044,7 @@ struct RouterTests {
 
     try await app.test(.router) { client in
       let response = try await client.execute(
-        uri: "/challenge",
+        uri: "/challenge/authentication",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress
@@ -1056,6 +1056,25 @@ struct RouterTests {
       let challengeBytes = try challenge.base64URLDecodedBytes()
       #expect(!challengeBytes.isEmpty)
       #expect(challengeBytes.base64URLEncodedStringValue() == challenge)
+    }
+  }
+
+  @Test
+  func registrationChallengeRequiresAuthentication() async throws {
+    let arguments = TestArguments()
+    let app = try await buildApplication(arguments)
+    let ipAddress = UUID().uuidString
+
+    try await app.test(.router) { client in
+      let response = try await client.execute(
+        uri: "/challenge/registration",
+        method: .post,
+        headers: [
+          .cfConnectingIP: ipAddress
+        ]
+      )
+
+      #expect(response.status == .unauthorized)
     }
   }
 
@@ -1081,7 +1100,7 @@ struct RouterTests {
       )
       // 2. Get User to DB
       let challengeResponse = try await client.execute(
-        uri: "/challenge",
+        uri: "/challenge/registration",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -1149,7 +1168,7 @@ struct RouterTests {
       )
 
       let registrationChallengeResponse = try await client.execute(
-        uri: "/challenge",
+        uri: "/challenge/registration",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -1178,7 +1197,7 @@ struct RouterTests {
       #expect(addPasskeyResponse.status == .ok)
 
       let authenticationChallengeResponse = try await client.execute(
-        uri: "/challenge",
+        uri: "/challenge/authentication",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress
@@ -1238,7 +1257,7 @@ struct RouterTests {
         from: newUserResponse.body
       )
       let firstChallengeResponse = try await client.execute(
-        uri: "/challenge",
+        uri: "/challenge/registration",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
@@ -1265,7 +1284,7 @@ struct RouterTests {
       #expect(firstResponse.status == .ok)
 
       let secondChallengeResponse = try await client.execute(
-        uri: "/challenge",
+        uri: "/challenge/registration",
         method: .post,
         headers: [
           .cfConnectingIP: ipAddress,
