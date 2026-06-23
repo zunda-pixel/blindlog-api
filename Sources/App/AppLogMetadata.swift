@@ -12,7 +12,6 @@ enum AppLogMetadata {
   ) -> Logger.Metadata {
     var metadata = sanitized(metadata)
     metadata["event.name"] = .string(eventName)
-    metadata["eventName"] = .string(eventName)
 
     // Only the error type is recorded automatically. The stringified description
     // (`String(describing: error)`) often contains user-supplied data — emails in

@@ -68,7 +68,6 @@ struct ObservabilityTests {
     #expect(metadata["user.email"] == nil)
 
     #expect(stringValue(metadata["event.name"]) == "test.event")
-    #expect(stringValue(metadata["eventName"]) == "test.event")
     #expect(stringValue(metadata["db.operation"]) == "select")
     #expect(stringValue(metadata["email.sha256"]) == "safe-hash")
     #expect(stringValue(metadata["user.id"]) == "user-123")
