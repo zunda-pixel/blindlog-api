@@ -1245,7 +1245,10 @@ struct RouterTests {
           .authorization: "Bearer \(newUser.token)",
         ]
       )
-      let firstChallenge = try JSONDecoder().decode(String.self, from: firstChallengeResponse.body)
+      let firstChallenge = try JSONDecoder().decode(
+        String.self,
+        from: firstChallengeResponse.body
+      )
       let firstResponse = try await client.execute(
         uri: "/passkey",
         method: .post,
@@ -1269,7 +1272,10 @@ struct RouterTests {
           .authorization: "Bearer \(newUser.token)",
         ]
       )
-      let secondChallenge = try JSONDecoder().decode(String.self, from: secondChallengeResponse.body)
+      let secondChallenge = try JSONDecoder().decode(
+        String.self,
+        from: secondChallengeResponse.body
+      )
       let duplicateResponse = try await client.execute(
         uri: "/passkey",
         method: .post,
