@@ -1031,7 +1031,7 @@ struct RouterTests {
       #expect(challengeResponse.status == .ok)
       let challenge = try challengeString(from: challengeResponse.body)
       #expect(isBase64URL(challenge))
-      #expect(try !base64URLDecodedBytes(challenge).isEmpty)
+      #expect(try !challenge.base64URLDecodedBytes().isEmpty)
     }
   }
 
@@ -1053,7 +1053,7 @@ struct RouterTests {
       #expect(response.status == .ok)
       let challenge = try challengeString(from: response.body)
       #expect(isBase64URL(challenge))
-      #expect(try !base64URLDecodedBytes(challenge).isEmpty)
+      #expect(try !challenge.base64URLDecodedBytes().isEmpty)
     }
   }
 
@@ -1600,19 +1600,6 @@ private func challengeString(from body: ByteBuffer) throws -> String {
 
 private func isBase64URL(_ value: String) -> Bool {
   !value.contains("+") && !value.contains("/") && !value.contains("=")
-}
-
-private func base64URLDecodedBytes(_ value: String) throws -> [UInt8] {
-  let remainder = value.count % 4
-  try #require(remainder != 1)
-
-  var base64 = value.replacingOccurrences(of: "-", with: "+")
-    .replacingOccurrences(of: "_", with: "/")
-  if remainder > 0 {
-    base64 += String(repeating: "=", count: 4 - remainder)
-  }
-
-  return try Array(#require(Data(base64Encoded: base64)))
 }
 
 private func credentialIDBase64URL(_ credentialID: String) -> String {
