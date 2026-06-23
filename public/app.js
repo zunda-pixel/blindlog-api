@@ -329,7 +329,7 @@
         status.set('passkey', 'チャレンジ取得中...');
         status.clear('logout');
         try {
-          const challenge = await api.fetchChallenge({ token });
+          const challenge = await api.fetchRegistrationChallenge({ token });
           const options = webAuthn.buildRegistrationOptions({
             challenge,
             userID,
@@ -359,7 +359,7 @@
         status.set('login', 'チャレンジ取得中...');
         status.clear('logout', 'emailLogin');
         try {
-          const challenge = await api.fetchChallenge();
+          const challenge = await api.fetchAuthenticationChallenge();
           const options = webAuthn.buildAuthenticationOptions(challenge);
           const credential = await navigator.credentials.get({ publicKey: options });
           if (!credential) {
@@ -1739,10 +1739,16 @@
         });
       },
 
-      async fetchChallenge({ token } = {}) {
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await post('/challenge', {
-          headers,
+      async fetchRegistrationChallenge({ token }) {
+        const response = await post('/challenge/registration', {
+          headers: { Authorization: `Bearer ${token}` },
+          message: 'チャレンジ取得に失敗しました。',
+        });
+        return readChallengeResponse(response);
+      },
+
+      async fetchAuthenticationChallenge() {
+        const response = await post('/challenge/authentication', {
           message: 'チャレンジ取得に失敗しました。',
         });
         return readChallengeResponse(response);
