@@ -75,7 +75,6 @@ struct ObservabilityTests {
     // stringified error description (which can contain user data).
     #expect(metadata["error.message"] == nil)
     #expect(stringValue(metadata["error.type"])?.contains("TestLogError") == true)
-    #expect(stringValue(metadata["errorType"])?.contains("TestLogError") == true)
   }
 
   @Test

@@ -21,7 +21,6 @@ enum AppLogMetadata {
     if let error {
       let errorType = String(reflecting: Swift.type(of: error))
       metadata["error.type"] = .string(errorType)
-      metadata["errorType"] = .string(errorType)
     }
 
     return metadata
