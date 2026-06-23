@@ -1,40 +1,23 @@
+import ExtrasBase64
 import Foundation
-import WebAuthn
 
 enum Base64URLDecodingError: Error {
-  case invalidCharacters
-  case invalidLength
-  case invalidData
+  case paddedValue
 }
 
 extension String {
   func base64URLDecodedBytes() throws -> [UInt8] {
     // Keep the challenge representation URL-safe itself, instead of relying on
     // callers to percent-encode standard Base64 when it crosses URL boundaries.
-    guard !contains("+") && !contains("/") && !contains("=") else {
-      throw Base64URLDecodingError.invalidCharacters
+    guard !contains("=") else {
+      throw Base64URLDecodingError.paddedValue
     }
-
-    let remainder = count % 4
-    guard remainder != 1 else {
-      throw Base64URLDecodingError.invalidLength
-    }
-
-    var base64 = replacingOccurrences(of: "-", with: "+")
-      .replacingOccurrences(of: "_", with: "/")
-    if remainder > 0 {
-      base64 += String(repeating: "=", count: 4 - remainder)
-    }
-
-    guard let data = Data(base64Encoded: base64) else {
-      throw Base64URLDecodingError.invalidData
-    }
-    return Array(data)
+    return try base64decoded(options: [.base64UrlAlphabet, .omitPaddingCharacter])
   }
 }
 
 extension Collection where Element == UInt8 {
   func base64URLEncodedStringValue() -> String {
-    Array(self).base64URLEncodedString().asString()
+    String(base64Encoding: self, options: [.base64UrlAlphabet, .omitPaddingCharacter])
   }
 }
