@@ -72,6 +72,6 @@ extension API {
       return .badRequest
     }
 
-    return .ok(.init(body: .json(.init(challenge))))
+    return .ok(.init(body: .json(challenge.base64URLEncodedStringValue())))
   }
 }

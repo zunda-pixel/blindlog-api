@@ -1749,12 +1749,12 @@
       },
 
       async registerPasskey({ challenge, payload, token }) {
-        await post(`/passkey?challenge=${encodeURIComponent(challenge)}`, {
+        await post('/passkey', {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, challenge }),
           message: 'Passkey登録に失敗しました。',
         });
       },

@@ -1,4 +1,3 @@
-import ExtrasBase64
 import Foundation
 import Hummingbird
 import Records
@@ -41,9 +40,10 @@ extension API {
     }
 
     // 2. Verify and delete challenge atomically
+    let challengeData: [UInt8]
     do {
-      let challengeData = try Data(bodyData.challenge.base64decoded())
-      let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
+      challengeData = try bodyData.challenge.base64URLDecodedBytes()
+      let key = ValkeyKey("challenge:\(Data(challengeData).base64EncodedString())")
 
       let data = try await cache.getdel(key)
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
@@ -112,7 +112,7 @@ extension API {
     do {
       verifiedAuthentication = try webAuthn.finishAuthentication(
         credential: credential,
-        expectedChallenge: bodyData.challenge.base64decoded(),
+        expectedChallenge: challengeData,
         credentialPublicKey: Array(passkeyCredential.publicKey),
         credentialCurrentSignCount: UInt32(signCount),
         requireUserVerification: false

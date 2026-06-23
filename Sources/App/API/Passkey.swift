@@ -38,9 +38,21 @@ extension API {
       return .badRequest(.registrationDecodeFailed)
     }
     // 2. Verify and delete challenge atomically
-    let challengeData = Data(input.query.challenge.data)
+    let challengeData: [UInt8]
     do {
-      let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
+      challengeData = try body.challenge.base64URLDecodedBytes()
+    } catch {
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.registration_challenge_decode_failed",
+        "Failed to decode registration challenge",
+        metadata: AppLogMetadata.userID(userID),
+        error: error
+      )
+      return .badRequest(.challengeVerifyFailed)
+    }
+
+    do {
+      let key = ValkeyKey("challenge:\(Data(challengeData).base64EncodedString())")
 
       let data = try await cache.getdel(key)
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
@@ -81,7 +93,7 @@ extension API {
     let credential: Credential
     do {
       credential = try await webAuthn.finishRegistration(
-        challenge: Array(input.query.challenge.data),
+        challenge: challengeData,
         credentialCreationData: registrationCredential,
         requireUserVerification: false,
         supportedPublicKeyAlgorithms: .supported,
