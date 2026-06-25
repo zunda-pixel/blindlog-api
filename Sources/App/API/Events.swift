@@ -711,6 +711,85 @@ extension API {
       return .badRequest
     }
   }
+
+  func getEventParticipants(
+    _ input: Operations.GetEventParticipants.Input
+  ) async throws -> Operations.GetEventParticipants.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard let eventID = UUID(uuidString: input.path.eventId) else {
+      return .badRequest
+    }
+
+    do {
+      guard try await isEventOrganizer(eventID: eventID, userID: userID) else {
+        return .notFound
+      }
+      let participants = try await database.read { db in
+        try await EventParticipantRecord
+          .where { $0.eventID.eq(eventID) }
+          .order { ($0.createdAt, $0.id) }
+          .fetchAll(db)
+      }
+      return .ok(.init(body: .json(participants.map(Components.Schemas.EventParticipant.init))))
+    } catch {
+      logEventDatabaseError(
+        "event.participant_list_failed",
+        "Failed to fetch event participants",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func updateMyEventParticipant(
+    _ input: Operations.UpdateMyEventParticipant.Input
+  ) async throws -> Operations.UpdateMyEventParticipant.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      case .json(let body) = input.body,
+      let newStatus = EventParticipantRecord.Status(rawValue: body.status.rawValue)
+    else {
+      return .badRequest
+    }
+    // Only self-cancellation is permitted through this endpoint. Transitions such
+    // as waitlisted/attended are organizer- or system-driven and handled elsewhere.
+    guard newStatus == .canceled else {
+      return .badRequest
+    }
+
+    do {
+      let participant = try await database.withTransaction { db -> EventParticipantRecord? in
+        try await lockEventRegistration(eventID: eventID, db: db)
+        guard var participant = try await eventParticipant(eventID: eventID, userID: userID, db: db)
+        else {
+          return nil
+        }
+        if participant.status != .canceled {
+          participant.status = .canceled
+          try await EventParticipantRecord.update(participant).execute(db)
+        }
+        return participant
+      }
+      guard let participant else {
+        return .notFound
+      }
+      return .ok(.init(body: .json(.init(participant))))
+    } catch {
+      logEventDatabaseError(
+        "event.participant_update_failed",
+        "Failed to update event participant",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
 }
 
 extension API {
