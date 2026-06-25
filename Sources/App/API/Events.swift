@@ -696,7 +696,11 @@ extension API {
         return .notFound
       }
       let questions = try await latestEventQuestionSnapshots(eventID: eventID)
-      return .ok(.init(body: .json(questions.map(Components.Schemas.EventQuestion.init))))
+      var questionSchemas: [Components.Schemas.EventQuestion] = []
+      for question in questions {
+        questionSchemas.append(await makeEventQuestion(question))
+      }
+      return .ok(.init(body: .json(questionSchemas)))
     } catch {
       logEventDatabaseError(
         "event.question_list_failed",
