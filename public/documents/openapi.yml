@@ -762,6 +762,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/APIError'
   /events/{event_id}/questions:
+    get:
+      operationId: getEventQuestions
+      tags:
+        - Events
+      summary: List event questions
+      description: Returns the questions of a blind tasting event ordered by question number.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event ID in UUID format.
+      responses:
+        '200':
+          description: A success response with the event questions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventQuestion'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not found Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
     post:
       operationId: createEventQuestion
       tags:

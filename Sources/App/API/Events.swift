@@ -648,6 +648,36 @@ extension API {
       return .badRequest
     }
   }
+
+  func getEventQuestions(
+    _ input: Operations.GetEventQuestions.Input
+  ) async throws -> Operations.GetEventQuestions.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard let eventID = UUID(uuidString: input.path.eventId) else {
+      return .badRequest
+    }
+
+    do {
+      guard let event = try await latestEventSnapshot(eventID: eventID) else {
+        return .notFound
+      }
+      guard try await canViewEvent(event, userID: userID) else {
+        return .notFound
+      }
+      let questions = try await latestEventQuestionSnapshots(eventID: eventID)
+      return .ok(.init(body: .json(questions.map(Components.Schemas.EventQuestion.init))))
+    } catch {
+      logEventDatabaseError(
+        "event.question_list_failed",
+        "Failed to fetch event questions",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
 }
 
 extension API {
@@ -1223,6 +1253,30 @@ extension API {
         }
         .limit(1)
         .fetchOne(db)
+    }
+  }
+
+  fileprivate func latestEventQuestionSnapshots(
+    eventID: UUID
+  ) async throws -> [EventQuestionSnapshot] {
+    try await database.read { db in
+      let rows =
+        try await EventQuestionRecord
+        .where { $0.eventID.eq(eventID) }
+        .joinLateral { question in
+          EventQuestionRevisionRecord
+            .where { $0.eventQuestionID.eq(question.id) }
+            .order { ($0.createdAt.desc(), $0.id.desc()) }
+            .limit(1)
+        }
+        .order { question, _ in
+          (question.questionNumber, question.id)
+        }
+        .selectStar()
+        .fetchAll(db)
+      return rows.map { question, revision in
+        EventQuestionSnapshot(question: question, revision: revision)
+      }
     }
   }
 
