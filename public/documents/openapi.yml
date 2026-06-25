@@ -1559,6 +1559,10 @@ components:
         imageID:
           type: string
           format: uuid
+        imageURL:
+          type: string
+          format: uri
+          description: Cloudflare Images delivery URL for the event image, when an image is set.
         venueName:
           type: string
         venueAddress:
@@ -1805,6 +1809,10 @@ components:
         imageID:
           type: string
           format: uuid
+        imageURL:
+          type: string
+          format: uri
+          description: Cloudflare Images delivery URL for the question image, when an image is set.
         note:
           type: string
         createdAt:
