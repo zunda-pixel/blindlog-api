@@ -696,11 +696,192 @@ extension API {
         return .notFound
       }
       let questions = try await latestEventQuestionSnapshots(eventID: eventID)
-      return .ok(.init(body: .json(questions.map(Components.Schemas.EventQuestion.init))))
+      var questionSchemas: [Components.Schemas.EventQuestion] = []
+      for question in questions {
+        questionSchemas.append(await makeEventQuestion(question))
+      }
+      return .ok(.init(body: .json(questionSchemas)))
     } catch {
       logEventDatabaseError(
         "event.question_list_failed",
         "Failed to fetch event questions",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getMyEventQuestionResponse(
+    _ input: Operations.GetMyEventQuestionResponse.Input
+  ) async throws -> Operations.GetMyEventQuestionResponse.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      let questionID = UUID(uuidString: input.path.questionId)
+    else {
+      return .badRequest
+    }
+
+    do {
+      guard try await eventQuestionExists(questionID: questionID, eventID: eventID) else {
+        return .notFound
+      }
+      let result = try await database.read {
+        db -> (EventQuestionResponseRecord, EventQuestionResponseRevisionRecord, [UUID])? in
+        guard
+          let response = try await eventQuestionResponse(
+            questionID: questionID,
+            userID: userID,
+            db: db
+          ),
+          let revision = try await latestResponseRevision(responseID: response.id, db: db)
+        else {
+          return nil
+        }
+        let varietyIDs = try await responseVarietyIDs(revisionID: revision.id, db: db)
+        return (response, revision, varietyIDs)
+      }
+      guard let result else {
+        return .notFound
+      }
+      return .ok(
+        .init(
+          body: .json(
+            .init(response: result.0, revision: result.1, wineVarietyIDs: result.2)
+          )
+        )
+      )
+    } catch {
+      logEventDatabaseError(
+        "event.response_read_failed",
+        "Failed to fetch event response",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getEventQuestionResponses(
+    _ input: Operations.GetEventQuestionResponses.Input
+  ) async throws -> Operations.GetEventQuestionResponses.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      let questionID = UUID(uuidString: input.path.questionId)
+    else {
+      return .badRequest
+    }
+
+    do {
+      guard try await isEventOrganizer(eventID: eventID, userID: userID),
+        try await eventQuestionExists(questionID: questionID, eventID: eventID)
+      else {
+        return .notFound
+      }
+      let results = try await database.read {
+        db -> [(EventQuestionResponseRecord, EventQuestionResponseRevisionRecord, [UUID])] in
+        let responses =
+          try await EventQuestionResponseRecord
+          .where { $0.eventQuestionID.eq(questionID) }
+          .order { ($0.createdAt, $0.id) }
+          .fetchAll(db)
+        var out: [(EventQuestionResponseRecord, EventQuestionResponseRevisionRecord, [UUID])] = []
+        for response in responses {
+          guard let revision = try await latestResponseRevision(responseID: response.id, db: db)
+          else {
+            continue
+          }
+          let varietyIDs = try await responseVarietyIDs(revisionID: revision.id, db: db)
+          out.append((response, revision, varietyIDs))
+        }
+        return out
+      }
+      return .ok(
+        .init(
+          body: .json(
+            results.map {
+              Components.Schemas.EventQuestionResponse(
+                response: $0.0,
+                revision: $0.1,
+                wineVarietyIDs: $0.2
+              )
+            }
+          )
+        )
+      )
+    } catch {
+      logEventDatabaseError(
+        "event.response_list_failed",
+        "Failed to fetch event responses",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getEventQuestionCorrectAnswer(
+    _ input: Operations.GetEventQuestionCorrectAnswer.Input
+  ) async throws -> Operations.GetEventQuestionCorrectAnswer.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      let questionID = UUID(uuidString: input.path.questionId)
+    else {
+      return .badRequest
+    }
+
+    do {
+      guard let event = try await latestEventSnapshot(eventID: eventID) else {
+        return .notFound
+      }
+      if event.event.organizerUserID != userID {
+        // Participants may only see the correct answer once it has been published.
+        guard try await canViewEvent(event, userID: userID),
+          let answersPublishedAt = event.revision.answersPublishedAt,
+          Date() >= answersPublishedAt
+        else {
+          return .notFound
+        }
+      }
+      guard try await eventQuestionExists(questionID: questionID, eventID: eventID) else {
+        return .notFound
+      }
+      let result = try await database.read {
+        db -> (
+          EventQuestionCorrectAnswerRecord, EventQuestionCorrectAnswerRevisionRecord, [UUID]
+        )? in
+        guard
+          let answer = try await correctAnswer(questionID: questionID, db: db),
+          let revision = try await latestCorrectAnswerRevision(answerID: answer.id, db: db)
+        else {
+          return nil
+        }
+        let varietyIDs = try await correctAnswerVarietyIDs(revisionID: revision.id, db: db)
+        return (answer, revision, varietyIDs)
+      }
+      guard let result else {
+        return .notFound
+      }
+      return .ok(
+        .init(
+          body: .json(
+            .init(answer: result.0, revision: result.1, wineVarietyIDs: result.2)
+          )
+        )
+      )
+    } catch {
+      logEventDatabaseError(
+        "event.correct_answer_read_failed",
+        "Failed to fetch correct answer",
         userID: userID,
         error: error
       )
@@ -1331,6 +1512,50 @@ extension API {
       }
       .limit(1)
       .fetchOne(db)
+  }
+
+  fileprivate func latestCorrectAnswerRevision(
+    answerID: UUID,
+    db: any Database.Connection.`Protocol`
+  ) async throws -> EventQuestionCorrectAnswerRevisionRecord? {
+    try await EventQuestionCorrectAnswerRevisionRecord
+      .where { $0.eventQuestionCorrectAnswerID.eq(answerID) }
+      .order { ($0.createdAt.desc(), $0.id.desc()) }
+      .limit(1)
+      .fetchOne(db)
+  }
+
+  fileprivate func correctAnswerVarietyIDs(
+    revisionID: UUID,
+    db: any Database.Connection.`Protocol`
+  ) async throws -> [UUID] {
+    let rows =
+      try await EventQuestionCorrectAnswerVarietyRecord
+      .where { $0.eventQuestionCorrectAnswerRevisionID.eq(revisionID) }
+      .fetchAll(db)
+    return rows.map(\.wineVarietyID).sorted { $0.uuidString < $1.uuidString }
+  }
+
+  fileprivate func latestResponseRevision(
+    responseID: UUID,
+    db: any Database.Connection.`Protocol`
+  ) async throws -> EventQuestionResponseRevisionRecord? {
+    try await EventQuestionResponseRevisionRecord
+      .where { $0.eventQuestionResponseID.eq(responseID) }
+      .order { ($0.submittedAt.desc(), $0.id.desc()) }
+      .limit(1)
+      .fetchOne(db)
+  }
+
+  fileprivate func responseVarietyIDs(
+    revisionID: UUID,
+    db: any Database.Connection.`Protocol`
+  ) async throws -> [UUID] {
+    let rows =
+      try await EventQuestionResponseVarietyRecord
+      .where { $0.eventQuestionResponseRevisionID.eq(revisionID) }
+      .fetchAll(db)
+    return rows.map(\.wineVarietyID).sorted { $0.uuidString < $1.uuidString }
   }
 
   fileprivate func insertCorrectAnswer(
