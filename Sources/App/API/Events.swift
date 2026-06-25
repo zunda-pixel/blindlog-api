@@ -5,6 +5,7 @@ import PostgresNIO
 import Records
 import StructuredQueriesPostgres
 import UUIDV7
+import Valkey
 
 private struct EventSnapshot {
   var event: EventRecord
@@ -36,7 +37,11 @@ extension API {
 
     do {
       let events = try await latestEventsVisible(to: userID)
-      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+      var eventSchemas: [Components.Schemas.Event] = []
+      for event in events {
+        eventSchemas.append(await makeEvent(event))
+      }
+      return .ok(.init(body: .json(eventSchemas)))
     } catch {
       logEventDatabaseError(
         "event.list_failed",
@@ -63,7 +68,11 @@ extension API {
         userID: userID,
         requesterUserID: requesterUserID
       )
-      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+      var eventSchemas: [Components.Schemas.Event] = []
+      for event in events {
+        eventSchemas.append(await makeEvent(event))
+      }
+      return .ok(.init(body: .json(eventSchemas)))
     } catch {
       logEventDatabaseError(
         "event.user_organized_list_failed",
@@ -90,7 +99,11 @@ extension API {
         userID: userID,
         requesterUserID: requesterUserID
       )
-      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+      var eventSchemas: [Components.Schemas.Event] = []
+      for event in events {
+        eventSchemas.append(await makeEvent(event))
+      }
+      return .ok(.init(body: .json(eventSchemas)))
     } catch {
       logEventDatabaseError(
         "event.user_participating_list_failed",
@@ -136,8 +149,8 @@ extension API {
       return .ok(
         .init(
           body: .json(
-            .init(
-              .init(event: event, revision: revision, regionScoreRules: regionScoreRules)
+            await makeEvent(
+              EventSnapshot(event: event, revision: revision, regionScoreRules: regionScoreRules)
             )
           )
         )
@@ -170,7 +183,7 @@ extension API {
       guard try await canViewEvent(event, userID: userID) else {
         return .notFound
       }
-      return .ok(.init(body: .json(.init(event))))
+      return .ok(.init(body: .json(await makeEvent(event))))
     } catch {
       logEventDatabaseError(
         "event.read_failed",
@@ -224,8 +237,8 @@ extension API {
       return .ok(
         .init(
           body: .json(
-            .init(
-              .init(
+            await makeEvent(
+              EventSnapshot(
                 event: current.event,
                 revision: revision,
                 regionScoreRules: regionScoreRules
@@ -349,7 +362,15 @@ extension API {
         try await EventQuestionRecord.insert { question }.execute(db)
         try await EventQuestionRevisionRecord.insert { revision }.execute(db)
       }
-      return .ok(.init(body: .json(.init(.init(question: question, revision: revision)))))
+      return .ok(
+        .init(
+          body: .json(
+            await makeEventQuestion(
+              EventQuestionSnapshot(question: question, revision: revision)
+            )
+          )
+        )
+      )
     } catch {
       logEventDatabaseError(
         "event.question_create_failed",
@@ -403,7 +424,15 @@ extension API {
       try await database.write { db in
         try await EventQuestionRevisionRecord.insert { revision }.execute(db)
       }
-      return .ok(.init(body: .json(.init(.init(question: question, revision: revision)))))
+      return .ok(
+        .init(
+          body: .json(
+            await makeEventQuestion(
+              EventQuestionSnapshot(question: question, revision: revision)
+            )
+          )
+        )
+      )
     } catch {
       logEventDatabaseError(
         "event.question_update_failed",
@@ -1422,8 +1451,86 @@ extension API {
   }
 }
 
+extension API {
+  fileprivate func makeEvent(_ snapshot: EventSnapshot) async -> Components.Schemas.Event {
+    let imageURL = await resolveImageURL(imageID: snapshot.revision.imageID)
+    return Components.Schemas.Event(snapshot, imageURL: imageURL)
+  }
+
+  fileprivate func makeEventQuestion(
+    _ snapshot: EventQuestionSnapshot
+  ) async -> Components.Schemas.EventQuestion {
+    let imageURL = await resolveImageURL(imageID: snapshot.revision.imageID)
+    return Components.Schemas.EventQuestion(snapshot, imageURL: imageURL)
+  }
+
+  // Resolves a Cloudflare Images delivery URL for an image owned by its uploader.
+  // Best-effort: image display must never break an event read, so any failure
+  // (missing record, Cloudflare error, cache error) resolves to nil.
+  fileprivate func resolveImageURL(imageID: UUID?) async -> String? {
+    guard let imageID else { return nil }
+    do {
+      guard let image = try await imageRecord(imageID: imageID) else { return nil }
+      return try await eventImageURL(
+        cloudflareImageID: image.cloudflareImageID,
+        ownerUserID: image.userID
+      )
+    } catch {
+      AppRequestContext.current?.logger.appLog(
+        level: .warning,
+        eventName: "event.image_url_read_failed",
+        "Failed to resolve event image URL",
+        metadata: [
+          "image.uuid": .string(imageID.uuidString),
+          "cloudflare.operation": .string("images.image"),
+        ],
+        error: error
+      )
+      return nil
+    }
+  }
+
+  fileprivate func imageRecord(imageID: UUID) async throws -> ImageRecord? {
+    if let cached = try? await cachedImage(id: imageID) {
+      return cached
+    }
+    let image = try await database.read { db in
+      try await ImageRecord
+        .where { $0.id.eq(imageID) }
+        .limit(1)
+        .fetchOne(db)
+    }
+    if let image {
+      try? await cacheImage(image)
+    }
+    return image
+  }
+
+  // Reuses the same cache namespace as user profile image URLs; the key is keyed
+  // by the image owner and Cloudflare image id, which uniquely identify the URL.
+  fileprivate func eventImageURL(
+    cloudflareImageID: String,
+    ownerUserID: UUID
+  ) async throws -> String {
+    let key = ValkeyKey("image_url:\(ownerUserID.uuidString):\(cloudflareImageID)")
+    if let cached = try? await cache.getex(key, expiration: .seconds(60 * 10)) {
+      return String(decoding: Data(cached), as: UTF8.self)
+    }
+    let imageURL = try await cloudflareImagesClient.imageURL(
+      id: cloudflareImageID,
+      userID: ownerUserID
+    ).absoluteString
+    try? await cache.set(
+      key,
+      value: Data(imageURL.utf8),
+      expiration: .seconds(60 * 10)
+    )
+    return imageURL
+  }
+}
+
 extension Components.Schemas.Event {
-  fileprivate init(_ snapshot: EventSnapshot) {
+  fileprivate init(_ snapshot: EventSnapshot, imageURL: String?) {
     let event = snapshot.event
     let revision = snapshot.revision
     let venueAddress = Components.Schemas.PostalAddress(
@@ -1466,6 +1573,7 @@ extension Components.Schemas.Event {
       title: revision.title,
       body: revision.body,
       imageID: revision.imageID?.uuidString,
+      imageURL: imageURL,
       venueName: revision.venueName,
       venueAddress: venueAddress,
       venueCoordinate: venueCoordinate,
@@ -1508,7 +1616,7 @@ extension Components.Schemas.EventParticipant {
 }
 
 extension Components.Schemas.EventQuestion {
-  fileprivate init(_ snapshot: EventQuestionSnapshot) {
+  fileprivate init(_ snapshot: EventQuestionSnapshot, imageURL: String?) {
     let question = snapshot.question
     let revision = snapshot.revision
     self.init(
@@ -1516,6 +1624,7 @@ extension Components.Schemas.EventQuestion {
       eventID: question.eventID.uuidString,
       questionNumber: Int32(question.questionNumber),
       imageID: revision.imageID?.uuidString,
+      imageURL: imageURL,
       note: revision.note,
       createdAt: question.createdAt.timeIntervalSinceReferenceDate
     )
