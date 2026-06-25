@@ -720,6 +720,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/APIError'
   /events/{event_id}/participants:
+    get:
+      operationId: getEventParticipants
+      tags:
+        - Events
+      summary: List event participants
+      description: Returns the participants of an event. Organizer only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event ID in UUID format.
+      responses:
+        '200':
+          description: A success response with the event participants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventParticipant'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not found Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
     post:
       operationId: registerEventParticipant
       tags:
@@ -757,6 +800,54 @@ paths:
                 $ref: '#/components/schemas/APIError'
         '404':
           description: Not found Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /events/{event_id}/participants/me:
+    put:
+      operationId: updateMyEventParticipant
+      tags:
+        - Events
+      summary: Update my participation status
+      description: Updates the authenticated user's participation status, such as canceling a registration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event ID in UUID format.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventParticipantRequest'
+      responses:
+        '200':
+          description: A success response with the updated event participant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventParticipant'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not found Event Participant
           content:
             application/json:
               schema:
@@ -1793,6 +1884,14 @@ components:
         - waitlisted
         - canceled
         - attended
+    UpdateEventParticipantRequest:
+      type: object
+      description: A request to update the authenticated user's participation status.
+      properties:
+        status:
+          $ref: '#/components/schemas/EventParticipantStatus'
+      required:
+        - status
     EventQuestion:
       type: object
       description: A question in a blind tasting event.
