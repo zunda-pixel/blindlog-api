@@ -207,7 +207,37 @@ extension Operations.GetEventParticipants.Output {
   }
 }
 
+extension Operations.GetEventQuestionCorrectAnswer.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
 extension Operations.GetEventQuestions.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.GetEventQuestionResponses.Output {
   static var badRequest: Self { badRequest(.badRequest) }
   static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
     .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
@@ -237,6 +267,21 @@ extension Operations.GetMe.Output {
   static var badRequest: Self { badRequest(.badRequest) }
   static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
     .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.GetMyEventQuestionResponse.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
   }
   static var unauthorized: Self { unauthorized(.unauthorized) }
   static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
