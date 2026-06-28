@@ -34,7 +34,7 @@ jobs:
       - name: Start DB, Cache & OTel Collector (wait for health)
         run: docker compose up -d --wait postgres valkey otel-collector
       - name: Cache SwiftPM build artifacts
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: .build
           key: ${{ runner.os }}-swift-6.3.2-${{ hashFiles('Package.swift', 'Package.resolved') }}
