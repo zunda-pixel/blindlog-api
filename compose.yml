@@ -22,7 +22,7 @@ services:
       - ./Deploy/local/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
 
   swift:
-    image: swift:6.3.2-noble
+    image: swift:6.3.3-noble
     depends_on:
       - postgres
       - valkey
