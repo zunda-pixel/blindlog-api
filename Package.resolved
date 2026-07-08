@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/jwt-kit.git",
       "state" : {
-        "revision" : "a93a262fefb0938b799191b54f581ffa43422d96",
-        "version" : "5.5.0"
+        "revision" : "7abc497b0f907191933c87166e9b6a41b9d028d6",
+        "version" : "5.6.0"
       }
     },
     {
@@ -98,6 +98,15 @@
       "state" : {
         "revision" : "57b6318128e3f901c93f4fbf98d1c1464ec168d3",
         "version" : "6.2.0"
+      }
+    },
+    {
+      "identity" : "opencombine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenCombine/OpenCombine.git",
+      "state" : {
+        "revision" : "8576f0d579b27020beccbccc3ea6844f3ddfc2c2",
+        "version" : "0.14.0"
       }
     },
     {
