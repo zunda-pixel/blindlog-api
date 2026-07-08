@@ -3,7 +3,7 @@
 # ================================
 # Build image
 # ================================
-FROM swift:6.3.2-noble AS build
+FROM swift:6.3.3-noble AS build
 
 # Install OS updates
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
