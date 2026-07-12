@@ -98,7 +98,8 @@ CREATE TABLE public.event_revisions (
   starts_at timestamptz NOT NULL,
   ends_at timestamptz NOT NULL,
   event_period tstzrange GENERATED ALWAYS AS (tstzrange(starts_at, ends_at, '[)')) STORED,
-  answers_published_at timestamptz,
+  responses_due_at timestamptz NOT NULL,
+  answers_published_at timestamptz NOT NULL,
   capacity integer,
   entry_fee_minor_amount bigint,
   entry_fee_currency_code text,
@@ -116,6 +117,8 @@ CREATE TABLE public.event_revisions (
   CONSTRAINT event_revisions_venue_latitude_range CHECK (venue_latitude IS NULL OR (venue_latitude >= -90 AND venue_latitude <= 90)),
   CONSTRAINT event_revisions_venue_longitude_range CHECK (venue_longitude IS NULL OR (venue_longitude >= -180 AND venue_longitude <= 180)),
   CONSTRAINT event_revisions_starts_before_ends CHECK (starts_at < ends_at),
+  CONSTRAINT event_revisions_starts_before_or_at_responses_due CHECK (starts_at <= responses_due_at),
+  CONSTRAINT event_revisions_responses_due_before_or_at_answers_published CHECK (responses_due_at <= answers_published_at),
   CONSTRAINT event_revisions_registration_starts_before_ends CHECK (registration_starts_at IS NULL OR registration_ends_at IS NULL OR registration_starts_at < registration_ends_at),
   CONSTRAINT event_revisions_capacity_positive CHECK (capacity IS NULL OR capacity > 0),
   CONSTRAINT event_revisions_entry_fee_minor_amount_non_negative CHECK (entry_fee_minor_amount IS NULL OR entry_fee_minor_amount >= 0),
@@ -247,18 +250,22 @@ CREATE TABLE public.event_question_correct_answer_revisions (
   id uuid NOT NULL,
   event_question_correct_answer_id uuid NOT NULL,
   wine_region_id uuid,
+  producer_wine_region_id uuid,
+  feature text,
   vintage integer,
   alcohol_by_volume double precision,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT event_question_correct_answer_revisions_pk PRIMARY KEY (id),
   CONSTRAINT event_question_correct_answer_revisions_answer_fk FOREIGN KEY (event_question_correct_answer_id) REFERENCES public.event_question_correct_answers (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_correct_answer_revisions_wine_region_fk FOREIGN KEY (wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_correct_answer_revisions_producer_wine_region_fk FOREIGN KEY (producer_wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_correct_answer_revisions_vintage_positive CHECK (vintage IS NULL OR vintage > 0),
   CONSTRAINT event_question_correct_answer_revisions_alcohol_by_volume_range CHECK (alcohol_by_volume IS NULL OR (alcohol_by_volume >= 0 AND alcohol_by_volume <= 100))
 );
 
 CREATE INDEX event_question_correct_answer_revisions_answer_latest_idx ON public.event_question_correct_answer_revisions(event_question_correct_answer_id, created_at DESC, id DESC);
 CREATE INDEX event_question_correct_answer_revisions_wine_region_id_idx ON public.event_question_correct_answer_revisions(wine_region_id);
+CREATE INDEX event_question_correct_answer_revisions_producer_wine_region_id_idx ON public.event_question_correct_answer_revisions(producer_wine_region_id);
 
 CREATE TABLE public.event_question_correct_answer_revision_varieties (
   event_question_correct_answer_revision_id uuid NOT NULL,
@@ -288,6 +295,8 @@ CREATE TABLE public.event_question_response_revisions (
   id uuid NOT NULL,
   event_question_response_id uuid NOT NULL,
   wine_region_id uuid,
+  producer_wine_region_id uuid,
+  feature text,
   vintage integer,
   alcohol_by_volume double precision,
   note text,
@@ -295,12 +304,14 @@ CREATE TABLE public.event_question_response_revisions (
   CONSTRAINT event_question_response_revisions_pk PRIMARY KEY (id),
   CONSTRAINT event_question_response_revisions_response_fk FOREIGN KEY (event_question_response_id) REFERENCES public.event_question_responses (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_response_revisions_wine_region_fk FOREIGN KEY (wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_response_revisions_producer_wine_region_fk FOREIGN KEY (producer_wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT,
   CONSTRAINT event_question_response_revisions_vintage_positive CHECK (vintage IS NULL OR vintage > 0),
   CONSTRAINT event_question_response_revisions_alcohol_by_volume_range CHECK (alcohol_by_volume IS NULL OR (alcohol_by_volume >= 0 AND alcohol_by_volume <= 100))
 );
 
 CREATE INDEX event_question_response_revisions_response_latest_idx ON public.event_question_response_revisions(event_question_response_id, submitted_at DESC, id DESC);
 CREATE INDEX event_question_response_revisions_wine_region_id_idx ON public.event_question_response_revisions(wine_region_id);
+CREATE INDEX event_question_response_revisions_producer_wine_region_id_idx ON public.event_question_response_revisions(producer_wine_region_id);
 
 CREATE TABLE public.event_question_response_revision_varieties (
   event_question_response_revision_id uuid NOT NULL,
@@ -313,15 +324,78 @@ CREATE TABLE public.event_question_response_revision_varieties (
 
 CREATE INDEX event_question_response_revision_varieties_wine_variety_id_idx ON public.event_question_response_revision_varieties(wine_variety_id);
 
-CREATE TABLE public.event_region_score_rules (
-  event_id uuid NOT NULL,
+CREATE TABLE public.event_question_region_score_rules (
+  event_question_id uuid NOT NULL,
   wine_region_type_id uuid NOT NULL,
   points integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT event_region_score_rules_pk PRIMARY KEY (event_id, wine_region_type_id),
-  CONSTRAINT event_region_score_rules_event_fk FOREIGN KEY (event_id) REFERENCES public.events (id) ON DELETE RESTRICT,
-  CONSTRAINT event_region_score_rules_wine_region_type_fk FOREIGN KEY (wine_region_type_id) REFERENCES public.wine_region_types (id) ON DELETE RESTRICT,
-  CONSTRAINT event_region_score_rules_points_non_negative CHECK (points >= 0)
+  CONSTRAINT event_question_region_score_rules_pk PRIMARY KEY (event_question_id, wine_region_type_id),
+  CONSTRAINT event_question_region_score_rules_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_region_score_rules_wine_region_type_fk FOREIGN KEY (wine_region_type_id) REFERENCES public.wine_region_types (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_region_score_rules_points_non_negative CHECK (points >= 0)
 );
 
-CREATE INDEX event_region_score_rules_wine_region_type_id_idx ON public.event_region_score_rules(wine_region_type_id);
+CREATE INDEX event_question_region_score_rules_wine_region_type_id_idx ON public.event_question_region_score_rules(wine_region_type_id);
+
+CREATE TABLE public.event_question_score_component_rules (
+  event_question_id uuid NOT NULL,
+  component text NOT NULL,
+  points integer NOT NULL,
+  partial_points integer,
+  alcohol_tolerance double precision,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT event_question_score_component_rules_pk PRIMARY KEY (event_question_id, component),
+  CONSTRAINT event_question_score_component_rules_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
+  CONSTRAINT event_question_score_component_rules_component_valid CHECK (component IN ('variety', 'vintage', 'alcohol', 'producer', 'feature')),
+  CONSTRAINT event_question_score_component_rules_points_non_negative CHECK (points >= 0),
+  CONSTRAINT event_question_score_component_rules_partial_points_non_negative CHECK (partial_points IS NULL OR partial_points >= 0),
+  CONSTRAINT event_question_score_component_rules_partial_lte_points CHECK (partial_points IS NULL OR partial_points <= points),
+  CONSTRAINT event_question_score_component_rules_alcohol_tolerance_non_negative CHECK (alcohol_tolerance IS NULL OR alcohol_tolerance >= 0),
+  CONSTRAINT event_question_score_component_rules_alcohol_tolerance_only_for_alcohol CHECK (alcohol_tolerance IS NULL OR component = 'alcohol')
+);
+
+CREATE TABLE public.rating_seasons (
+  id uuid NOT NULL,
+  name text NOT NULL,
+  starts_at timestamptz NOT NULL,
+  ends_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT rating_seasons_pk PRIMARY KEY (id),
+  CONSTRAINT rating_seasons_name_not_blank CHECK (char_length(trim(name)) > 0),
+  CONSTRAINT rating_seasons_starts_before_ends CHECK (ends_at IS NULL OR starts_at < ends_at)
+);
+
+CREATE UNIQUE INDEX rating_seasons_one_active_idx ON public.rating_seasons ((true)) WHERE ends_at IS NULL;
+
+CREATE TABLE public.user_season_ratings (
+  user_id uuid NOT NULL,
+  season_id uuid NOT NULL,
+  rating integer NOT NULL DEFAULT 1000,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT user_season_ratings_pk PRIMARY KEY (user_id, season_id),
+  CONSTRAINT user_season_ratings_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE RESTRICT,
+  CONSTRAINT user_season_ratings_season_fk FOREIGN KEY (season_id) REFERENCES public.rating_seasons (id) ON DELETE RESTRICT
+);
+
+CREATE INDEX user_season_ratings_season_rating_idx ON public.user_season_ratings(season_id, rating DESC, user_id);
+
+CREATE TABLE public.user_rating_ledger (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  season_id uuid NOT NULL,
+  event_question_id uuid NOT NULL,
+  performance double precision NOT NULL,
+  field_average double precision NOT NULL,
+  delta integer NOT NULL,
+  rating_after integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT user_rating_ledger_pk PRIMARY KEY (id),
+  CONSTRAINT user_rating_ledger_user_fk FOREIGN KEY (user_id) REFERENCES public.users (id) ON DELETE RESTRICT,
+  CONSTRAINT user_rating_ledger_season_fk FOREIGN KEY (season_id) REFERENCES public.rating_seasons (id) ON DELETE RESTRICT,
+  CONSTRAINT user_rating_ledger_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
+  CONSTRAINT user_rating_ledger_season_question_user_key UNIQUE (season_id, event_question_id, user_id),
+  CONSTRAINT user_rating_ledger_performance_range CHECK (performance >= 0 AND performance <= 1),
+  CONSTRAINT user_rating_ledger_field_average_range CHECK (field_average >= 0 AND field_average <= 1)
+);
+
+CREATE INDEX user_rating_ledger_user_season_created_idx ON public.user_rating_ledger(user_id, season_id, created_at DESC);

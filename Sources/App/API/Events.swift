@@ -7,15 +7,16 @@ import StructuredQueriesPostgres
 import UUIDV7
 import Valkey
 
-private struct EventSnapshot {
+struct EventSnapshot {
   var event: EventRecord
   var revision: EventRevisionRecord
-  var regionScoreRules: [EventRegionScoreRuleRecord]
 }
 
-private struct EventQuestionSnapshot {
+struct EventQuestionSnapshot {
   var question: EventQuestionRecord
   var revision: EventQuestionRevisionRecord
+  var regionScoreRules: [EventQuestionRegionScoreRuleRecord]
+  var scoreComponentRules: [EventQuestionScoreComponentRuleRecord]
 }
 
 private enum EventRegistrationError: Error {
@@ -128,9 +129,6 @@ extension API {
     guard let revision = eventRevisionRecord(from: body, eventID: eventID) else {
       return .badRequest
     }
-    guard let regionScoreRules = eventRegionScoreRuleRecords(from: body, eventID: eventID) else {
-      return .badRequest
-    }
     let event = EventRecord(id: eventID, organizerUserID: userID, createdAt: Date())
 
     do {
@@ -142,15 +140,12 @@ extension API {
       try await database.withTransaction { db in
         try await EventRecord.insert { event }.execute(db)
         try await EventRevisionRecord.insert { revision }.execute(db)
-        if !regionScoreRules.isEmpty {
-          try await EventRegionScoreRuleRecord.insert { regionScoreRules }.execute(db)
-        }
       }
       return .ok(
         .init(
           body: .json(
             await makeEvent(
-              EventSnapshot(event: event, revision: revision, regionScoreRules: regionScoreRules)
+              EventSnapshot(event: event, revision: revision)
             )
           )
         )
@@ -222,9 +217,6 @@ extension API {
       else {
         return .badRequest
       }
-      guard let regionScoreRules = eventRegionScoreRuleRecords(from: body, eventID: eventID) else {
-        return .badRequest
-      }
       if let imageID = revision.imageID {
         guard try await ownedImageExists(imageID: imageID, userID: userID) else {
           return .badRequest
@@ -232,7 +224,6 @@ extension API {
       }
       try await database.withTransaction { db in
         try await EventRevisionRecord.insert { revision }.execute(db)
-        try await replaceEventRegionScoreRules(regionScoreRules, eventID: eventID, db: db)
       }
       return .ok(
         .init(
@@ -240,8 +231,7 @@ extension API {
             await makeEvent(
               EventSnapshot(
                 event: current.event,
-                revision: revision,
-                regionScoreRules: regionScoreRules
+                revision: revision
               )
             )
           )
@@ -335,6 +325,19 @@ extension API {
     guard validImageID, body.questionNumber > 0 else {
       return .badRequest
     }
+    let questionID = UUID(uuidString: UUID.uuidV7String())!
+    guard
+      let regionScoreRules = questionRegionScoreRuleRecords(
+        from: body.regionScoreRules,
+        questionID: questionID
+      ),
+      let scoreComponentRules = questionScoreComponentRuleRecords(
+        from: body.scoreComponentRules,
+        questionID: questionID
+      )
+    else {
+      return .badRequest
+    }
 
     do {
       guard try await isEventOrganizer(eventID: eventID, userID: userID) else {
@@ -346,7 +349,7 @@ extension API {
         }
       }
       let question = EventQuestionRecord(
-        id: UUID(uuidString: UUID.uuidV7String())!,
+        id: questionID,
         eventID: eventID,
         questionNumber: Int(body.questionNumber),
         createdAt: Date()
@@ -361,12 +364,24 @@ extension API {
       try await database.withTransaction { db in
         try await EventQuestionRecord.insert { question }.execute(db)
         try await EventQuestionRevisionRecord.insert { revision }.execute(db)
+        if !regionScoreRules.isEmpty {
+          try await EventQuestionRegionScoreRuleRecord.insert { regionScoreRules }.execute(db)
+        }
+        if !scoreComponentRules.isEmpty {
+          try await EventQuestionScoreComponentRuleRecord.insert { scoreComponentRules }
+            .execute(db)
+        }
       }
       return .ok(
         .init(
           body: .json(
             await makeEventQuestion(
-              EventQuestionSnapshot(question: question, revision: revision)
+              EventQuestionSnapshot(
+                question: question,
+                revision: revision,
+                regionScoreRules: regionScoreRules,
+                scoreComponentRules: scoreComponentRules
+              )
             )
           )
         )
@@ -399,6 +414,18 @@ extension API {
     guard validImageID, body.questionNumber > 0 else {
       return .badRequest
     }
+    guard
+      let regionScoreRules = questionRegionScoreRuleRecords(
+        from: body.regionScoreRules,
+        questionID: questionID
+      ),
+      let scoreComponentRules = questionScoreComponentRuleRecords(
+        from: body.scoreComponentRules,
+        questionID: questionID
+      )
+    else {
+      return .badRequest
+    }
 
     do {
       guard try await isEventOrganizer(eventID: eventID, userID: userID),
@@ -421,14 +448,25 @@ extension API {
         note: body.note,
         createdAt: Date()
       )
-      try await database.write { db in
+      try await database.withTransaction { db in
         try await EventQuestionRevisionRecord.insert { revision }.execute(db)
+        try await replaceQuestionScoreRules(
+          regionScoreRules: regionScoreRules,
+          scoreComponentRules: scoreComponentRules,
+          questionID: questionID,
+          db: db
+        )
       }
       return .ok(
         .init(
           body: .json(
             await makeEventQuestion(
-              EventQuestionSnapshot(question: question, revision: revision)
+              EventQuestionSnapshot(
+                question: question,
+                revision: revision,
+                regionScoreRules: regionScoreRules,
+                scoreComponentRules: scoreComponentRules
+              )
             )
           )
         )
@@ -459,8 +497,11 @@ extension API {
       return .badRequest
     }
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
+    let (producerWineRegionID, validProducerWineRegionID) = parseOptionalUUID(
+      body.producerWineRegionID
+    )
     guard
-      validRegionID, isValidVintage(body.vintage),
+      validRegionID, validProducerWineRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -475,6 +516,8 @@ extension API {
       let result = try await insertCorrectAnswer(
         questionID: questionID,
         regionID: regionID,
+        producerWineRegionID: producerWineRegionID,
+        feature: body.feature,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
         varietyIDs: varietyIDs,
@@ -516,8 +559,11 @@ extension API {
       return .badRequest
     }
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
+    let (producerWineRegionID, validProducerWineRegionID) = parseOptionalUUID(
+      body.producerWineRegionID
+    )
     guard
-      validRegionID, isValidVintage(body.vintage),
+      validRegionID, validProducerWineRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -533,6 +579,8 @@ extension API {
       let result = try await insertCorrectAnswer(
         questionID: questionID,
         regionID: regionID,
+        producerWineRegionID: producerWineRegionID,
+        feature: body.feature,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
         varietyIDs: varietyIDs,
@@ -574,8 +622,11 @@ extension API {
       return .badRequest
     }
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
+    let (producerWineRegionID, validProducerWineRegionID) = parseOptionalUUID(
+      body.producerWineRegionID
+    )
     guard
-      validRegionID, isValidVintage(body.vintage),
+      validRegionID, validProducerWineRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -591,6 +642,8 @@ extension API {
         questionID: questionID,
         userID: userID,
         regionID: regionID,
+        producerWineRegionID: producerWineRegionID,
+        feature: body.feature,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
         note: body.note,
@@ -633,8 +686,11 @@ extension API {
       return .badRequest
     }
     let (regionID, validRegionID) = parseOptionalUUID(body.wineRegionID)
+    let (producerWineRegionID, validProducerWineRegionID) = parseOptionalUUID(
+      body.producerWineRegionID
+    )
     guard
-      validRegionID, isValidVintage(body.vintage),
+      validRegionID, validProducerWineRegionID, isValidVintage(body.vintage),
       isValidAlcoholByVolume(body.alcoholByVolume)
     else {
       return .badRequest
@@ -651,6 +707,8 @@ extension API {
         questionID: questionID,
         userID: userID,
         regionID: regionID,
+        producerWineRegionID: producerWineRegionID,
+        feature: body.feature,
         vintage: body.vintage.map(Int.init),
         alcoholByVolume: body.alcoholByVolume,
         note: body.note,
@@ -846,8 +904,7 @@ extension API {
       if event.event.organizerUserID != userID {
         // Participants may only see the correct answer once it has been published.
         guard try await canViewEvent(event, userID: userID),
-          let answersPublishedAt = event.revision.answersPublishedAt,
-          Date() >= answersPublishedAt
+          Date() >= event.revision.answersPublishedAt
         else {
           return .notFound
         }
@@ -1082,6 +1139,11 @@ extension API {
       return nil
     }
     guard body.eventPeriod.startsAt < body.eventPeriod.endsAt else { return nil }
+    let startsAt = Date(timeIntervalSinceReferenceDate: body.eventPeriod.startsAt)
+    let endsAt = Date(timeIntervalSinceReferenceDate: body.eventPeriod.endsAt)
+    let responsesDueAt = Date(timeIntervalSinceReferenceDate: body.responsesDueAt)
+    let answersPublishedAt = Date(timeIntervalSinceReferenceDate: body.answersPublishedAt)
+    guard startsAt <= responsesDueAt, responsesDueAt <= answersPublishedAt else { return nil }
     if let registrationPeriod = body.registrationPeriod,
       registrationPeriod.startsAt >= registrationPeriod.endsAt
     {
@@ -1128,9 +1190,10 @@ extension API {
       registrationEndsAt: body.registrationPeriod.map {
         Date(timeIntervalSinceReferenceDate: $0.endsAt)
       },
-      startsAt: Date(timeIntervalSinceReferenceDate: body.eventPeriod.startsAt),
-      endsAt: Date(timeIntervalSinceReferenceDate: body.eventPeriod.endsAt),
-      answersPublishedAt: body.answersPublishedAt.map(Date.init(timeIntervalSinceReferenceDate:)),
+      startsAt: startsAt,
+      endsAt: endsAt,
+      responsesDueAt: responsesDueAt,
+      answersPublishedAt: answersPublishedAt,
       capacity: body.capacity.map(Int.init),
       entryFeeMinorAmount: body.entryFee?.minorAmount,
       entryFeeCurrencyCode: body.entryFee?.currencyCode.trimmingCharacters(
@@ -1143,11 +1206,11 @@ extension API {
     )
   }
 
-  fileprivate func eventRegionScoreRuleRecords(
-    from body: Components.Schemas.CreateEventRequest,
-    eventID: UUID
-  ) -> [EventRegionScoreRuleRecord]? {
-    let rules = body.regionScoreRules ?? []
+  fileprivate func questionRegionScoreRuleRecords(
+    from rules: [Components.Schemas.CreateQuestionRegionScoreRuleRequest]?,
+    questionID: UUID
+  ) -> [EventQuestionRegionScoreRuleRecord]? {
+    let rules = rules ?? []
     let wineRegionTypeIDs = rules.compactMap { UUID(uuidString: $0.wineRegionTypeID) }
     guard wineRegionTypeIDs.count == rules.count,
       Set(wineRegionTypeIDs).count == wineRegionTypeIDs.count
@@ -1157,8 +1220,8 @@ extension API {
     guard rules.allSatisfy({ $0.points >= 0 }) else { return nil }
     let now = Date()
     return zip(rules, wineRegionTypeIDs).map { rule, wineRegionTypeID in
-      EventRegionScoreRuleRecord(
-        eventID: eventID,
+      EventQuestionRegionScoreRuleRecord(
+        eventQuestionID: questionID,
         wineRegionTypeID: wineRegionTypeID,
         points: Int(rule.points),
         createdAt: now
@@ -1166,16 +1229,62 @@ extension API {
     }
   }
 
-  fileprivate func replaceEventRegionScoreRules(
-    _ rules: [EventRegionScoreRuleRecord],
-    eventID: UUID,
+  fileprivate func questionScoreComponentRuleRecords(
+    from rules: [Components.Schemas.CreateQuestionScoreComponentRuleRequest]?,
+    questionID: UUID
+  ) -> [EventQuestionScoreComponentRuleRecord]? {
+    let rules = rules ?? []
+    let components = rules.compactMap {
+      EventQuestionScoreComponentRuleRecord.Component(rawValue: $0.component.rawValue)
+    }
+    guard components.count == rules.count,
+      Set(components).count == components.count
+    else {
+      return nil
+    }
+    for (rule, component) in zip(rules, components) {
+      guard rule.points >= 0 else { return nil }
+      if let partialPoints = rule.partialPoints {
+        guard partialPoints >= 0, partialPoints <= rule.points else { return nil }
+      }
+      if component == .alcohol {
+        if let alcoholTolerance = rule.alcoholTolerance, alcoholTolerance < 0 {
+          return nil
+        }
+      } else if rule.alcoholTolerance != nil {
+        return nil
+      }
+    }
+    let now = Date()
+    return zip(rules, components).map { rule, component in
+      EventQuestionScoreComponentRuleRecord(
+        eventQuestionID: questionID,
+        component: component,
+        points: Int(rule.points),
+        partialPoints: rule.partialPoints.map(Int.init),
+        alcoholTolerance: rule.alcoholTolerance,
+        createdAt: now
+      )
+    }
+  }
+
+  fileprivate func replaceQuestionScoreRules(
+    regionScoreRules: [EventQuestionRegionScoreRuleRecord],
+    scoreComponentRules: [EventQuestionScoreComponentRuleRecord],
+    questionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws {
-    let query: QueryFragment =
-      "DELETE FROM public.event_region_score_rules WHERE event_id = \(eventID, as: UUID.self)"
-    try await db.executeFragment(query)
-    if !rules.isEmpty {
-      try await EventRegionScoreRuleRecord.insert { rules }.execute(db)
+    let regionDelete: QueryFragment =
+      "DELETE FROM public.event_question_region_score_rules WHERE event_question_id = \(questionID, as: UUID.self)"
+    try await db.executeFragment(regionDelete)
+    let componentDelete: QueryFragment =
+      "DELETE FROM public.event_question_score_component_rules WHERE event_question_id = \(questionID, as: UUID.self)"
+    try await db.executeFragment(componentDelete)
+    if !regionScoreRules.isEmpty {
+      try await EventQuestionRegionScoreRuleRecord.insert { regionScoreRules }.execute(db)
+    }
+    if !scoreComponentRules.isEmpty {
+      try await EventQuestionScoreComponentRuleRecord.insert { scoreComponentRules }.execute(db)
     }
   }
 
@@ -1202,7 +1311,7 @@ extension API {
         }
         .selectStar()
         .fetchAll(db)
-      return try await snapshots(from: rows, db: db)
+      return snapshots(from: rows)
     }
   }
 
@@ -1226,7 +1335,7 @@ extension API {
           }
           .selectStar()
           .fetchAll(db)
-        return try await snapshots(from: rows, db: db)
+        return snapshots(from: rows)
       } else {
         let rows =
           try await EventRecord
@@ -1247,7 +1356,7 @@ extension API {
           }
           .selectStar()
           .fetchAll(db)
-        return try await snapshots(from: rows, db: db)
+        return snapshots(from: rows)
       }
     }
   }
@@ -1285,7 +1394,7 @@ extension API {
           .selectStar()
           .fetchAll(db)
         let eventRows = rows.map { event, _, revision in (event, revision) }
-        return try await snapshots(from: eventRows, db: db)
+        return snapshots(from: eventRows)
       } else {
         let rows =
           try await EventRecord
@@ -1317,18 +1426,18 @@ extension API {
           .selectStar()
           .fetchAll(db)
         let eventRows = rows.map { event, _, revision in (event, revision) }
-        return try await snapshots(from: eventRows, db: db)
+        return snapshots(from: eventRows)
       }
     }
   }
 
-  fileprivate func latestEventSnapshot(eventID: UUID) async throws -> EventSnapshot? {
+  func latestEventSnapshot(eventID: UUID) async throws -> EventSnapshot? {
     try await database.read { db in
       try await latestEventSnapshot(eventID: eventID, db: db)
     }
   }
 
-  fileprivate func latestEventSnapshot(
+  func latestEventSnapshot(
     eventID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> EventSnapshot? {
@@ -1346,31 +1455,18 @@ extension API {
       .fetchAll(db)
       .first
     guard let row else { return nil }
-    return try await snapshots(from: [row], db: db).first
+    return snapshots(from: [row]).first
   }
 
-  fileprivate func snapshots(
-    from rows: [(EventRecord, EventRevisionRecord)],
-    db: any Database.Connection.`Protocol`
-  ) async throws -> [EventSnapshot] {
-    let eventIDs = rows.map(\.0.id)
-    guard !eventIDs.isEmpty else { return [] }
-    let scoreRules =
-      try await EventRegionScoreRuleRecord
-      .where { $0.eventID.in(eventIDs) }
-      .order { ($0.eventID, $0.wineRegionTypeID) }
-      .fetchAll(db)
-    let scoreRulesByEventID = Dictionary(grouping: scoreRules, by: \.eventID)
-    return rows.map { event, revision in
-      EventSnapshot(
-        event: event,
-        revision: revision,
-        regionScoreRules: scoreRulesByEventID[event.id, default: []]
-      )
+  func snapshots(
+    from rows: [(EventRecord, EventRevisionRecord)]
+  ) -> [EventSnapshot] {
+    rows.map { event, revision in
+      EventSnapshot(event: event, revision: revision)
     }
   }
 
-  fileprivate func canViewEvent(_ event: EventSnapshot, userID: UUID) async throws -> Bool {
+  func canViewEvent(_ event: EventSnapshot, userID: UUID) async throws -> Bool {
     if event.event.organizerUserID == userID {
       return true
     }
@@ -1413,7 +1509,7 @@ extension API {
     let now = Date()
     guard event.revision.canceledAt == nil,
       now >= event.revision.startsAt,
-      now < event.revision.endsAt
+      now < event.revision.responsesDueAt
     else {
       return false
     }
@@ -1506,7 +1602,7 @@ extension API {
     }
   }
 
-  fileprivate func isEventOrganizer(
+  func isEventOrganizer(
     eventID: UUID,
     userID: UUID
   ) async throws -> Bool {
@@ -1523,14 +1619,14 @@ extension API {
     }
   }
 
-  fileprivate func eventQuestionExists(
+  func eventQuestionExists(
     questionID: UUID,
     eventID: UUID
   ) async throws -> Bool {
     try await eventQuestion(questionID: questionID, eventID: eventID) != nil
   }
 
-  fileprivate func eventQuestion(
+  func eventQuestion(
     questionID: UUID,
     eventID: UUID
   ) async throws -> EventQuestionRecord? {
@@ -1545,7 +1641,7 @@ extension API {
     }
   }
 
-  fileprivate func latestEventQuestionSnapshots(
+  func latestEventQuestionSnapshots(
     eventID: UUID
   ) async throws -> [EventQuestionSnapshot] {
     try await database.read { db in
@@ -1563,13 +1659,35 @@ extension API {
         }
         .selectStar()
         .fetchAll(db)
+      let questionIDs = rows.map(\.0.id)
+      guard !questionIDs.isEmpty else { return [] }
+      let regionScoreRules =
+        try await EventQuestionRegionScoreRuleRecord
+        .where { $0.eventQuestionID.in(questionIDs) }
+        .order { ($0.eventQuestionID, $0.wineRegionTypeID) }
+        .fetchAll(db)
+      let scoreComponentRules =
+        try await EventQuestionScoreComponentRuleRecord
+        .where { $0.eventQuestionID.in(questionIDs) }
+        .order { ($0.eventQuestionID, $0.component) }
+        .fetchAll(db)
+      let regionRulesByQuestionID = Dictionary(grouping: regionScoreRules, by: \.eventQuestionID)
+      let componentRulesByQuestionID = Dictionary(
+        grouping: scoreComponentRules,
+        by: \.eventQuestionID
+      )
       return rows.map { question, revision in
-        EventQuestionSnapshot(question: question, revision: revision)
+        EventQuestionSnapshot(
+          question: question,
+          revision: revision,
+          regionScoreRules: regionRulesByQuestionID[question.id, default: []],
+          scoreComponentRules: componentRulesByQuestionID[question.id, default: []]
+        )
       }
     }
   }
 
-  fileprivate func correctAnswer(
+  func correctAnswer(
     questionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> EventQuestionCorrectAnswerRecord? {
@@ -1579,7 +1697,7 @@ extension API {
       .fetchOne(db)
   }
 
-  fileprivate func eventQuestionResponse(
+  func eventQuestionResponse(
     questionID: UUID,
     userID: UUID,
     db: any Database.Connection.`Protocol`
@@ -1593,7 +1711,7 @@ extension API {
       .fetchOne(db)
   }
 
-  fileprivate func latestCorrectAnswerRevision(
+  func latestCorrectAnswerRevision(
     answerID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> EventQuestionCorrectAnswerRevisionRecord? {
@@ -1604,7 +1722,7 @@ extension API {
       .fetchOne(db)
   }
 
-  fileprivate func correctAnswerVarietyIDs(
+  func correctAnswerVarietyIDs(
     revisionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> [UUID] {
@@ -1615,7 +1733,7 @@ extension API {
     return rows.map(\.wineVarietyID).sorted { $0.uuidString < $1.uuidString }
   }
 
-  fileprivate func latestResponseRevision(
+  func latestResponseRevision(
     responseID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> EventQuestionResponseRevisionRecord? {
@@ -1626,7 +1744,7 @@ extension API {
       .fetchOne(db)
   }
 
-  fileprivate func responseVarietyIDs(
+  func responseVarietyIDs(
     revisionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> [UUID] {
@@ -1640,6 +1758,8 @@ extension API {
   fileprivate func insertCorrectAnswer(
     questionID: UUID,
     regionID: UUID?,
+    producerWineRegionID: UUID?,
+    feature: String?,
     vintage: Int?,
     alcoholByVolume: Double?,
     varietyIDs: [UUID],
@@ -1674,6 +1794,8 @@ extension API {
         id: UUID(uuidString: UUID.uuidV7String())!,
         eventQuestionCorrectAnswerID: answer.id,
         wineRegionID: regionID,
+        producerWineRegionID: producerWineRegionID,
+        feature: feature,
         vintage: vintage,
         alcoholByVolume: alcoholByVolume,
         createdAt: Date()
@@ -1697,6 +1819,8 @@ extension API {
     questionID: UUID,
     userID: UUID,
     regionID: UUID?,
+    producerWineRegionID: UUID?,
+    feature: String?,
     vintage: Int?,
     alcoholByVolume: Double?,
     note: String?,
@@ -1740,6 +1864,8 @@ extension API {
         id: UUID(uuidString: UUID.uuidV7String())!,
         eventQuestionResponseID: response.id,
         wineRegionID: regionID,
+        producerWineRegionID: producerWineRegionID,
+        feature: feature,
         vintage: vintage,
         alcoholByVolume: alcoholByVolume,
         note: note,
@@ -1792,7 +1918,7 @@ extension API {
     return vintage > 0
   }
 
-  fileprivate func logEventDatabaseError(
+  func logEventDatabaseError(
     _ eventName: String,
     _ message: Logger.Message,
     userID: UUID,
@@ -1937,25 +2063,35 @@ extension Components.Schemas.Event {
       venueCoordinate: venueCoordinate,
       registrationPeriod: registrationPeriod,
       eventPeriod: eventPeriod,
-      answersPublishedAt: revision.answersPublishedAt?.timeIntervalSinceReferenceDate,
+      responsesDueAt: revision.responsesDueAt.timeIntervalSinceReferenceDate,
+      answersPublishedAt: revision.answersPublishedAt.timeIntervalSinceReferenceDate,
       capacity: revision.capacity.map(Int32.init),
       entryFee: entryFee,
       visibility: visibility,
       publishedAt: revision.publishedAt?.timeIntervalSinceReferenceDate,
       canceledAt: revision.canceledAt?.timeIntervalSinceReferenceDate,
-      regionScoreRules: snapshot.regionScoreRules.map(
-        Components.Schemas.EventRegionScoreRule.init
-      ),
       createdAt: event.createdAt.timeIntervalSinceReferenceDate
     )
   }
 }
 
-extension Components.Schemas.EventRegionScoreRule {
-  fileprivate init(_ rule: EventRegionScoreRuleRecord) {
+extension Components.Schemas.QuestionRegionScoreRule {
+  fileprivate init(_ rule: EventQuestionRegionScoreRuleRecord) {
     self.init(
       wineRegionTypeID: rule.wineRegionTypeID.uuidString,
       points: Int32(rule.points),
+      createdAt: rule.createdAt.timeIntervalSinceReferenceDate
+    )
+  }
+}
+
+extension Components.Schemas.QuestionScoreComponentRule {
+  fileprivate init(_ rule: EventQuestionScoreComponentRuleRecord) {
+    self.init(
+      component: .init(rawValue: rule.component.rawValue)!,
+      points: Int32(rule.points),
+      partialPoints: rule.partialPoints.map(Int32.init),
+      alcoholTolerance: rule.alcoholTolerance,
       createdAt: rule.createdAt.timeIntervalSinceReferenceDate
     )
   }
@@ -1984,6 +2120,12 @@ extension Components.Schemas.EventQuestion {
       imageID: revision.imageID?.uuidString,
       imageURL: imageURL,
       note: revision.note,
+      regionScoreRules: snapshot.regionScoreRules.map(
+        Components.Schemas.QuestionRegionScoreRule.init
+      ),
+      scoreComponentRules: snapshot.scoreComponentRules.map(
+        Components.Schemas.QuestionScoreComponentRule.init
+      ),
       createdAt: question.createdAt.timeIntervalSinceReferenceDate
     )
   }
@@ -1999,8 +2141,10 @@ extension Components.Schemas.EventQuestionCorrectAnswer {
       id: answer.id.uuidString,
       eventQuestionID: answer.eventQuestionID.uuidString,
       wineRegionID: revision.wineRegionID?.uuidString,
+      producerWineRegionID: revision.producerWineRegionID?.uuidString,
       vintage: revision.vintage.map(Int32.init),
       alcoholByVolume: revision.alcoholByVolume,
+      feature: revision.feature,
       wineVarietyIDs: wineVarietyIDs.map(\.uuidString),
       createdAt: answer.createdAt.timeIntervalSinceReferenceDate
     )
@@ -2018,8 +2162,10 @@ extension Components.Schemas.EventQuestionResponse {
       eventQuestionID: response.eventQuestionID.uuidString,
       userID: response.userID.uuidString,
       wineRegionID: revision.wineRegionID?.uuidString,
+      producerWineRegionID: revision.producerWineRegionID?.uuidString,
       vintage: revision.vintage.map(Int32.init),
       alcoholByVolume: revision.alcoholByVolume,
+      feature: revision.feature,
       note: revision.note,
       wineVarietyIDs: wineVarietyIDs.map(\.uuidString),
       submittedAt: response.createdAt.timeIntervalSinceReferenceDate
