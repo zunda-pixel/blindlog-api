@@ -164,8 +164,8 @@ enum QuestionScorer {
   }
 
   /// Full points for matching producer IDs.
-  /// Partial points when the correct producer is known and the response is blank (anonymous),
-  /// or — only when there is no separate feature rule — when features match.
+  /// Partial points only when there is no separate feature rule and features match.
+  /// A blank producer response scores zero (no anonymous partial credit).
   private static func producerPoints(
     correct: ScoringAnswerPayload,
     response: ScoringAnswerPayload,
@@ -177,54 +177,12 @@ enum QuestionScorer {
     if response.producerWineRegionID == correctProducer {
       return points
     }
-    guard let partialPoints else { return 0 }
-    if response.producerWineRegionID == nil {
+    guard let partialPoints, allowFeaturePartial else { return 0 }
+    let correctFeature = normalizeFeature(correct.feature)
+    let responseFeature = normalizeFeature(response.feature)
+    if correctFeature != nil, correctFeature == responseFeature {
       return partialPoints
     }
-    if allowFeaturePartial {
-      let correctFeature = normalizeFeature(correct.feature)
-      let responseFeature = normalizeFeature(response.feature)
-      if correctFeature != nil, correctFeature == responseFeature {
-        return partialPoints
-      }
-    }
     return 0
-  }
-}
-
-enum RatingCalculator {
-  static let kFactor = 32
-  static let maxAbsDelta = 50
-
-  static func delta(performance: Double, fieldAverage: Double) -> Int {
-    let raw = Double(kFactor) * (performance - fieldAverage)
-    let rounded = Int(raw.rounded())
-    return min(maxAbsDelta, max(-maxAbsDelta, rounded))
-  }
-}
-
-enum Ranking {
-  /// Competition ranking: equal scores share the same rank (1, 2, 2, 4).
-  static func competitionRanks<T>(
-    _ rows: [T],
-    score: (T) -> Int
-  ) -> [(rank: Int32, row: T)] {
-    guard !rows.isEmpty else { return [] }
-    var result: [(rank: Int32, row: T)] = []
-    var index = 0
-    var currentRank: Int32 = 1
-    var previousScore: Int?
-    for row in rows {
-      let value = score(row)
-      if let previousScore, value != previousScore {
-        currentRank = Int32(index + 1)
-      } else if previousScore == nil {
-        currentRank = 1
-      }
-      result.append((currentRank, row))
-      previousScore = value
-      index += 1
-    }
-    return result
   }
 }

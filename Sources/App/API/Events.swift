@@ -1837,9 +1837,7 @@ extension API {
       if requireNoExistingResponse || requireExistingResponse {
         try await lockEventQuestion(questionID: questionID, db: db)
       }
-      // The aggregate carries the stable id and first-submission time; each
-      // update only appends a new revision, mirroring the events ↔
-      // event_revisions pattern.
+      // The aggregate keeps a stable id; each update appends a revision with its own submittedAt.
       let existing = try await eventQuestionResponse(
         questionID: questionID,
         userID: userID,
@@ -2171,7 +2169,7 @@ extension Components.Schemas.EventQuestionResponse {
       feature: revision.feature,
       note: revision.note,
       wineVarietyIDs: wineVarietyIDs.map(\.uuidString),
-      submittedAt: response.createdAt.timeIntervalSinceReferenceDate
+      submittedAt: revision.submittedAt.timeIntervalSinceReferenceDate
     )
   }
 }

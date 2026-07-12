@@ -230,7 +230,7 @@ struct ScoringTests {
   }
 
   @Test
-  func producerPartialDoesNotAwardBlankBlankOrDoubleFeature() {
+  func producerBlankIsZeroAndFeaturePartialDoesNotDoubleCount() {
     let producerID = UUID()
     let producerRule = EventQuestionScoreComponentRuleRecord(
       eventQuestionID: UUID(),
@@ -296,7 +296,24 @@ struct ScoringTests {
       correctRegionAncestors: [],
       responseRegionAncestors: []
     )
-    #expect(anonymous.earnedPoints == 2)
+    #expect(anonymous.earnedPoints == 0)
+
+    let featurePartialWithoutSeparateRule = QuestionScorer.score(
+      correct: correct,
+      response: ScoringAnswerPayload(
+        wineRegionID: nil,
+        producerWineRegionID: UUID(),
+        feature: "granite",
+        vintage: nil,
+        alcoholByVolume: nil,
+        wineVarietyIDs: []
+      ),
+      regionRules: [],
+      componentRules: [producerRule],
+      correctRegionAncestors: [],
+      responseRegionAncestors: []
+    )
+    #expect(featurePartialWithoutSeparateRule.earnedPoints == 2)
 
     let withSeparateFeatureRule = QuestionScorer.score(
       correct: correct,

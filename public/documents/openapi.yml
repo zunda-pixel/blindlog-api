@@ -1371,7 +1371,7 @@ paths:
       tags:
         - Events
       summary: List event participant scores
-      description: Returns per-participant score totals and per-question score summaries for an event.
+      description: Returns per-participant score totals and per-question score summaries for an event. The event organizer is excluded even if they submitted a response.
       security:
         - bearerAuth: []
       parameters:
@@ -1421,7 +1421,7 @@ paths:
       tags:
         - Events
       summary: Get event leaderboard
-      description: Returns ranked participant scores for an event.
+      description: Returns ranked participant scores for an event. The event organizer is excluded even if they submitted a response.
       security:
         - bearerAuth: []
       parameters:
@@ -1471,7 +1471,7 @@ paths:
       tags:
         - Events
       summary: List question scores
-      description: Returns per-user scores and score component breakdown for a question.
+      description: Returns per-user scores and score component breakdown for a question. The event organizer is excluded even if they submitted a response.
       security:
         - bearerAuth: []
       parameters:
@@ -2581,6 +2581,7 @@ components:
         submittedAt:
           type: number
           format: double
+          description: Instant of the latest response revision, as Foundation reference date seconds.
       required:
         - id
         - eventQuestionID
