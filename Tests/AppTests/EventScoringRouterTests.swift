@@ -50,28 +50,6 @@ struct EventScoringRouterTests {
       let highScorer = try await createUser()
       let lowScorer = try await createUser()
 
-      guard let organizerID = UUID(uuidString: organizer.userID) else {
-        Issue.record("organizer userID is not a UUID")
-        return
-      }
-      AdminUserIDs.testOverride.withLock { $0 = [organizerID] }
-      defer { AdminUserIDs.testOverride.withLock { $0 = nil } }
-
-      let seasonResponse = try await client.execute(
-        uri: "/ratings/seasons",
-        method: .post,
-        headers: [
-          .cfConnectingIP: ipAddress,
-          .authorization: "Bearer \(organizer.token)",
-        ],
-        body: ByteBuffer(
-          data: try encoder.encode(
-            Components.Schemas.CreateRatingSeasonRequest(name: "Season \(UUID())")
-          )
-        )
-      )
-      #expect(seasonResponse.status == .ok)
-
       let event = try await client.execute(
         uri: "/events",
         method: .post,

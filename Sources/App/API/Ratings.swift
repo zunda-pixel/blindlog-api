@@ -2,24 +2,7 @@ import Foundation
 import PostgresNIO
 import Records
 import StructuredQueriesPostgres
-import Synchronization
 import UUIDV7
-
-/// Override for tests; production always reads `ADMIN_USER_IDS` from the process environment.
-enum AdminUserIDs {
-  static let testOverride: Mutex<[UUID]?> = .init(nil)
-
-  static func contains(_ userID: UUID) -> Bool {
-    if let override = testOverride.withLock({ $0 }) {
-      return override.contains(userID)
-    }
-    let raw = ProcessInfo.processInfo.environment["ADMIN_USER_IDS"] ?? ""
-    let allowed = raw.split(separator: ",").compactMap {
-      UUID(uuidString: $0.trimmingCharacters(in: .whitespacesAndNewlines))
-    }
-    return allowed.contains(userID)
-  }
-}
 
 extension API {
   func getMyRating(
@@ -200,6 +183,10 @@ extension API {
   }
 
   func isAdminUser(_ userID: UUID) -> Bool {
-    AdminUserIDs.contains(userID)
+    let raw = ProcessInfo.processInfo.environment["ADMIN_USER_IDS"] ?? ""
+    let allowed = raw.split(separator: ",").compactMap {
+      UUID(uuidString: $0.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+    return allowed.contains(userID)
   }
 }
