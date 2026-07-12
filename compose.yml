@@ -16,7 +16,7 @@ services:
       - ./Database/migrations/20260531060000_seed_wine_master_data.sql:/docker-entrypoint-initdb.d/003_seed_wine_master_data.sql:ro
 
   otel-collector:
-    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.155.0
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.155.0-386
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./Deploy/local/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
