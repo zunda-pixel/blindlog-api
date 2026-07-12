@@ -456,8 +456,8 @@ extension API {
           questionID: questionID,
           db: db
         )
+        try await RatingSettlement.invalidateQuestion(questionID: questionID, db: db)
       }
-      await invalidateQuestionRatingAfterMutation(questionID: questionID)
       return .ok(
         .init(
           body: .json(
@@ -587,7 +587,6 @@ extension API {
         varietyIDs: varietyIDs,
         requireExistingAnswer: true
       )
-      await invalidateQuestionRatingAfterMutation(questionID: questionID)
       return .ok(
         .init(
           body: .json(
@@ -1291,14 +1290,6 @@ extension API {
     }
   }
 
-  func invalidateQuestionRatingAfterMutation(questionID: UUID) async {
-    do {
-      try await invalidateQuestionRating(questionID: questionID)
-    } catch {
-      // Best-effort: score display stays live; next settle recreates ledger if invalidation failed.
-    }
-  }
-
   fileprivate func latestEventsVisible(to userID: UUID) async throws -> [EventSnapshot] {
     try await database.read { db in
       let rows =
@@ -1822,6 +1813,7 @@ extension API {
       if !answerVarieties.isEmpty {
         try await EventQuestionCorrectAnswerVarietyRecord.insert { answerVarieties }.execute(db)
       }
+      try await RatingSettlement.invalidateQuestion(questionID: questionID, db: db)
       return (answer, revision)
     }
   }

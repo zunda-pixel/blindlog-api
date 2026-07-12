@@ -450,29 +450,36 @@ enum RatingSettlement {
     database: PostgresClient
   ) async throws {
     try await database.withTransaction { db in
-      let lockQuestion: QueryFragment =
-        "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
-      try await db.executeFragment(lockQuestion)
-
-      let entries =
-        try await UserRatingLedgerRecord
-        .where { $0.eventQuestionID.eq(questionID) }
-        .fetchAll(db)
-      let now = Date()
-      for entry in entries {
-        let reverse: QueryFragment = """
-          UPDATE public.user_season_ratings
-          SET rating = rating - \(entry.delta, as: Int.self),
-              updated_at = \(now, as: Date.self)
-          WHERE user_id = \(entry.userID, as: UUID.self)
-            AND season_id = \(entry.seasonID, as: UUID.self)
-          """
-        try await db.executeFragment(reverse)
-      }
-      let deleteLedger: QueryFragment =
-        "DELETE FROM public.user_rating_ledger WHERE event_question_id = \(questionID, as: UUID.self)"
-      try await db.executeFragment(deleteLedger)
+      try await invalidateQuestion(questionID: questionID, db: db)
     }
+  }
+
+  static func invalidateQuestion(
+    questionID: UUID,
+    db: any Database.Connection.`Protocol`
+  ) async throws {
+    let lockQuestion: QueryFragment =
+      "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
+    try await db.executeFragment(lockQuestion)
+
+    let entries =
+      try await UserRatingLedgerRecord
+      .where { $0.eventQuestionID.eq(questionID) }
+      .fetchAll(db)
+    let now = Date()
+    for entry in entries {
+      let reverse: QueryFragment = """
+        UPDATE public.user_season_ratings
+        SET rating = rating - \(entry.delta, as: Int.self),
+            updated_at = \(now, as: Date.self)
+        WHERE user_id = \(entry.userID, as: UUID.self)
+          AND season_id = \(entry.seasonID, as: UUID.self)
+        """
+      try await db.executeFragment(reverse)
+    }
+    let deleteLedger: QueryFragment =
+      "DELETE FROM public.user_rating_ledger WHERE event_question_id = \(questionID, as: UUID.self)"
+    try await db.executeFragment(deleteLedger)
   }
 
   static func seasonForSettlement(
