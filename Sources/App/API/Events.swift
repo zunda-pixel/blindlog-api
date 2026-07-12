@@ -457,6 +457,7 @@ extension API {
           db: db
         )
       }
+      await invalidateQuestionRatingAfterMutation(questionID: questionID)
       return .ok(
         .init(
           body: .json(
@@ -586,6 +587,7 @@ extension API {
         varietyIDs: varietyIDs,
         requireExistingAnswer: true
       )
+      await invalidateQuestionRatingAfterMutation(questionID: questionID)
       return .ok(
         .init(
           body: .json(
@@ -1246,6 +1248,7 @@ extension API {
       guard rule.points >= 0 else { return nil }
       if let partialPoints = rule.partialPoints {
         guard partialPoints >= 0, partialPoints <= rule.points else { return nil }
+        guard component == .alcohol || component == .producer else { return nil }
       }
       if component == .alcohol {
         if let alcoholTolerance = rule.alcoholTolerance, alcoholTolerance < 0 {
@@ -1285,6 +1288,14 @@ extension API {
     }
     if !scoreComponentRules.isEmpty {
       try await EventQuestionScoreComponentRuleRecord.insert { scoreComponentRules }.execute(db)
+    }
+  }
+
+  func invalidateQuestionRatingAfterMutation(questionID: UUID) async {
+    do {
+      try await invalidateQuestionRating(questionID: questionID)
+    } catch {
+      // Best-effort: score display stays live; next settle recreates ledger if invalidation failed.
     }
   }
 
@@ -1526,7 +1537,7 @@ extension API {
     return hasActiveParticipant
   }
 
-  fileprivate func activeParticipantExists(eventID: UUID, userID: UUID) async throws -> Bool {
+  func activeParticipantExists(eventID: UUID, userID: UUID) async throws -> Bool {
     try await database.read { db in
       let participant =
         try await EventParticipantRecord

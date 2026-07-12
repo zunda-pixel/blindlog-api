@@ -582,6 +582,10 @@ extension Operations.GetMyRating.Output {
   static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
     .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
   }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
 }
 
 extension Operations.GetRatingLeaderboard.Output {
@@ -607,5 +611,9 @@ extension Operations.CreateRatingSeason.Output {
   static var unauthorized: Self { unauthorized(.unauthorized) }
   static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
     .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var forbidden: Self { forbidden(.forbidden) }
+  static func forbidden(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .forbidden(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
   }
 }

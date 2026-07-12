@@ -12,7 +12,7 @@ extension API {
 
     do {
       guard let season = try await activeRatingSeason() else {
-        return .badRequest
+        return .notFound
       }
       let rating =
         try await database.read { db in
@@ -95,17 +95,12 @@ extension API {
           .fetchAll(db)
       }
 
-      var entries: [Components.Schemas.RatingLeaderboardEntry] = []
-      var rank: Int32 = 1
-      for row in rows {
-        entries.append(
-          .init(
-            rank: rank,
-            userID: row.userID.uuidString,
-            rating: Int32(row.rating)
-          )
+      let entries = Ranking.competitionRanks(rows) { $0.rating }.map { rank, row in
+        Components.Schemas.RatingLeaderboardEntry(
+          rank: rank,
+          userID: row.userID.uuidString,
+          rating: Int32(row.rating)
         )
-        rank += 1
       }
       return .ok(.init(body: .json(entries)))
     } catch {
@@ -126,7 +121,7 @@ extension API {
     guard case .json(let body) = input.body else { return .badRequest }
     let name = body.name.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !name.isEmpty else { return .badRequest }
-    guard isAdminUser(userID) else { return .unauthorized }
+    guard isAdminUser(userID) else { return .forbidden }
 
     do {
       let now = Date()

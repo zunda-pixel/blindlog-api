@@ -41,6 +41,8 @@ struct RegionAncestor: Sendable, Hashable {
 }
 
 enum QuestionScorer {
+  static let alcoholExactEpsilon = 1e-9
+
   static func normalizeFeature(_ value: String?) -> String? {
     guard let value else { return nil }
     let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -56,6 +58,7 @@ enum QuestionScorer {
     responseRegionAncestors: [RegionAncestor]
   ) -> QuestionScoreResult {
     var components: [ScoreComponentResult] = []
+    let hasFeatureRule = componentRules.contains { $0.component == .feature }
 
     if !regionRules.isEmpty {
       let maxPoints = regionRules.map(\.points).max() ?? 0
@@ -79,7 +82,9 @@ enum QuestionScorer {
       let result: ScoreComponentResult
       switch rule.component {
       case .variety:
-        let earned = correct.wineVarietyIDs == response.wineVarietyIDs ? rule.points : 0
+        let earned =
+          !correct.wineVarietyIDs.isEmpty
+            && correct.wineVarietyIDs == response.wineVarietyIDs ? rule.points : 0
         result = ScoreComponentResult(
           component: .variety,
           earnedPoints: earned,
@@ -111,7 +116,8 @@ enum QuestionScorer {
           correct: correct,
           response: response,
           points: rule.points,
-          partialPoints: rule.partialPoints
+          partialPoints: rule.partialPoints,
+          allowFeaturePartial: !hasFeatureRule
         )
         result = ScoreComponentResult(
           component: .producer,
@@ -150,34 +156,37 @@ enum QuestionScorer {
   ) -> Int {
     guard let correct, let response else { return 0 }
     let delta = abs(correct - response)
-    if delta == 0 { return points }
+    if delta <= alcoholExactEpsilon { return points }
     if let tolerance, delta <= tolerance {
       return partialPoints ?? 0
     }
     return 0
   }
 
+  /// Full points for matching producer IDs.
+  /// Partial points when the correct producer is known and the response is blank (anonymous),
+  /// or — only when there is no separate feature rule — when features match.
   private static func producerPoints(
     correct: ScoringAnswerPayload,
     response: ScoringAnswerPayload,
     points: Int,
-    partialPoints: Int?
+    partialPoints: Int?,
+    allowFeaturePartial: Bool
   ) -> Int {
-    if let correctProducer = correct.producerWineRegionID,
-      correctProducer == response.producerWineRegionID
-    {
+    guard let correctProducer = correct.producerWineRegionID else { return 0 }
+    if response.producerWineRegionID == correctProducer {
       return points
     }
     guard let partialPoints else { return 0 }
-    let correctFeature = normalizeFeature(correct.feature)
-    let responseFeature = normalizeFeature(response.feature)
-    if correctFeature != nil, correctFeature == responseFeature {
+    if response.producerWineRegionID == nil {
       return partialPoints
     }
-    if correct.producerWineRegionID == nil, response.producerWineRegionID == nil,
-      correctFeature == nil, responseFeature == nil
-    {
-      return partialPoints
+    if allowFeaturePartial {
+      let correctFeature = normalizeFeature(correct.feature)
+      let responseFeature = normalizeFeature(response.feature)
+      if correctFeature != nil, correctFeature == responseFeature {
+        return partialPoints
+      }
     }
     return 0
   }
@@ -191,5 +200,31 @@ enum RatingCalculator {
     let raw = Double(kFactor) * (performance - fieldAverage)
     let rounded = Int(raw.rounded())
     return min(maxAbsDelta, max(-maxAbsDelta, rounded))
+  }
+}
+
+enum Ranking {
+  /// Competition ranking: equal scores share the same rank (1, 2, 2, 4).
+  static func competitionRanks<T>(
+    _ rows: [T],
+    score: (T) -> Int
+  ) -> [(rank: Int32, row: T)] {
+    guard !rows.isEmpty else { return [] }
+    var result: [(rank: Int32, row: T)] = []
+    var index = 0
+    var currentRank: Int32 = 1
+    var previousScore: Int?
+    for row in rows {
+      let value = score(row)
+      if let previousScore, value != previousScore {
+        currentRank = Int32(index + 1)
+      } else if previousScore == nil {
+        currentRank = 1
+      }
+      result.append((currentRank, row))
+      previousScore = value
+      index += 1
+    }
+    return result
   }
 }

@@ -17,18 +17,17 @@ extension API {
       else {
         return .notFound
       }
-      let isOrganizer = event.event.organizerUserID == userID
-      guard isOrganizer || Date() >= event.revision.answersPublishedAt else {
+      guard try await canAccessEventScores(event, userID: userID) else {
         return .forbidden
       }
       try await settleEventRatingsIfNeeded(eventID: eventID)
 
       let scored = try await scoreEventParticipants(eventID: eventID)
-      let payload = scored.map { userID, questions in
+      let payload = scored.map { scoredUserID, questions in
         let totalEarned = questions.reduce(0) { $0 + $1.result.earnedPoints }
         let totalMax = questions.reduce(0) { $0 + $1.result.maxPoints }
         return Components.Schemas.EventParticipantScore(
-          userID: userID.uuidString,
+          userID: scoredUserID.uuidString,
           totalEarnedPoints: Int32(totalEarned),
           totalMaxPoints: Int32(totalMax),
           questionScores: questions.map { questionID, result in
@@ -65,8 +64,7 @@ extension API {
       else {
         return .notFound
       }
-      let isOrganizer = event.event.organizerUserID == userID
-      guard isOrganizer || Date() >= event.revision.answersPublishedAt else {
+      guard try await canAccessEventScores(event, userID: userID) else {
         return .forbidden
       }
       try await settleEventRatingsIfNeeded(eventID: eventID)
@@ -74,9 +72,9 @@ extension API {
       let scored = try await scoreEventParticipants(eventID: eventID)
       let ranked =
         scored
-        .map { userID, questions in
+        .map { scoredUserID, questions in
           (
-            userID: userID,
+            userID: scoredUserID,
             earned: questions.reduce(0) { $0 + $1.result.earnedPoints },
             max: questions.reduce(0) { $0 + $1.result.maxPoints }
           )
@@ -85,18 +83,13 @@ extension API {
           if $0.earned != $1.earned { return $0.earned > $1.earned }
           return $0.userID.uuidString < $1.userID.uuidString
         }
-      var entries: [Components.Schemas.EventLeaderboardEntry] = []
-      var rank: Int32 = 1
-      for row in ranked {
-        entries.append(
-          .init(
-            rank: rank,
-            userID: row.userID.uuidString,
-            totalEarnedPoints: Int32(row.earned),
-            totalMaxPoints: Int32(row.max)
-          )
+      let entries = Ranking.competitionRanks(ranked) { $0.earned }.map { rank, row in
+        Components.Schemas.EventLeaderboardEntry(
+          rank: rank,
+          userID: row.userID.uuidString,
+          totalEarnedPoints: Int32(row.earned),
+          totalMaxPoints: Int32(row.max)
         )
-        rank += 1
       }
       return .ok(.init(body: .json(entries)))
     } catch {
@@ -128,16 +121,15 @@ extension API {
       else {
         return .notFound
       }
-      let isOrganizer = event.event.organizerUserID == userID
-      guard isOrganizer || Date() >= event.revision.answersPublishedAt else {
+      guard try await canAccessEventScores(event, userID: userID) else {
         return .forbidden
       }
       try await settleEventRatingsIfNeeded(eventID: eventID)
 
       let questionScores = try await scoreQuestion(eventID: eventID, questionID: questionID)
-      let payload = questionScores.map { userID, result in
+      let payload = questionScores.map { scoredUserID, result in
         Components.Schemas.EventQuestionUserScore(
-          userID: userID.uuidString,
+          userID: scoredUserID.uuidString,
           earnedPoints: Int32(result.earnedPoints),
           maxPoints: Int32(result.maxPoints),
           performance: result.performance,
@@ -164,10 +156,29 @@ extension API {
 }
 
 extension API {
+  func canAccessEventScores(_ event: EventSnapshot, userID: UUID) async throws -> Bool {
+    if event.event.organizerUserID == userID {
+      return true
+    }
+    guard Date() >= event.revision.answersPublishedAt else {
+      return false
+    }
+    return try await activeParticipantExists(eventID: event.event.id, userID: userID)
+  }
+
   func settleEventRatingsIfNeeded(eventID: UUID) async throws {
     guard let event = try await latestEventSnapshot(eventID: eventID) else { return }
     guard Date() >= event.revision.answersPublishedAt else { return }
-    try await RatingSettlement.settle(eventID: eventID, database: database)
+    try await RatingSettlement.settle(
+      eventID: eventID,
+      organizerUserID: event.event.organizerUserID,
+      answersPublishedAt: event.revision.answersPublishedAt,
+      database: database
+    )
+  }
+
+  func invalidateQuestionRating(questionID: UUID) async throws {
+    try await RatingSettlement.invalidateQuestion(questionID: questionID, database: database)
   }
 
   func scoreEventParticipants(
@@ -177,12 +188,12 @@ extension API {
     var byUser: [UUID: [(questionID: UUID, result: QuestionScoreResult)]] = [:]
     for question in questions {
       let scores = try await scoreQuestion(eventID: eventID, questionID: question.question.id)
-      for (userID, result) in scores {
-        byUser[userID, default: []].append((question.question.id, result))
+      for (scoredUserID, result) in scores {
+        byUser[scoredUserID, default: []].append((question.question.id, result))
       }
     }
-    return byUser.keys.sorted { $0.uuidString < $1.uuidString }.map { userID in
-      (userID, byUser[userID] ?? [])
+    return byUser.keys.sorted { $0.uuidString < $1.uuidString }.map { scoredUserID in
+      (scoredUserID, byUser[scoredUserID] ?? [])
     }
   }
 
@@ -246,22 +257,51 @@ extension API {
       try await EventQuestionResponseRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .fetchAll(db)
+    guard !responses.isEmpty else { return [] }
 
+    let responseIDs = responses.map(\.id)
+    let allRevisions =
+      try await EventQuestionResponseRevisionRecord
+      .where { $0.eventQuestionResponseID.in(responseIDs) }
+      .order { ($0.submittedAt.desc(), $0.id.desc()) }
+      .fetchAll(db)
+    var latestRevisionByResponseID: [UUID: EventQuestionResponseRevisionRecord] = [:]
+    for revision in allRevisions {
+      if latestRevisionByResponseID[revision.eventQuestionResponseID] == nil {
+        latestRevisionByResponseID[revision.eventQuestionResponseID] = revision
+      }
+    }
+
+    let revisionIDs = latestRevisionByResponseID.values.map(\.id)
+    let allVarieties: [EventQuestionResponseVarietyRecord]
+    if revisionIDs.isEmpty {
+      allVarieties = []
+    } else {
+      allVarieties =
+        try await EventQuestionResponseVarietyRecord
+        .where { $0.eventQuestionResponseRevisionID.in(revisionIDs) }
+        .fetchAll(db)
+    }
+    let varietiesByRevisionID = Dictionary(
+      grouping: allVarieties, by: \.eventQuestionResponseRevisionID)
+
+    var ancestorCache: [UUID: [RegionAncestor]] = [:]
     var results: [(UUID, QuestionScoreResult)] = []
     for response in responses {
-      let revision =
-        try await EventQuestionResponseRevisionRecord
-        .where { $0.eventQuestionResponseID.eq(response.id) }
-        .order { ($0.submittedAt.desc(), $0.id.desc()) }
-        .limit(1)
-        .fetchOne(db)
-      guard let revision else { continue }
-      let varieties =
-        try await EventQuestionResponseVarietyRecord
-        .where { $0.eventQuestionResponseRevisionID.eq(revision.id) }
-        .fetchAll(db)
-        .map(\.wineVarietyID)
-      let responseAncestors = try await regionAncestors(regionID: revision.wineRegionID, db: db)
+      guard let revision = latestRevisionByResponseID[response.id] else { continue }
+      let varieties = varietiesByRevisionID[revision.id, default: []].map(\.wineVarietyID)
+      let responseAncestors: [RegionAncestor]
+      if let regionID = revision.wineRegionID {
+        if let cached = ancestorCache[regionID] {
+          responseAncestors = cached
+        } else {
+          let loaded = try await regionAncestors(regionID: regionID, db: db)
+          ancestorCache[regionID] = loaded
+          responseAncestors = loaded
+        }
+      } else {
+        responseAncestors = []
+      }
       let responsePayload = ScoringAnswerPayload(
         wineRegionID: revision.wineRegionID,
         producerWineRegionID: revision.producerWineRegionID,
@@ -313,16 +353,20 @@ enum RatingSettlement {
 
   static func settle(
     eventID: UUID,
+    organizerUserID: UUID,
+    answersPublishedAt: Date,
     database: PostgresClient
   ) async throws {
     try await database.withTransaction { db in
-      let season =
-        try await RatingSeasonRecord
-        .where { $0.endsAt.is(nil) }
-        .order { ($0.startsAt.desc(), $0.id.desc()) }
-        .limit(1)
-        .fetchOne(db)
-      guard let season else { return }
+      let lockEvent: QueryFragment =
+        "SELECT id FROM public.events WHERE id = \(eventID, as: UUID.self) FOR UPDATE"
+      try await db.executeFragment(lockEvent)
+
+      guard
+        let season = try await seasonForSettlement(at: answersPublishedAt, db: db)
+      else {
+        return
+      }
 
       let questions =
         try await EventQuestionRecord
@@ -331,6 +375,10 @@ enum RatingSettlement {
         .fetchAll(db)
 
       for question in questions {
+        let lockQuestion: QueryFragment =
+          "SELECT id FROM public.event_questions WHERE id = \(question.id, as: UUID.self) FOR UPDATE"
+        try await db.executeFragment(lockQuestion)
+
         let existing =
           try await UserRatingLedgerRecord
           .where {
@@ -341,7 +389,9 @@ enum RatingSettlement {
           .fetchOne(db)
         if existing != nil { continue }
 
-        let scores = try await API.scoreQuestion(questionID: question.id, db: db)
+        let scores =
+          try await API.scoreQuestion(questionID: question.id, db: db)
+          .filter { $0.0 != organizerUserID }
         guard !scores.isEmpty else { continue }
         let average =
           scores.map(\.1.performance).reduce(0, +) / Double(scores.count)
@@ -351,36 +401,31 @@ enum RatingSettlement {
             performance: result.performance,
             fieldAverage: average
           )
-          let current =
+          let now = Date()
+          let upsert: QueryFragment = """
+            INSERT INTO public.user_season_ratings (user_id, season_id, rating, updated_at)
+            VALUES (
+              \(userID, as: UUID.self),
+              \(season.id, as: UUID.self),
+              \(initialRating + delta, as: Int.self),
+              \(now, as: Date.self)
+            )
+            ON CONFLICT (user_id, season_id) DO UPDATE
+            SET rating = public.user_season_ratings.rating + \(delta, as: Int.self),
+                updated_at = EXCLUDED.updated_at
+            """
+          try await db.executeFragment(upsert)
+
+          let ratingAfter =
             try await UserSeasonRatingRecord
             .where {
               $0.userID.eq(userID)
                 .and($0.seasonID.eq(season.id))
             }
             .limit(1)
-            .fetchOne(db)
-          let ratingBefore = current?.rating ?? initialRating
-          let ratingAfter = ratingBefore + delta
-          let now = Date()
-          if current != nil {
-            let updateQuery: QueryFragment = """
-              UPDATE public.user_season_ratings
-              SET rating = \(ratingAfter, as: Int.self),
-                  updated_at = \(now, as: Date.self)
-              WHERE user_id = \(userID, as: UUID.self)
-                AND season_id = \(season.id, as: UUID.self)
-              """
-            try await db.executeFragment(updateQuery)
-          } else {
-            try await UserSeasonRatingRecord.insert {
-              UserSeasonRatingRecord(
-                userID: userID,
-                seasonID: season.id,
-                rating: ratingAfter,
-                updatedAt: now
-              )
-            }.execute(db)
-          }
+            .fetchOne(db)?
+            .rating ?? (initialRating + delta)
+
           try await UserRatingLedgerRecord.insert {
             UserRatingLedgerRecord(
               id: UUID(uuidString: UUID.uuidV7String())!,
@@ -396,6 +441,54 @@ enum RatingSettlement {
           }.execute(db)
         }
       }
+    }
+  }
+
+  /// Reverses rating deltas and deletes ledger rows for a question so it can be settled again.
+  static func invalidateQuestion(
+    questionID: UUID,
+    database: PostgresClient
+  ) async throws {
+    try await database.withTransaction { db in
+      let lockQuestion: QueryFragment =
+        "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
+      try await db.executeFragment(lockQuestion)
+
+      let entries =
+        try await UserRatingLedgerRecord
+        .where { $0.eventQuestionID.eq(questionID) }
+        .fetchAll(db)
+      let now = Date()
+      for entry in entries {
+        let reverse: QueryFragment = """
+          UPDATE public.user_season_ratings
+          SET rating = rating - \(entry.delta, as: Int.self),
+              updated_at = \(now, as: Date.self)
+          WHERE user_id = \(entry.userID, as: UUID.self)
+            AND season_id = \(entry.seasonID, as: UUID.self)
+          """
+        try await db.executeFragment(reverse)
+      }
+      let deleteLedger: QueryFragment =
+        "DELETE FROM public.user_rating_ledger WHERE event_question_id = \(questionID, as: UUID.self)"
+      try await db.executeFragment(deleteLedger)
+    }
+  }
+
+  static func seasonForSettlement(
+    at publishedAt: Date,
+    db: any Database.Connection.`Protocol`
+  ) async throws -> RatingSeasonRecord? {
+    let seasons =
+      try await RatingSeasonRecord
+      .order { ($0.startsAt.desc(), $0.id.desc()) }
+      .fetchAll(db)
+    return seasons.first { season in
+      guard season.startsAt <= publishedAt else { return false }
+      if let endsAt = season.endsAt {
+        return endsAt > publishedAt
+      }
+      return true
     }
   }
 }
