@@ -22,8 +22,9 @@ ALTER TABLE public.event_revisions
   ADD CONSTRAINT event_revisions_responses_due_before_or_at_answers_published
     CHECK (responses_due_at <= answers_published_at);
 
--- Move scoring rules from event to question
-DROP TABLE IF EXISTS public.event_region_score_rules;
+-- Event-level score rules are replaced by per-question tables.
+-- Existing rows are discarded intentionally (no data migration).
+DROP TABLE IF EXISTS public.event_region_score_rules CASCADE;
 
 CREATE TABLE public.event_question_region_score_rules (
   event_question_id uuid NOT NULL,
