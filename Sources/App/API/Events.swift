@@ -1276,12 +1276,14 @@ extension API {
     questionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws {
-    let regionDelete: QueryFragment =
-      "DELETE FROM public.event_question_region_score_rules WHERE event_question_id = \(questionID, as: UUID.self)"
-    try await db.executeFragment(regionDelete)
-    let componentDelete: QueryFragment =
-      "DELETE FROM public.event_question_score_component_rules WHERE event_question_id = \(questionID, as: UUID.self)"
-    try await db.executeFragment(componentDelete)
+    try await EventQuestionRegionScoreRuleRecord
+      .where { $0.eventQuestionID.eq(questionID) }
+      .delete()
+      .execute(db)
+    try await EventQuestionScoreComponentRuleRecord
+      .where { $0.eventQuestionID.eq(questionID) }
+      .delete()
+      .execute(db)
     if !regionScoreRules.isEmpty {
       try await EventQuestionRegionScoreRuleRecord.insert { regionScoreRules }.execute(db)
     }
@@ -1573,18 +1575,14 @@ extension API {
     eventID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws {
-    let query: QueryFragment =
-      "SELECT id FROM public.events WHERE id = \(eventID, as: UUID.self) FOR UPDATE"
-    try await db.executeFragment(query)
+    try await RowLocks.event(eventID, db: db)
   }
 
   fileprivate func lockEventQuestion(
     questionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws {
-    let query: QueryFragment =
-      "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
-    try await db.executeFragment(query)
+    try await RowLocks.eventQuestion(questionID, db: db)
   }
 
   fileprivate func ownedImageExists(

@@ -150,12 +150,10 @@ extension API {
           .limit(1)
           .fetchOne(db)
         if let active {
-          let closeQuery: QueryFragment = """
-            UPDATE public.rating_seasons
-            SET ends_at = \(now, as: Date.self)
-            WHERE id = \(active.id, as: UUID.self)
-            """
-          try await db.executeFragment(closeQuery)
+          try await RatingSeasonRecord
+            .where { $0.id.eq(active.id) }
+            .update { $0.endsAt = Optional.some(now) }
+            .execute(db)
         }
         let season = RatingSeasonRecord(
           id: UUID(uuidString: UUID.uuidV7String())!,

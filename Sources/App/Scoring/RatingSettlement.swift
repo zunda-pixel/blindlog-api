@@ -14,9 +14,7 @@ enum RatingSettlement {
     database: PostgresClient
   ) async throws {
     try await database.withTransaction { db in
-      let lockEvent: QueryFragment =
-        "SELECT id FROM public.events WHERE id = \(eventID, as: UUID.self) FOR UPDATE"
-      try await db.executeFragment(lockEvent)
+      try await RowLocks.event(eventID, db: db)
 
       guard
         let season = try await seasonForSettlement(at: answersPublishedAt, db: db)
@@ -31,9 +29,7 @@ enum RatingSettlement {
         .fetchAll(db)
 
       for question in questions {
-        let lockQuestion: QueryFragment =
-          "SELECT id FROM public.event_questions WHERE id = \(question.id, as: UUID.self) FOR UPDATE"
-        try await db.executeFragment(lockQuestion)
+        try await RowLocks.eventQuestion(question.id, db: db)
 
         let existing =
           try await UserRatingLedgerRecord
@@ -58,29 +54,13 @@ enum RatingSettlement {
             fieldAverage: average
           )
           let now = Date()
-          let upsert: QueryFragment = """
-            INSERT INTO public.user_season_ratings (user_id, season_id, rating, updated_at)
-            VALUES (
-              \(userID, as: UUID.self),
-              \(season.id, as: UUID.self),
-              \(initialRating + delta, as: Int.self),
-              \(now, as: Date.self)
-            )
-            ON CONFLICT (user_id, season_id) DO UPDATE
-            SET rating = public.user_season_ratings.rating + \(delta, as: Int.self),
-                updated_at = EXCLUDED.updated_at
-            """
-          try await db.executeFragment(upsert)
-
-          let ratingAfter =
-            try await UserSeasonRatingRecord
-            .where {
-              $0.userID.eq(userID)
-                .and($0.seasonID.eq(season.id))
-            }
-            .limit(1)
-            .fetchOne(db)?
-            .rating ?? (initialRating + delta)
+          let ratingAfter = try await applyRatingDelta(
+            userID: userID,
+            seasonID: season.id,
+            delta: delta,
+            now: now,
+            db: db
+          )
 
           try await UserRatingLedgerRecord.insert {
             UserRatingLedgerRecord(
@@ -114,9 +94,7 @@ enum RatingSettlement {
     questionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws {
-    let lockQuestion: QueryFragment =
-      "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
-    try await db.executeFragment(lockQuestion)
+    try await RowLocks.eventQuestion(questionID, db: db)
 
     let entries =
       try await UserRatingLedgerRecord
@@ -124,18 +102,30 @@ enum RatingSettlement {
       .fetchAll(db)
     let now = Date()
     for entry in entries {
-      let reverse: QueryFragment = """
-        UPDATE public.user_season_ratings
-        SET rating = rating - \(entry.delta, as: Int.self),
-            updated_at = \(now, as: Date.self)
-        WHERE user_id = \(entry.userID, as: UUID.self)
-          AND season_id = \(entry.seasonID, as: UUID.self)
-        """
-      try await db.executeFragment(reverse)
+      let existing =
+        try await UserSeasonRatingRecord
+        .where {
+          $0.userID.eq(entry.userID)
+            .and($0.seasonID.eq(entry.seasonID))
+        }
+        .limit(1)
+        .fetchOne(db)
+      guard let existing else { continue }
+      try await UserSeasonRatingRecord
+        .where {
+          $0.userID.eq(entry.userID)
+            .and($0.seasonID.eq(entry.seasonID))
+        }
+        .update {
+          $0.rating = existing.rating - entry.delta
+          $0.updatedAt = now
+        }
+        .execute(db)
     }
-    let deleteLedger: QueryFragment =
-      "DELETE FROM public.user_rating_ledger WHERE event_question_id = \(questionID, as: UUID.self)"
-    try await db.executeFragment(deleteLedger)
+    try await UserRatingLedgerRecord
+      .where { $0.eventQuestionID.eq(questionID) }
+      .delete()
+      .execute(db)
   }
 
   static func seasonForSettlement(
@@ -153,5 +143,49 @@ enum RatingSettlement {
       }
       return true
     }
+  }
+
+  /// Applies `delta` to the user's season rating and returns the rating after the change.
+  private static func applyRatingDelta(
+    userID: UUID,
+    seasonID: UUID,
+    delta: Int,
+    now: Date,
+    db: any Database.Connection.`Protocol`
+  ) async throws -> Int {
+    let existing =
+      try await UserSeasonRatingRecord
+      .where {
+        $0.userID.eq(userID)
+          .and($0.seasonID.eq(seasonID))
+      }
+      .limit(1)
+      .fetchOne(db)
+
+    if let existing {
+      let ratingAfter = existing.rating + delta
+      try await UserSeasonRatingRecord
+        .where {
+          $0.userID.eq(userID)
+            .and($0.seasonID.eq(seasonID))
+        }
+        .update {
+          $0.rating = ratingAfter
+          $0.updatedAt = now
+        }
+        .execute(db)
+      return ratingAfter
+    }
+
+    let ratingAfter = initialRating + delta
+    try await UserSeasonRatingRecord.insert {
+      UserSeasonRatingRecord(
+        userID: userID,
+        seasonID: seasonID,
+        rating: ratingAfter,
+        updatedAt: now
+      )
+    }.execute(db)
+    return ratingAfter
   }
 }
