@@ -199,13 +199,15 @@ extension API {
     questionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> [(UUID, QuestionScoreResult)] {
-    let correct = try await EventQuestionCorrectAnswerRecord
+    let correct =
+      try await EventQuestionCorrectAnswerRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .limit(1)
       .fetchOne(db)
     guard let correct else { return [] }
 
-    let correctRevision = try await EventQuestionCorrectAnswerRevisionRecord
+    let correctRevision =
+      try await EventQuestionCorrectAnswerRevisionRecord
       .where { $0.eventQuestionCorrectAnswerID.eq(correct.id) }
       .order { ($0.createdAt.desc(), $0.id.desc()) }
       .limit(1)
@@ -247,7 +249,8 @@ extension API {
 
     var results: [(UUID, QuestionScoreResult)] = []
     for response in responses {
-      let revision = try await EventQuestionResponseRevisionRecord
+      let revision =
+        try await EventQuestionResponseRevisionRecord
         .where { $0.eventQuestionResponseID.eq(response.id) }
         .order { ($0.submittedAt.desc(), $0.id.desc()) }
         .limit(1)
@@ -313,7 +316,8 @@ enum RatingSettlement {
     database: PostgresClient
   ) async throws {
     try await database.withTransaction { db in
-      let season = try await RatingSeasonRecord
+      let season =
+        try await RatingSeasonRecord
         .where { $0.endsAt.is(nil) }
         .order { ($0.startsAt.desc(), $0.id.desc()) }
         .limit(1)

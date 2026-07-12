@@ -131,7 +131,8 @@ extension API {
     do {
       let now = Date()
       let season = try await database.withTransaction { db -> RatingSeasonRecord in
-        let active = try await RatingSeasonRecord
+        let active =
+          try await RatingSeasonRecord
           .where { $0.endsAt.is(nil) }
           .order { ($0.startsAt.desc(), $0.id.desc()) }
           .limit(1)
