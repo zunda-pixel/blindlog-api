@@ -114,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/postgres-kit.git",
       "state" : {
-        "revision" : "7c079553e9cda74811e627775bf22e40a9405ad9",
-        "version" : "2.15.1"
+        "revision" : "218aaf6810db9e61398f887aaaf26424142bdb53",
+        "version" : "2.16.1"
       }
     },
     {
