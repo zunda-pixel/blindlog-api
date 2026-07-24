@@ -14,6 +14,7 @@ services:
       - ./Database/extensions.sql:/docker-entrypoint-initdb.d/001_extensions.sql:ro
       - ./Database/schema.sql:/docker-entrypoint-initdb.d/002_schema.sql:ro
       - ./Database/migrations/20260531060000_seed_wine_master_data.sql:/docker-entrypoint-initdb.d/003_seed_wine_master_data.sql:ro
+      - ./Database/seeds/006_rating_seasons.sql:/docker-entrypoint-initdb.d/004_rating_seasons.sql:ro
 
   otel-collector:
     image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.155.0-386
