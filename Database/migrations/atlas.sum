@@ -1,4 +1,4 @@
-h1:IoivRpcxvFHmFXwgfytPEcAhmnBnx639d1yI2xsKOyI=
+h1:H2w0TP/uMjKXHOp5ujjLFDwzaEpOCEyfkJ3PGSGDN0c=
 000001_initial_schema.sql h1:iQH63d3ckYBCOcFnKf6nkOsitlGdpumeDPFZMcnCuz4=
 20260531034124_events.sql h1:PedeyzF85utC/LHxKCc9z5Gs8puDptsTNkRapWNKjrI=
 20260531060000_seed_wine_master_data.sql h1:54BEUlfrgkN/2W4aM32RYFg5x74O9IeSS/lR0v04t7g=
@@ -7,3 +7,4 @@ h1:IoivRpcxvFHmFXwgfytPEcAhmnBnx639d1yI2xsKOyI=
 20260614000000_event_numeric_to_double.sql h1:HYqgZIhm49OAktZVbjez1REs+kI/kqPcAoZX6BViHeE=
 20260614010000_correct_answer_aggregate.sql h1:ocjHzVrl5ods0XrvXy9gNvLXPoR7O3nCoN/wzn/4mRA=
 20260614020000_response_aggregate.sql h1:7VhFaEnN4OqUqhR/6YICgw42hTToFVPc1Yc1Y/Rq3ug=
+20260712120000_scoring_and_rating.sql h1:g2/fQ1+g49xP3rW1SSmW09zlL0KcopVgRJVex4wOn2E=

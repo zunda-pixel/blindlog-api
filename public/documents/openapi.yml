@@ -18,6 +18,8 @@ tags:
     description: Cloudflare Images direct upload and image registration endpoints.
   - name: Events
     description: Blind tasting event, participant, question, answer, and response endpoints.
+  - name: Ratings
+    description: Seasonal rating, ledger, and rating leaderboard endpoints.
   - name: Wine Master Data
     description: Read-only wine style, variety, and region reference data.
 paths:
@@ -602,7 +604,7 @@ paths:
       tags:
         - Events
       summary: Create event
-      description: Creates a blind tasting event with venue, schedule, visibility, and scoring rule settings.
+      description: Creates a blind tasting event with venue, schedule, visibility, and response deadlines.
       security:
         - bearerAuth: []
       requestBody:
@@ -1363,6 +1365,281 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/APIError'
+  /events/{event_id}/scores:
+    get:
+      operationId: getEventScores
+      tags:
+        - Events
+      summary: List event participant scores
+      description: Returns per-participant score totals and per-question score summaries for an event. The event organizer is excluded even if they submitted a response.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event ID in UUID format.
+      responses:
+        '200':
+          description: A success response with participant scores for the event.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventParticipantScore'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not found Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Answers are not published yet, or the caller is not an organizer or participant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /events/{event_id}/leaderboard:
+    get:
+      operationId: getEventLeaderboard
+      tags:
+        - Events
+      summary: Get event leaderboard
+      description: Returns ranked participant scores for an event. The event organizer is excluded even if they submitted a response.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event ID in UUID format.
+      responses:
+        '200':
+          description: A success response with the event leaderboard.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventLeaderboardEntry'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not found Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Answers are not published yet, or the caller is not an organizer or participant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /events/{event_id}/questions/{question_id}/scores:
+    get:
+      operationId: getEventQuestionScores
+      tags:
+        - Events
+      summary: List question scores
+      description: Returns per-user scores and score component breakdown for a question. The event organizer is excluded even if they submitted a response.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event ID in UUID format.
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Target event question ID in UUID format.
+      responses:
+        '200':
+          description: A success response with per-user scores for the question.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventQuestionUserScore'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not found Event Question
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Answers are not published yet, or the caller is not an organizer or participant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /me/rating:
+    get:
+      operationId: getMyRating
+      tags:
+        - Ratings
+      summary: Get my rating
+      description: Returns the authenticated user's current seasonal rating and recent rating ledger entries.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A success response with the authenticated user's rating.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRating'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: No active rating season
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /ratings/leaderboard:
+    get:
+      operationId: getRatingLeaderboard
+      tags:
+        - Ratings
+      summary: Get rating leaderboard
+      description: Returns ranked user ratings for a season. When season_id is omitted, the current season is used.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: season_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Optional rating season ID in UUID format. Defaults to the current season when omitted.
+      responses:
+        '200':
+          description: A success response with the rating leaderboard.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RatingLeaderboardEntry'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not found Rating Season
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+  /rating_seasons:
+    post:
+      operationId: createRatingSeason
+      tags:
+        - Ratings
+      summary: Create rating season
+      description: Creates a new rating season and closes the previously active season by setting its ends_at.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRatingSeasonRequest'
+      responses:
+        '200':
+          description: A success response with the created rating season.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingSeason'
+        '400':
+          description: A bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden — caller is not an admin user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
   /wine/styles:
     get:
       operationId: getWineStyles
@@ -1810,9 +2087,14 @@ components:
           $ref: '#/components/schemas/DateTimePeriod'
         eventPeriod:
           $ref: '#/components/schemas/DateTimePeriod'
+        responsesDueAt:
+          type: number
+          format: double
+          description: Deadline for submitting responses, as Foundation reference date seconds.
         answersPublishedAt:
           type: number
           format: double
+          description: Instant when answers are published, as Foundation reference date seconds.
         capacity:
           type: integer
           format: int32
@@ -1826,10 +2108,6 @@ components:
         canceledAt:
           type: number
           format: double
-        regionScoreRules:
-          type: array
-          items:
-            $ref: '#/components/schemas/EventRegionScoreRule'
         createdAt:
           type: number
           format: double
@@ -1841,8 +2119,9 @@ components:
         - venueName
         - venueAddress
         - eventPeriod
+        - responsesDueAt
+        - answersPublishedAt
         - visibility
-        - regionScoreRules
         - createdAt
     CreateEventRequest:
       type: object
@@ -1865,12 +2144,14 @@ components:
           $ref: '#/components/schemas/DateTimePeriod'
         eventPeriod:
           $ref: '#/components/schemas/DateTimePeriod'
-        answersPublishedAt:
-          type:
-            - number
-            - 'null'
+        responsesDueAt:
+          type: number
           format: double
-          description: For PUT requests, omit or set null to clear.
+          description: Deadline for submitting responses, as Foundation reference date seconds.
+        answersPublishedAt:
+          type: number
+          format: double
+          description: Instant when answers are published, as Foundation reference date seconds.
         capacity:
           type: integer
           format: int32
@@ -1890,20 +2171,18 @@ components:
             - 'null'
           format: double
           description: For PUT requests, omit or set null to clear.
-        regionScoreRules:
-          type: array
-          items:
-            $ref: '#/components/schemas/CreateEventRegionScoreRuleRequest'
       required:
         - title
         - body
         - venueName
         - venueAddress
         - eventPeriod
+        - responsesDueAt
+        - answersPublishedAt
         - visibility
-    EventRegionScoreRule:
+    QuestionRegionScoreRule:
       type: object
-      description: A point rule for matching a wine region type in an event.
+      description: A point rule for matching a wine region type for a question.
       properties:
         wineRegionTypeID:
           type: string
@@ -1919,9 +2198,9 @@ components:
         - wineRegionTypeID
         - points
         - createdAt
-    CreateEventRegionScoreRuleRequest:
+    CreateQuestionRegionScoreRuleRequest:
       type: object
-      description: A request item for an event wine region type score rule.
+      description: A request item for a question wine region type score rule.
       properties:
         wineRegionTypeID:
           type: string
@@ -1932,6 +2211,64 @@ components:
           minimum: 0
       required:
         - wineRegionTypeID
+        - points
+    QuestionScoreComponentRule:
+      type: object
+      description: A point rule for a non-region score component on a question.
+      properties:
+        component:
+          type: string
+          enum:
+            - variety
+            - vintage
+            - alcohol
+            - producer
+            - feature
+        points:
+          type: integer
+          format: int32
+          minimum: 0
+        partialPoints:
+          type: integer
+          format: int32
+          minimum: 0
+        alcoholTolerance:
+          type: number
+          format: double
+          minimum: 0
+        createdAt:
+          type: number
+          format: double
+      required:
+        - component
+        - points
+        - createdAt
+    CreateQuestionScoreComponentRuleRequest:
+      type: object
+      description: A request item for a non-region score component rule on a question.
+      properties:
+        component:
+          type: string
+          enum:
+            - variety
+            - vintage
+            - alcohol
+            - producer
+            - feature
+        points:
+          type: integer
+          format: int32
+          minimum: 0
+        partialPoints:
+          type: integer
+          format: int32
+          minimum: 0
+        alcoholTolerance:
+          type: number
+          format: double
+          minimum: 0
+      required:
+        - component
         - points
     DateTimePeriod:
       type: object
@@ -2060,6 +2397,14 @@ components:
           description: Cloudflare Images delivery URL for the question image, when an image is set.
         note:
           type: string
+        regionScoreRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionRegionScoreRule'
+        scoreComponentRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionScoreComponentRule'
         createdAt:
           type: number
           format: double
@@ -2067,6 +2412,8 @@ components:
         - id
         - eventID
         - questionNumber
+        - regionScoreRules
+        - scoreComponentRules
         - createdAt
     CreateEventQuestionRequest:
       type: object
@@ -2080,6 +2427,16 @@ components:
           format: uuid
         note:
           type: string
+        regionScoreRules:
+          type: array
+          description: Optional region score rules. Defaults to an empty array when omitted.
+          items:
+            $ref: '#/components/schemas/CreateQuestionRegionScoreRuleRequest'
+        scoreComponentRules:
+          type: array
+          description: Optional score component rules. Defaults to an empty array when omitted.
+          items:
+            $ref: '#/components/schemas/CreateQuestionScoreComponentRuleRequest'
       required:
         - questionNumber
     CreateEventQuestionCorrectAnswerRequest:
@@ -2087,6 +2444,9 @@ components:
       description: A request to create the correct answer for a question.
       properties:
         wineRegionID:
+          type: string
+          format: uuid
+        producerWineRegionID:
           type: string
           format: uuid
         vintage:
@@ -2098,6 +2458,8 @@ components:
           format: double
           minimum: 0
           maximum: 100
+        feature:
+          type: string
         wineVarietyIDs:
           type: array
           uniqueItems: true
@@ -2119,6 +2481,9 @@ components:
         wineRegionID:
           type: string
           format: uuid
+        producerWineRegionID:
+          type: string
+          format: uuid
         vintage:
           type: integer
           format: int32
@@ -2128,6 +2493,8 @@ components:
           format: double
           minimum: 0
           maximum: 100
+        feature:
+          type: string
         wineVarietyIDs:
           type: array
           uniqueItems: true
@@ -2149,6 +2516,9 @@ components:
         wineRegionID:
           type: string
           format: uuid
+        producerWineRegionID:
+          type: string
+          format: uuid
         vintage:
           type: integer
           format: int32
@@ -2158,6 +2528,8 @@ components:
           format: double
           minimum: 0
           maximum: 100
+        feature:
+          type: string
         note:
           type: string
         wineVarietyIDs:
@@ -2184,6 +2556,9 @@ components:
         wineRegionID:
           type: string
           format: uuid
+        producerWineRegionID:
+          type: string
+          format: uuid
         vintage:
           type: integer
           format: int32
@@ -2193,6 +2568,8 @@ components:
           format: double
           minimum: 0
           maximum: 100
+        feature:
+          type: string
         note:
           type: string
         wineVarietyIDs:
@@ -2204,6 +2581,7 @@ components:
         submittedAt:
           type: number
           format: double
+          description: Instant of the latest response revision, as Foundation reference date seconds.
       required:
         - id
         - eventQuestionID
@@ -2445,3 +2823,221 @@ components:
       required:
         - email
         - otp
+    ScoreComponentResult:
+      type: object
+      description: Earned and maximum points for a single score component.
+      properties:
+        component:
+          type: string
+          enum:
+            - region
+            - variety
+            - vintage
+            - alcohol
+            - producer
+            - feature
+        earnedPoints:
+          type: integer
+          format: int32
+        maxPoints:
+          type: integer
+          format: int32
+      required:
+        - component
+        - earnedPoints
+        - maxPoints
+    QuestionScoreSummary:
+      type: object
+      description: Per-question score summary for a participant.
+      properties:
+        eventQuestionID:
+          type: string
+          format: uuid
+        earnedPoints:
+          type: integer
+          format: int32
+        maxPoints:
+          type: integer
+          format: int32
+        performance:
+          type: number
+          format: double
+      required:
+        - eventQuestionID
+        - earnedPoints
+        - maxPoints
+        - performance
+    EventParticipantScore:
+      type: object
+      description: Aggregate score for an event participant.
+      properties:
+        userID:
+          type: string
+          format: uuid
+        totalEarnedPoints:
+          type: integer
+          format: int32
+        totalMaxPoints:
+          type: integer
+          format: int32
+        questionScores:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionScoreSummary'
+      required:
+        - userID
+        - totalEarnedPoints
+        - totalMaxPoints
+        - questionScores
+    EventLeaderboardEntry:
+      type: object
+      description: A ranked entry on an event score leaderboard.
+      properties:
+        rank:
+          type: integer
+          format: int32
+        userID:
+          type: string
+          format: uuid
+        totalEarnedPoints:
+          type: integer
+          format: int32
+        totalMaxPoints:
+          type: integer
+          format: int32
+      required:
+        - rank
+        - userID
+        - totalEarnedPoints
+        - totalMaxPoints
+    EventQuestionUserScore:
+      type: object
+      description: Per-user score and component breakdown for a question.
+      properties:
+        userID:
+          type: string
+          format: uuid
+        earnedPoints:
+          type: integer
+          format: int32
+        maxPoints:
+          type: integer
+          format: int32
+        performance:
+          type: number
+          format: double
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreComponentResult'
+      required:
+        - userID
+        - earnedPoints
+        - maxPoints
+        - performance
+        - components
+    RatingLedgerEntry:
+      type: object
+      description: A rating change recorded after a question performance.
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventQuestionID:
+          type: string
+          format: uuid
+        performance:
+          type: number
+          format: double
+        fieldAverage:
+          type: number
+          format: double
+        delta:
+          type: integer
+          format: int32
+        ratingAfter:
+          type: integer
+          format: int32
+        createdAt:
+          type: number
+          format: double
+      required:
+        - id
+        - eventQuestionID
+        - performance
+        - fieldAverage
+        - delta
+        - ratingAfter
+        - createdAt
+    UserRating:
+      type: object
+      description: The authenticated user's seasonal rating and recent ledger.
+      properties:
+        seasonID:
+          type: string
+          format: uuid
+        seasonName:
+          type: string
+        rating:
+          type: integer
+          format: int32
+        recentLedger:
+          type: array
+          items:
+            $ref: '#/components/schemas/RatingLedgerEntry'
+      required:
+        - seasonID
+        - seasonName
+        - rating
+        - recentLedger
+    RatingLeaderboardEntry:
+      type: object
+      description: A ranked entry on a seasonal rating leaderboard.
+      properties:
+        rank:
+          type: integer
+          format: int32
+        userID:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          format: int32
+      required:
+        - rank
+        - userID
+        - rating
+    CreateRatingSeasonRequest:
+      type: object
+      description: A request to create a rating season.
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    RatingSeason:
+      type: object
+      description: A rating season window.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        startsAt:
+          type: number
+          format: double
+        endsAt:
+          type:
+            - number
+            - 'null'
+          format: double
+        createdAt:
+          type: number
+          format: double
+      required:
+        - id
+        - name
+        - startsAt
+        - endsAt
+        - createdAt
