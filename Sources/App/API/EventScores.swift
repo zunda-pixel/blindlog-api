@@ -232,6 +232,13 @@ extension API {
     questionID: UUID,
     db: any Database.Connection.`Protocol`
   ) async throws -> [(UUID, QuestionScoreResult)] {
+    let question =
+      try await EventQuestionRecord
+      .where { $0.id.eq(questionID) }
+      .limit(1)
+      .fetchOne(db)
+    guard let question else { return [] }
+
     let correct =
       try await EventQuestionCorrectAnswerRecord
       .where { $0.eventQuestionID.eq(questionID) }
@@ -281,6 +288,18 @@ extension API {
       .fetchAll(db)
     guard !responses.isEmpty else { return [] }
 
+    let responseUserIDs = responses.map(\.userID)
+    let canceledParticipantUserIDs = Set(
+      try await EventParticipantRecord
+        .where {
+          $0.eventID.eq(question.eventID)
+            .and($0.userID.in(responseUserIDs))
+            .and($0.status.eq(EventParticipantRecord.Status.canceled))
+        }
+        .fetchAll(db)
+        .map(\.userID)
+    )
+
     let responseIDs = responses.map(\.id)
     let allRevisions =
       try await EventQuestionResponseRevisionRecord
@@ -310,7 +329,9 @@ extension API {
     var ancestorCache: [UUID: [RegionAncestor]] = [:]
     var results: [(UUID, QuestionScoreResult)] = []
     for response in responses {
-      guard let revision = latestRevisionByResponseID[response.id] else { continue }
+      guard !canceledParticipantUserIDs.contains(response.userID),
+        let revision = latestRevisionByResponseID[response.id]
+      else { continue }
       let varieties = varietiesByRevisionID[revision.id, default: []].map(\.wineVarietyID)
       let responseAncestors: [RegionAncestor]
       if let regionID = revision.wineRegionID {
