@@ -3,7 +3,7 @@
 # ================================
 # Build image
 # ================================
-FROM swift:6.3.3-noble AS build
+FROM swift:6.4.0-noble AS build
 
 # Install OS updates
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -11,7 +11,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
     && apt-get -q update \
     && apt-get -q dist-upgrade -y \
-    && apt-get install -y libjemalloc-dev libssl-dev
+    && apt-get install -y libssl-dev
+
+# Install the Static Linux SDK (musl) matching the toolchain version
+RUN swift sdk install \
+    https://download.swift.org/swift-6.4.0-release/static-sdk/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE_static-linux-0.1.0.artifactbundle.tar.gz \
+    --checksum 47d2fd89eebfdf9eb4d536b6710414297f755c17926cdebc4742c08982b40a9e
 
 # Set up a build area
 WORKDIR /build
@@ -28,27 +33,26 @@ RUN --mount=type=cache,target=/build/.build,sharing=locked \
 # Copy entire repo into container
 COPY . .
 
-# Build the application, with optimizations, with static linking, and using jemalloc
+# Build the application, with optimizations, as a fully static executable using the Static Linux SDK
 RUN --mount=type=cache,target=/build/.build,sharing=locked \
     --mount=type=cache,target=/root/.cache,sharing=locked \
     swift build -c release \
     --product "App" \
-    --static-swift-stdlib \
-    -Xlinker -ljemalloc
+    --swift-sdk "$(uname -m)-swift-linux-musl"
 
 # Switch to the staging area
 WORKDIR /staging
 
 # Copy main executable to staging area
 RUN --mount=type=cache,target=/build/.build,sharing=locked \
-    cp "$(swift build --package-path /build -c release --show-bin-path)/App" ./
+    cp "$(swift build --package-path /build -c release --swift-sdk "$(uname -m)-swift-linux-musl" --show-bin-path)/App" ./
 
 # Copy static swift backtracer binary to staging area
 RUN cp "/usr/libexec/swift/linux/swift-backtrace-static" ./
 
 # Copy resources bundled by SPM to staging area
 RUN --mount=type=cache,target=/build/.build,sharing=locked \
-    find -L "$(swift build --package-path /build -c release --show-bin-path)/" -regex '.*\.resources$' -exec cp -Ra {} ./ \;
+    find -L "$(swift build --package-path /build -c release --swift-sdk "$(uname -m)-swift-linux-musl" --show-bin-path)/" -regex '.*\.resources$' -exec cp -Ra {} ./ \;
 
 # Copy any resouces from the public directory and views directory if the directories exist
 # Ensure that by default, neither the directory nor any of its contents are writable.
@@ -66,13 +70,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get -q update \
     && apt-get -q dist-upgrade -y \
     && apt-get -q install -y \
-      libjemalloc2 \
       ca-certificates \
-      tzdata \
-# If your app or its dependencies import FoundationNetworking, also install `libcurl4`.
-      libcurl4 \
-# If your app or its dependencies import FoundationXML, also install `libxml2`.
-      libxml2
+      tzdata
 
 # Create a hummingbird user and group with /app as its home directory
 RUN useradd --user-group --create-home --system --skel /dev/null --home-dir /app hummingbird
