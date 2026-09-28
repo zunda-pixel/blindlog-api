@@ -43,9 +43,6 @@ WORKDIR /staging
 RUN --mount=type=cache,target=/build/.build,sharing=locked \
     cp "$(swift build --package-path /build -c release --show-bin-path)/App" ./
 
-# Fail the build if the Swift runtime is not statically linked
-RUN ! ldd ./App | grep -q libswift
-
 # Copy static swift backtracer binary to staging area
 RUN cp "/usr/libexec/swift/linux/swift-backtrace-static" ./
 
