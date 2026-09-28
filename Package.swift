@@ -1,12 +1,12 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 
 import PackageDescription
 
 let package = Package(
   name: "App",
   platforms: [
-    .macOS(.v15),
-    .iOS(.v18),
+    .macOS(.v27),
+    .iOS(.v27),
   ],
   products: [
     .executable(
