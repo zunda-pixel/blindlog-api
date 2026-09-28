@@ -3,7 +3,7 @@
 # ================================
 # Build image
 # ================================
-FROM swift:6.3.3-noble AS build
+FROM swift:6.4.0-noble AS build
 
 # Install OS updates
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/build/.build,sharing=locked \
     --mount=type=cache,target=/root/.cache,sharing=locked \
     swift build -c release \
     --product "App" \
-    --static-swift-stdlib \
+    -Xswiftc -static-stdlib \
     -Xlinker -ljemalloc
 
 # Switch to the staging area
