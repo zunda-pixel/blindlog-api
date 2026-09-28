@@ -3,7 +3,7 @@
 # ================================
 # Build image
 # ================================
-FROM swift:6.4.1-noble AS build
+FROM swift:6.4.0-noble AS build
 
 # Install OS updates
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/build/.build,sharing=locked \
     --mount=type=cache,target=/root/.cache,sharing=locked \
     swift build -c release \
     --product "App" \
-    --static-swift-stdlib \
+    -Xswiftc -static-stdlib \
     -Xlinker -ljemalloc
 
 # Switch to the staging area
@@ -42,6 +42,9 @@ WORKDIR /staging
 # Copy main executable to staging area
 RUN --mount=type=cache,target=/build/.build,sharing=locked \
     cp "$(swift build --package-path /build -c release --show-bin-path)/App" ./
+
+# Fail the build if the Swift runtime is not statically linked
+RUN ! ldd ./App | grep -q libswift
 
 # Copy static swift backtracer binary to staging area
 RUN cp "/usr/libexec/swift/linux/swift-backtrace-static" ./
