@@ -4,6 +4,7 @@ enum APIErrorCode: String, Sendable {
   case badRequest = "bad_request"
   case unauthorized
   case notFound = "not_found"
+  case forbidden
 
   case invalidRequest = "invalid_request"
   case challengeVerifyFailed = "challenge_verify_failed"
@@ -512,5 +513,107 @@ extension Operations.UpdateMyEventQuestionResponse.Output {
   static var unauthorized: Self { unauthorized(.unauthorized) }
   static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
     .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.GetEventScores.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var forbidden: Self { forbidden(.forbidden) }
+  static func forbidden(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .forbidden(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.GetEventLeaderboard.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var forbidden: Self { forbidden(.forbidden) }
+  static func forbidden(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .forbidden(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.GetEventQuestionScores.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var forbidden: Self { forbidden(.forbidden) }
+  static func forbidden(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .forbidden(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.GetMyRating.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.GetRatingLeaderboard.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var notFound: Self { notFound(.notFound) }
+  static func notFound(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .notFound(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+}
+
+extension Operations.CreateRatingSeason.Output {
+  static var badRequest: Self { badRequest(.badRequest) }
+  static func badRequest(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .badRequest(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var unauthorized: Self { unauthorized(.unauthorized) }
+  static func unauthorized(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .unauthorized(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
+  }
+  static var forbidden: Self { forbidden(.forbidden) }
+  static func forbidden(_ code: APIErrorCode, message: String? = nil) -> Self {
+    .forbidden(.init(body: .json(APIErrorResponseFactory.make(code, message: message))))
   }
 }

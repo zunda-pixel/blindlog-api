@@ -646,6 +646,8 @@ struct RouterTests {
           venueName: "Blind Tasting Room",
           venueAddress: .init(addressLine1: "1 Wine Street", countryCode: "JP"),
           eventPeriod: .init(startsAt: startsAt, endsAt: startsAt + 3600),
+          responsesDueAt: startsAt + 7200,
+          answersPublishedAt: startsAt + 10_800,
           visibility: visibility,
           publishedAt: publishedAt,
           canceledAt: canceledAt
