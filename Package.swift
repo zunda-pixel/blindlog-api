@@ -6,7 +6,6 @@ let package = Package(
   name: "App",
   platforms: [
     .macOS(.v27),
-    .iOS(.v27),
   ],
   products: [
     .executable(
