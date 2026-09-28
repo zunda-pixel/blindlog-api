@@ -2003,7 +2003,7 @@ extension API {
       id: cloudflareImageID,
       userID: ownerUserID
     ).absoluteString
-    _ = try? await cache.set(
+    try? await cache.set(
       key,
       value: Data(imageURL.utf8),
       expiration: .seconds(60 * 10)
