@@ -1878,7 +1878,7 @@ extension API {
       id: cloudflareImageID,
       userID: ownerUserID
     ).absoluteString
-    try? await cache.set(
+    _ = try? await cache.set(
       key,
       value: Data(imageURL.utf8),
       expiration: .seconds(60 * 10)

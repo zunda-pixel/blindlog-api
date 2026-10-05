@@ -61,6 +61,7 @@ let package = Package(
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .defaultIsolation(nil),
         .strictMemorySafety(),
+        .treatAllWarnings(as: .error),
       ],
       plugins: [
         .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
