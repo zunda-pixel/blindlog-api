@@ -66,6 +66,9 @@ let package = Package(
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .defaultIsolation(nil),
         .strictMemorySafety(),
+        .treatAllWarnings(as: .error),
+        // swift-openapi-generator emits `@preconcurrency import struct Foundation.*` on Linux.
+        .treatWarning("StrictMemorySafety", as: .warning, .when(platforms: [.linux])),
       ],
       plugins: [
         .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
