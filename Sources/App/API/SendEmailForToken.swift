@@ -3,11 +3,15 @@ import EmailService
 import ExtrasBase64
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
 import OpenAPIRuntime
+import PostgreSQL
 import PostgresNIO
-import Records
+import SQL
 import SQLKit
-import StructuredQueriesPostgres
+import SQL_Foundation_Integration
 import Valkey
 import WebAuthn
 
@@ -25,8 +29,8 @@ extension API {
     }
     let isRegisteredEmail: Bool
     do {
-      isRegisteredEmail = try await database.read { db in
-        try await UserEmail
+      isRegisteredEmail = try await database.read { (db) throws(ISO_9075.Error) in
+        try UserEmail
           .where { $0.email.eq(email) }
           .select { $0.email }
           .fetchOne(db) != nil

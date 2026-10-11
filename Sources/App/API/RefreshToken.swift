@@ -1,6 +1,7 @@
 import Foundation
 import Hummingbird
 import JWTKit
+import Logging
 import PostgresNIO
 import SQLKit
 import Valkey

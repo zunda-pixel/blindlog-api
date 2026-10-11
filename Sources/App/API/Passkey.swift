@@ -1,10 +1,14 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
 import OpenAPIRuntime
+import PostgreSQL
 import PostgresNIO
-import Records
+import SQL
 import SQLKit
-import StructuredQueriesPostgres
+import SQL_Foundation_Integration
 import UUIDV7
 import Valkey
 import WebAuthn
@@ -99,8 +103,8 @@ extension API {
         supportedPublicKeyAlgorithms: .supported,
         pemRootCertificatesByFormat: [:],
         confirmCredentialIDNotRegisteredYet: { credentialID in
-          let credential = try await database.read { db in
-            try await PasskeyCredential
+          let credential = try await database.read { (db) throws(ISO_9075.Error) in
+            try PasskeyCredential
               .where { $0.id.eq(credentialID) }
               .select { _ in 1 }
               .fetchOne(db)
@@ -131,19 +135,19 @@ extension API {
     }
     // 4. Persist credential metadata
     do {
-      try await database.write { db in
+      try await database.write { (db) throws(ISO_9075.Error) in
         let passkeyCredential = PasskeyCredential(
           id: registrationCredential.id.asString(),
           userID: userID,
           publicKey: Data(credential.publicKey)
         )
 
-        try await PasskeyCredential.insert {
+        try PasskeyCredential.insert {
           passkeyCredential
         }
         .execute(db)
 
-        try await PasskeyCredentialSignCount.insert {
+        try PasskeyCredentialSignCount.insert {
           PasskeyCredentialSignCount(
             id: UUID(uuidString: UUID.uuidV7String())!,
             passkeyCredentialID: passkeyCredential.id,
