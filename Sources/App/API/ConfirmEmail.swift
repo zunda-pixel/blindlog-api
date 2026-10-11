@@ -2,10 +2,14 @@ import Algorithms
 import Crypto
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
+import PostgreSQL
 import PostgresNIO
-import Records
+import SQL
 import SQLKit
-import StructuredQueriesPostgres
+import SQL_Foundation_Integration
 import Valkey
 
 extension API {
@@ -63,8 +67,8 @@ extension API {
 
     // 2. Save email to db
     do {
-      try await database.write { db in
-        try await UserEmail.insert {
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try UserEmail.insert {
           ($0.userID, $0.email)
         } values: {
           (userID, email)

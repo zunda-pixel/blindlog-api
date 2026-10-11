@@ -1,7 +1,9 @@
 import Foundation
-import PostgresNIO
-import Records
-import StructuredQueriesPostgres
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import PostgreSQL
+import SQL
+import SQL_Foundation_Integration
 import UUIDV7
 
 enum RatingSettlement {
@@ -11,28 +13,28 @@ enum RatingSettlement {
     eventID: UUID,
     organizerUserID: UUID,
     answersPublishedAt: Date,
-    database: PostgresClient
+    database: PostgreSQL.Database
   ) async throws {
-    try await database.withTransaction { db in
-      try await RowLocks.event(eventID, db: db)
+    try await database.write { (db) throws(ISO_9075.Error) in
+      try RowLocks.event(eventID, db: db)
 
       guard
-        let season = try await seasonForSettlement(at: answersPublishedAt, db: db)
+        let season = try seasonForSettlement(at: answersPublishedAt, db: db)
       else {
         return
       }
 
       let questions =
-        try await EventQuestionRecord
+        try EventQuestionRecord
         .where { $0.eventID.eq(eventID) }
         .order { $0.questionNumber }
         .fetchAll(db)
 
       for question in questions {
-        try await RowLocks.eventQuestion(question.id, db: db)
+        try RowLocks.eventQuestion(question.id, db: db)
 
         let existing =
-          try await UserRatingLedgerRecord
+          try UserRatingLedgerRecord
           .where {
             $0.seasonID.eq(season.id)
               .and($0.eventQuestionID.eq(question.id))
@@ -42,7 +44,7 @@ enum RatingSettlement {
         if existing != nil { continue }
 
         let scores =
-          try await API.scoreQuestion(questionID: question.id, db: db)
+          try API.scoreQuestion(questionID: question.id, db: db)
           .filter { $0.0 != organizerUserID }
         guard !scores.isEmpty else { continue }
         let average =
@@ -54,7 +56,7 @@ enum RatingSettlement {
             fieldAverage: average
           )
           let now = Date()
-          let ratingAfter = try await applyRatingDelta(
+          let ratingAfter = try applyRatingDelta(
             userID: userID,
             seasonID: season.id,
             delta: delta,
@@ -62,7 +64,7 @@ enum RatingSettlement {
             db: db
           )
 
-          try await UserRatingLedgerRecord.insert {
+          try UserRatingLedgerRecord.insert {
             UserRatingLedgerRecord(
               id: UUID(uuidString: UUID.uuidV7String())!,
               userID: userID,
@@ -83,27 +85,27 @@ enum RatingSettlement {
   /// Reverses rating deltas and deletes ledger rows for a question so it can be settled again.
   static func invalidateQuestion(
     questionID: UUID,
-    database: PostgresClient
+    database: PostgreSQL.Database
   ) async throws {
-    try await database.withTransaction { db in
-      try await invalidateQuestion(questionID: questionID, db: db)
+    try await database.write { (db) throws(ISO_9075.Error) in
+      try invalidateQuestion(questionID: questionID, db: db)
     }
   }
 
   static func invalidateQuestion(
     questionID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws {
-    try await RowLocks.eventQuestion(questionID, db: db)
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) {
+    try RowLocks.eventQuestion(questionID, db: db)
 
     let entries =
-      try await UserRatingLedgerRecord
+      try UserRatingLedgerRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .fetchAll(db)
     let now = Date()
     for entry in entries {
       let existing =
-        try await UserSeasonRatingRecord
+        try UserSeasonRatingRecord
         .where {
           $0.userID.eq(entry.userID)
             .and($0.seasonID.eq(entry.seasonID))
@@ -111,7 +113,7 @@ enum RatingSettlement {
         .limit(1)
         .fetchOne(db)
       guard let existing else { continue }
-      try await UserSeasonRatingRecord
+      try UserSeasonRatingRecord
         .where {
           $0.userID.eq(entry.userID)
             .and($0.seasonID.eq(entry.seasonID))
@@ -122,7 +124,7 @@ enum RatingSettlement {
         }
         .execute(db)
     }
-    try await UserRatingLedgerRecord
+    try UserRatingLedgerRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .delete()
       .execute(db)
@@ -130,10 +132,10 @@ enum RatingSettlement {
 
   static func seasonForSettlement(
     at publishedAt: Date,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> RatingSeasonRecord? {
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> RatingSeasonRecord? {
     let seasons =
-      try await RatingSeasonRecord
+      try RatingSeasonRecord
       .order { ($0.startsAt.desc(), $0.id.desc()) }
       .fetchAll(db)
     return seasons.first { season in
@@ -151,10 +153,10 @@ enum RatingSettlement {
     seasonID: UUID,
     delta: Int,
     now: Date,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> Int {
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> Int {
     let existing =
-      try await UserSeasonRatingRecord
+      try UserSeasonRatingRecord
       .where {
         $0.userID.eq(userID)
           .and($0.seasonID.eq(seasonID))
@@ -164,7 +166,7 @@ enum RatingSettlement {
 
     if let existing {
       let ratingAfter = existing.rating + delta
-      try await UserSeasonRatingRecord
+      try UserSeasonRatingRecord
         .where {
           $0.userID.eq(userID)
             .and($0.seasonID.eq(seasonID))
@@ -178,7 +180,7 @@ enum RatingSettlement {
     }
 
     let ratingAfter = initialRating + delta
-    try await UserSeasonRatingRecord.insert {
+    try UserSeasonRatingRecord.insert {
       UserSeasonRatingRecord(
         userID: userID,
         seasonID: seasonID,

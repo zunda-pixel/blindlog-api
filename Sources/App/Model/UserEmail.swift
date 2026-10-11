@@ -1,5 +1,8 @@
 import Foundation
-import Records
+import PostgreSQL
+import SQL
+import SQL_Foundation_Integration
+import SQL_Macros
 
 @Table("user_email")
 struct UserEmail: Codable, Hashable {

@@ -1,7 +1,10 @@
 import Foundation
-import PostgresNIO
-import Records
-import StructuredQueriesPostgres
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
+import PostgreSQL
+import SQL
+import SQL_Foundation_Integration
 
 extension API {
   func getEventScores(
@@ -223,31 +226,31 @@ extension API {
     eventID: UUID,
     questionID: UUID
   ) async throws -> [(UUID, QuestionScoreResult)] {
-    try await database.read { db in
-      try await Self.scoreQuestion(questionID: questionID, db: db)
+    try await database.read { (db) throws(ISO_9075.Error) in
+      try Self.scoreQuestion(questionID: questionID, db: db)
     }
   }
 
   static func scoreQuestion(
     questionID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> [(UUID, QuestionScoreResult)] {
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> [(UUID, QuestionScoreResult)] {
     let question =
-      try await EventQuestionRecord
+      try EventQuestionRecord
       .where { $0.id.eq(questionID) }
       .limit(1)
       .fetchOne(db)
     guard let question else { return [] }
 
     let correct =
-      try await EventQuestionCorrectAnswerRecord
+      try EventQuestionCorrectAnswerRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .limit(1)
       .fetchOne(db)
     guard let correct else { return [] }
 
     let correctRevision =
-      try await EventQuestionCorrectAnswerRevisionRecord
+      try EventQuestionCorrectAnswerRevisionRecord
       .where { $0.eventQuestionCorrectAnswerID.eq(correct.id) }
       .order { ($0.createdAt.desc(), $0.id.desc()) }
       .limit(1)
@@ -255,21 +258,21 @@ extension API {
     guard let correctRevision else { return [] }
 
     let correctVarieties =
-      try await EventQuestionCorrectAnswerVarietyRecord
+      try EventQuestionCorrectAnswerVarietyRecord
       .where { $0.eventQuestionCorrectAnswerRevisionID.eq(correctRevision.id) }
       .fetchAll(db)
       .map(\.wineVarietyID)
 
     let regionRules =
-      try await EventQuestionRegionScoreRuleRecord
+      try EventQuestionRegionScoreRuleRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .fetchAll(db)
     let componentRules =
-      try await EventQuestionScoreComponentRuleRecord
+      try EventQuestionScoreComponentRuleRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .fetchAll(db)
 
-    let correctAncestors = try await regionAncestors(
+    let correctAncestors = try regionAncestors(
       regionID: correctRevision.wineRegionID,
       db: db
     )
@@ -283,14 +286,14 @@ extension API {
     )
 
     let responses =
-      try await EventQuestionResponseRecord
+      try EventQuestionResponseRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .fetchAll(db)
     guard !responses.isEmpty else { return [] }
 
     let responseUserIDs = responses.map(\.userID)
     let canceledParticipantUserIDs = Set(
-      try await EventParticipantRecord
+      try EventParticipantRecord
         .where {
           $0.eventID.eq(question.eventID)
             .and($0.userID.in(responseUserIDs))
@@ -302,7 +305,7 @@ extension API {
 
     let responseIDs = responses.map(\.id)
     let allRevisions =
-      try await EventQuestionResponseRevisionRecord
+      try EventQuestionResponseRevisionRecord
       .where { $0.eventQuestionResponseID.in(responseIDs) }
       .order { ($0.submittedAt.desc(), $0.id.desc()) }
       .fetchAll(db)
@@ -319,7 +322,7 @@ extension API {
       allVarieties = []
     } else {
       allVarieties =
-        try await EventQuestionResponseVarietyRecord
+        try EventQuestionResponseVarietyRecord
         .where { $0.eventQuestionResponseRevisionID.in(revisionIDs) }
         .fetchAll(db)
     }
@@ -338,7 +341,7 @@ extension API {
         if let cached = ancestorCache[regionID] {
           responseAncestors = cached
         } else {
-          let loaded = try await regionAncestors(regionID: regionID, db: db)
+          let loaded = try regionAncestors(regionID: regionID, db: db)
           ancestorCache[regionID] = loaded
           responseAncestors = loaded
         }
@@ -368,13 +371,13 @@ extension API {
 
   static func regionAncestors(
     regionID: UUID?,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> [RegionAncestor] {
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> [RegionAncestor] {
     guard var currentID = regionID else { return [] }
     var ancestors: [RegionAncestor] = []
     var seen = Set<UUID>()
     while seen.insert(currentID).inserted {
-      let region = try await WineRegionRecord.where { $0.id.eq(currentID) }.limit(1).fetchOne(db)
+      let region = try WineRegionRecord.where { $0.id.eq(currentID) }.limit(1).fetchOne(db)
       guard let region else { break }
       ancestors.append(RegionAncestor(id: region.id, wineRegionTypeID: region.wineRegionTypeID))
       guard let parent = region.parentRegionID else { break }

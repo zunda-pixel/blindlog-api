@@ -1,9 +1,14 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
 import JWTKit
+import Logging
+import PostgreSQL
 import PostgresNIO
-import Records
+import SQL
 import SQLKit
+import SQL_Foundation_Integration
 import UUIDV7
 
 extension API {
@@ -18,8 +23,8 @@ extension API {
     let user = User(id: UUID(uuidString: UUID.uuidV7String())!)
 
     do {
-      try await database.write { db in
-        try await User.insert { user }.execute(db)
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try User.insert { user }.execute(db)
       }
     } catch {
       AppRequestContext.current?.logger.appError(

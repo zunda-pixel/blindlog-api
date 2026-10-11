@@ -1,7 +1,10 @@
 import Foundation
-import PostgresNIO
-import Records
-import StructuredQueriesPostgres
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
+import PostgreSQL
+import SQL
+import SQL_Foundation_Integration
 import UUIDV7
 
 extension API {
@@ -15,8 +18,8 @@ extension API {
         return .notFound
       }
       let rating =
-        try await database.read { db in
-          try await UserSeasonRatingRecord
+        try await database.read { (db) throws(ISO_9075.Error) in
+          try UserSeasonRatingRecord
             .where {
               $0.userID.eq(userID)
                 .and($0.seasonID.eq(season.id))
@@ -26,8 +29,8 @@ extension API {
         }?.rating ?? RatingSettlement.initialRating
 
       let ledger =
-        try await database.read { db in
-          try await UserRatingLedgerRecord
+        try await database.read { (db) throws(ISO_9075.Error) in
+          try UserRatingLedgerRecord
             .where {
               $0.userID.eq(userID)
                 .and($0.seasonID.eq(season.id))
@@ -79,16 +82,16 @@ extension API {
       let season: RatingSeasonRecord?
       if let seasonIDString = input.query.seasonId {
         guard let seasonID = UUID(uuidString: seasonIDString) else { return .badRequest }
-        season = try await database.read { db in
-          try await RatingSeasonRecord.where { $0.id.eq(seasonID) }.limit(1).fetchOne(db)
+        season = try await database.read { (db) throws(ISO_9075.Error) in
+          try RatingSeasonRecord.where { $0.id.eq(seasonID) }.limit(1).fetchOne(db)
         }
       } else {
         season = try await activeRatingSeason()
       }
       guard let season else { return .notFound }
 
-      let rows = try await database.read { db in
-        try await UserSeasonRatingRecord
+      let rows = try await database.read { (db) throws(ISO_9075.Error) in
+        try UserSeasonRatingRecord
           .where { $0.seasonID.eq(season.id) }
           .order { ($0.rating.desc(), $0.userID) }
           .limit(100)
@@ -125,15 +128,15 @@ extension API {
 
     do {
       let now = Date()
-      let season = try await database.withTransaction { db -> RatingSeasonRecord in
+      let season = try await database.write { (db) throws(ISO_9075.Error) -> RatingSeasonRecord in
         let active =
-          try await RatingSeasonRecord
+          try RatingSeasonRecord
           .where { $0.endsAt.is(nil) }
           .order { ($0.startsAt.desc(), $0.id.desc()) }
           .limit(1)
           .fetchOne(db)
         if let active {
-          try await RatingSeasonRecord
+          try RatingSeasonRecord
             .where { $0.id.eq(active.id) }
             .update { $0.endsAt = Optional.some(now) }
             .execute(db)
@@ -145,7 +148,7 @@ extension API {
           endsAt: nil,
           createdAt: now
         )
-        try await RatingSeasonRecord.insert { season }.execute(db)
+        try RatingSeasonRecord.insert { season }.execute(db)
         return season
       }
       return .ok(
@@ -173,8 +176,8 @@ extension API {
   }
 
   func activeRatingSeason() async throws -> RatingSeasonRecord? {
-    try await database.read { db in
-      try await RatingSeasonRecord
+    try await database.read { (db) throws(ISO_9075.Error) in
+      try RatingSeasonRecord
         .where { $0.endsAt.is(nil) }
         .order { ($0.startsAt.desc(), $0.id.desc()) }
         .limit(1)

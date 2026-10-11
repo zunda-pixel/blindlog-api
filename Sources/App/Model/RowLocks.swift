@@ -1,25 +1,27 @@
 import Foundation
-import PostgresNIO
-import Records
-import StructuredQueriesPostgres
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import PostgreSQL
+import SQL
+import SQL_Foundation_Integration
 
 /// Row-level locks used inside transactions. The ORM does not yet expose `FOR UPDATE`.
 enum RowLocks {
   static func event(
     _ eventID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws {
-    let query: QueryFragment =
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) {
+    let query: ISO_9075.Fragment =
       "SELECT id FROM public.events WHERE id = \(eventID, as: UUID.self) FOR UPDATE"
-    try await db.executeFragment(query)
+    _ = try db.execute(query)
   }
 
   static func eventQuestion(
     _ questionID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws {
-    let query: QueryFragment =
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) {
+    let query: ISO_9075.Fragment =
       "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
-    try await db.executeFragment(query)
+    _ = try db.execute(query)
   }
 }

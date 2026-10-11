@@ -1,6 +1,9 @@
 import Foundation
-import Records
-import StructuredQueriesPostgres
+import ISO_9075_Foundation
+import PostgreSQL
+import SQL
+import SQL_Foundation_Integration
+import SQL_Macros
 
 @Table("events")
 struct EventRecord: Codable, Identifiable, Hashable {
