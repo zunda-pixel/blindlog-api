@@ -1,9 +1,12 @@
 import Currency
 import Foundation
 import Hummingbird
+import ISO_9075_Foundation
+import Logging
+import PostgreSQL
 import PostgresNIO
-import Records
-import StructuredQueriesPostgres
+import SQL
+import SQL_Foundation_Integration
 import UUIDV7
 import Valkey
 
@@ -1169,9 +1172,9 @@ extension API {
   fileprivate func replaceEventRegionScoreRules(
     _ rules: [EventRegionScoreRuleRecord],
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws {
-    let query: QueryFragment =
+    let query: ISO_9075.Fragment =
       "DELETE FROM public.event_region_score_rules WHERE event_id = \(eventID, as: UUID.self)"
     try await db.executeFragment(query)
     if !rules.isEmpty {
@@ -1183,11 +1186,14 @@ extension API {
     try await database.read { db in
       let rows =
         try await EventRecord
-        .joinLateral { event in
-          EventRevisionRecord
-            .where { $0.eventID.eq(event.id) }
-            .order { ($0.createdAt.desc(), $0.id.desc()) }
-            .limit(1)
+        .join(EventRevisionRecord.all) { event, latestRevision in
+          latestRevision.id.eq(
+            EventRevisionRecord
+              .where { $0.eventID.eq(event.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+              .select(\.id)
+          )
         }
         .where { event, revision in
           event.organizerUserID.eq(userID)
@@ -1215,11 +1221,14 @@ extension API {
         let rows =
           try await EventRecord
           .where { $0.organizerUserID.eq(userID) }
-          .joinLateral { event in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .order { event, revision in
             (revision.startsAt.desc(), event.id.desc())
@@ -1231,11 +1240,14 @@ extension API {
         let rows =
           try await EventRecord
           .where { $0.organizerUserID.eq(userID) }
-          .joinLateral { event in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .where { _, revision in
             revision.visibility.eq(EventRecord.Visibility.public)
@@ -1263,11 +1275,14 @@ extension API {
           .join(EventParticipantRecord.all) { event, participant in
             event.id.eq(participant.eventID)
           }
-          .joinLateral { event, _ in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, _, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .where { _, participant, _ in
             participant.userID.eq(userID)
@@ -1292,11 +1307,14 @@ extension API {
           .join(EventParticipantRecord.all) { event, participant in
             event.id.eq(participant.eventID)
           }
-          .joinLateral { event, _ in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, _, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .where { _, participant, revision in
             participant.userID.eq(userID)
@@ -1330,16 +1348,19 @@ extension API {
 
   fileprivate func latestEventSnapshot(
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> EventSnapshot? {
     let row =
       try await EventRecord
       .where { $0.id.eq(eventID) }
-      .joinLateral { event in
-        EventRevisionRecord
-          .where { $0.eventID.eq(event.id) }
-          .order { ($0.createdAt.desc(), $0.id.desc()) }
-          .limit(1)
+      .join(EventRevisionRecord.all) { event, latestRevision in
+        latestRevision.id.eq(
+          EventRevisionRecord
+            .where { $0.eventID.eq(event.id) }
+            .order { ($0.createdAt.desc(), $0.id.desc()) }
+            .limit(1)
+            .select(\.id)
+        )
       }
       .selectStar()
       .limit(1)
@@ -1351,7 +1372,7 @@ extension API {
 
   fileprivate func snapshots(
     from rows: [(EventRecord, EventRevisionRecord)],
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> [EventSnapshot] {
     let eventIDs = rows.map(\.0.id)
     guard !eventIDs.isEmpty else { return [] }
@@ -1448,7 +1469,7 @@ extension API {
   fileprivate func eventParticipant(
     eventID: UUID,
     userID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> EventParticipantRecord? {
     try await EventParticipantRecord
       .where {
@@ -1461,7 +1482,7 @@ extension API {
 
   fileprivate func activeParticipantCount(
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> Int {
     try await EventParticipantRecord
       .where {
@@ -1473,18 +1494,18 @@ extension API {
 
   fileprivate func lockEventRegistration(
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws {
-    let query: QueryFragment =
+    let query: ISO_9075.Fragment =
       "SELECT id FROM public.events WHERE id = \(eventID, as: UUID.self) FOR UPDATE"
     try await db.executeFragment(query)
   }
 
   fileprivate func lockEventQuestion(
     questionID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws {
-    let query: QueryFragment =
+    let query: ISO_9075.Fragment =
       "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
     try await db.executeFragment(query)
   }
@@ -1552,11 +1573,14 @@ extension API {
       let rows =
         try await EventQuestionRecord
         .where { $0.eventID.eq(eventID) }
-        .joinLateral { question in
-          EventQuestionRevisionRecord
-            .where { $0.eventQuestionID.eq(question.id) }
-            .order { ($0.createdAt.desc(), $0.id.desc()) }
-            .limit(1)
+        .join(EventQuestionRevisionRecord.all) { question, latestRevision in
+          latestRevision.id.eq(
+            EventQuestionRevisionRecord
+              .where { $0.eventQuestionID.eq(question.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+              .select(\.id)
+          )
         }
         .order { question, _ in
           (question.questionNumber, question.id)
@@ -1571,7 +1595,7 @@ extension API {
 
   fileprivate func correctAnswer(
     questionID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> EventQuestionCorrectAnswerRecord? {
     try await EventQuestionCorrectAnswerRecord
       .where { $0.eventQuestionID.eq(questionID) }
@@ -1582,7 +1606,7 @@ extension API {
   fileprivate func eventQuestionResponse(
     questionID: UUID,
     userID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> EventQuestionResponseRecord? {
     try await EventQuestionResponseRecord
       .where {
@@ -1595,7 +1619,7 @@ extension API {
 
   fileprivate func latestCorrectAnswerRevision(
     answerID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> EventQuestionCorrectAnswerRevisionRecord? {
     try await EventQuestionCorrectAnswerRevisionRecord
       .where { $0.eventQuestionCorrectAnswerID.eq(answerID) }
@@ -1606,7 +1630,7 @@ extension API {
 
   fileprivate func correctAnswerVarietyIDs(
     revisionID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> [UUID] {
     let rows =
       try await EventQuestionCorrectAnswerVarietyRecord
@@ -1617,7 +1641,7 @@ extension API {
 
   fileprivate func latestResponseRevision(
     responseID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> EventQuestionResponseRevisionRecord? {
     try await EventQuestionResponseRevisionRecord
       .where { $0.eventQuestionResponseID.eq(responseID) }
@@ -1628,7 +1652,7 @@ extension API {
 
   fileprivate func responseVarietyIDs(
     revisionID: UUID,
-    db: any Database.Connection.`Protocol`
+    db: DatabaseConnection
   ) async throws -> [UUID] {
     let rows =
       try await EventQuestionResponseVarietyRecord

@@ -10,6 +10,18 @@
 
 In the database design of this repository, an immutable data model is adopted as a general rule.
 
+## Database Access
+
+Typed queries use `swift-compositions/swift-sql` and the PostgreSQL dialect and
+row decoder from `swift-compositions/swift-postgresql`. Foundation integration
+preserves the existing UUID, Date, and Data model properties. Dependency
+revisions are recorded in `Package.resolved`.
+
+`Sources/App/DatabaseConnection.swift` executes these queries asynchronously
+through PostgresNIO's `PostgresClient`. Transactions use PostgresNIO's transaction
+API. Latest revisions are selected by correlated subqueries ordered by
+`created_at DESC, id DESC`, then joined by their primary key.
+
 ## Database Schema Changes
 
 `Database/schema.sql` is the desired table/index/constraint schema.
