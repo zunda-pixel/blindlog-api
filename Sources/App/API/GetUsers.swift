@@ -1,9 +1,13 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
+import PostgreSQL
 import PostgresNIO
-import Records
+import SQL
 import SQLKit
-import StructuredQueriesPostgres
+import SQL_Foundation_Integration
 import Valkey
 
 extension API {
@@ -100,8 +104,10 @@ extension API {
   fileprivate func getUsersFromDatabase(
     ids: [User.ID]
   ) async throws -> [User] {
-    return try await database.read { db in
-      try await User
+    guard !ids.isEmpty else { return [] }
+
+    return try await database.read { (db) throws(ISO_9075.Error) in
+      try User
         .select(\.self)
         .where { user in
           user.id.in(ids)

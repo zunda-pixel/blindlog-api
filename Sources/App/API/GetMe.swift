@@ -1,10 +1,13 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
 import Logging
+import PostgreSQL
 import PostgresNIO
-import Records
+import SQL
 import SQLKit
-import StructuredQueriesPostgres
+import SQL_Foundation_Integration
 
 extension API {
   func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
@@ -46,8 +49,8 @@ extension API {
   }
 
   fileprivate func registeredEmails(userID: UUID) async throws -> [UserEmail] {
-    try await database.read { db in
-      try await UserEmail
+    try await database.read { (db) throws(ISO_9075.Error) in
+      try UserEmail
         .where { $0.userID.eq(userID) }
         .order { ($0.createdAt.asc(), $0.email.asc()) }
         .fetchAll(db)
