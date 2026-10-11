@@ -101,9 +101,11 @@ enum RatingSettlement {
     let entries =
       try UserRatingLedgerRecord
       .where { $0.eventQuestionID.eq(questionID) }
+      .order { ($0.seasonID, $0.userID) }
       .fetchAll(db)
     let now = Date()
     for entry in entries {
+      try RowLocks.userSeasonRating(userID: entry.userID, seasonID: entry.seasonID, db: db)
       let existing =
         try UserSeasonRatingRecord
         .where {
@@ -155,39 +157,39 @@ enum RatingSettlement {
     now: Date,
     db: PostgreSQL.Connection
   ) throws(ISO_9075.Error) -> Int {
-    let existing =
+    // Create the row first so there is always a row to lock, even for a user's first settlement.
+    try UserSeasonRatingRecord.insert {
+      UserSeasonRatingRecord(
+        userID: userID,
+        seasonID: seasonID,
+        rating: initialRating,
+        updatedAt: now
+      )
+    } onConflict: {
+      ($0.userID, $0.seasonID)
+    }
+    .execute(db)
+    try RowLocks.userSeasonRating(userID: userID, seasonID: seasonID, db: db)
+
+    let current =
       try UserSeasonRatingRecord
       .where {
         $0.userID.eq(userID)
           .and($0.seasonID.eq(seasonID))
       }
       .limit(1)
-      .fetchOne(db)
-
-    if let existing {
-      let ratingAfter = existing.rating + delta
-      try UserSeasonRatingRecord
-        .where {
-          $0.userID.eq(userID)
-            .and($0.seasonID.eq(seasonID))
-        }
-        .update {
-          $0.rating = ratingAfter
-          $0.updatedAt = now
-        }
-        .execute(db)
-      return ratingAfter
-    }
-
-    let ratingAfter = initialRating + delta
-    try UserSeasonRatingRecord.insert {
-      UserSeasonRatingRecord(
-        userID: userID,
-        seasonID: seasonID,
-        rating: ratingAfter,
-        updatedAt: now
-      )
-    }.execute(db)
+      .fetchOne(db)?.rating ?? initialRating
+    let ratingAfter = current + delta
+    try UserSeasonRatingRecord
+      .where {
+        $0.userID.eq(userID)
+          .and($0.seasonID.eq(seasonID))
+      }
+      .update {
+        $0.rating = ratingAfter
+        $0.updatedAt = now
+      }
+      .execute(db)
     return ratingAfter
   }
 }
