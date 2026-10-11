@@ -23,7 +23,8 @@ let package = Package(
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(
-      url: "https://github.com/swift-compositions/swift-postgresql.git", branch: "main",
+      url: "https://github.com/zunda-pixel/swift-postgresql.git",
+      branch: "fix-postgresql-closure-lifetime",
       traits: ["PostgresNIO"]),
     .package(url: "https://github.com/swift-compositions/swift-sql.git", branch: "main"),
     .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),

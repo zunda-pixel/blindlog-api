@@ -1,5 +1,5 @@
 {
-  "originHash" : "6c98fbe9981e1534e713e222440b5b5c32807f3a91af76718e103fb32fbfc388",
+  "originHash" : "f276abb4fe0b88a4b6caef2fd3a4d2737eff28fbcb1bf233d2204de5f759d559",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -832,10 +832,10 @@
     {
       "identity" : "swift-postgresql",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swift-compositions/swift-postgresql.git",
+      "location" : "https://github.com/zunda-pixel/swift-postgresql.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "75a9751a1b9ef64ad081234f84d8e6d36efb5426"
+        "branch" : "fix-postgresql-closure-lifetime",
+        "revision" : "e5dca9dca136f5dd646bc98e2f3cdf1090430e26"
       }
     },
     {

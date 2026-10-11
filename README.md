@@ -15,7 +15,9 @@ In the database design of this repository, an immutable data model is adopted as
 Typed queries use `swift-compositions/swift-sql` and the PostgreSQL dialect and
 row decoder from `swift-compositions/swift-postgresql`. Foundation integration
 preserves the existing UUID, Date, and Data model properties. Dependency
-revisions are recorded in `Package.resolved`.
+revisions are recorded in `Package.resolved`. The PostgreSQL dependency currently
+uses `zunda-pixel/swift-postgresql`'s `fix-postgresql-closure-lifetime` branch to
+release borrowed closures before NIO thread-pool work resumes the caller.
 
 Database operations use the library's `PostgreSQL.Database.read` and `write`
 scopes directly. These scopes lease a PostgresNIO connection and run synchronous
