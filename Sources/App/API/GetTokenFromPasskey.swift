@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
 import ISO_9075_Foundation
 import Logging
 import PostgreSQL
@@ -76,14 +77,14 @@ extension API {
     let passkeyCredential: PasskeyCredential?
     let signCount: Int64?
     do {
-      (passkeyCredential, signCount) = try await database.read { db in
+      (passkeyCredential, signCount) = try await database.read { (db) throws(ISO_9075.Error) in
         let passkeyCredential =
-          try await PasskeyCredential
+          try PasskeyCredential
           .where { $0.id.eq(credential.id.asString()) }
           .fetchOne(db)
 
         let signCount =
-          try await PasskeyCredentialSignCount
+          try PasskeyCredentialSignCount
           .where { $0.passkeyCredentialID.eq(credential.id.asString()) }
           .order { ($0.signCount.desc(), $0.id.desc()) }
           .select { $0.signCount }
@@ -134,8 +135,8 @@ extension API {
 
     // 5. Append observed sign counter
     do {
-      try await database.write { db in
-        try await PasskeyCredentialSignCount.insert {
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try PasskeyCredentialSignCount.insert {
           PasskeyCredentialSignCount(
             id: UUID(uuidString: UUID.uuidV7String())!,
             passkeyCredentialID: verifiedAuthentication.credentialID.asString(),

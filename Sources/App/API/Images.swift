@@ -1,5 +1,7 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
 import Logging
 import PostgreSQL
 import PostgresNIO
@@ -65,8 +67,8 @@ extension API {
 
     let savedImage: ImageRecord?
     do {
-      let existingImage = try await database.read { db in
-        try await ImageRecord
+      let existingImage = try await database.read { (db) throws(ISO_9075.Error) in
+        try ImageRecord
           .where({ $0.cloudflareImageID.eq(bodyData.imageID) })
           .limit(1)
           .fetchOne(db)
@@ -94,7 +96,7 @@ extension API {
 
       try await cloudflareImagesClient.verifyUploadedImage(id: bodyData.imageID, userID: userID)
 
-      savedImage = try await database.write { db in
+      savedImage = try await database.write { (db) throws(ISO_9075.Error) in
         let image = ImageRecord(
           id: UUID(uuidString: UUID.uuidV7String())!,
           userID: userID,
@@ -102,7 +104,7 @@ extension API {
           createdAt: Date()
         )
 
-        try await ImageRecord.insert {
+        try ImageRecord.insert {
           image
         } onConflict: {
           $0.cloudflareImageID
@@ -110,7 +112,7 @@ extension API {
         .execute(db)
 
         return
-          try await ImageRecord
+          try ImageRecord
           .where({ $0.cloudflareImageID.eq(bodyData.imageID) })
           .limit(1)
           .fetchOne(db)

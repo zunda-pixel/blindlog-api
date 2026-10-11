@@ -1,6 +1,7 @@
 import Algorithms
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
 import ISO_9075_Foundation
 import Logging
 import PostgreSQL
@@ -103,8 +104,8 @@ extension API {
     )
 
     do {
-      try await database.write { db in
-        try await UserProfileRecord.insert { profile }.execute(db)
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try UserProfileRecord.insert { profile }.execute(db)
       }
     } catch {
       AppRequestContext.current?.logger.appError(
@@ -174,8 +175,8 @@ extension API {
       )
     }
 
-    let profile = try await database.read { db in
-      try await UserProfileRecord
+    let profile = try await database.read { (db) throws(ISO_9075.Error) in
+      try UserProfileRecord
         .leftJoin(ImageRecord.all) { profile, image in
           profile.imageID.eq(image.id)
         }
@@ -234,8 +235,8 @@ extension API {
       )
     }
 
-    let image = try await database.read { db in
-      try await ImageRecord
+    let image = try await database.read { (db) throws(ISO_9075.Error) in
+      try ImageRecord
         .where {
           $0.id.eq(imageID)
             .and($0.userID.eq(userID))

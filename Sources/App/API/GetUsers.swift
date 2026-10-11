@@ -1,5 +1,6 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
 import ISO_9075_Foundation
 import Logging
 import PostgreSQL
@@ -103,8 +104,8 @@ extension API {
   fileprivate func getUsersFromDatabase(
     ids: [User.ID]
   ) async throws -> [User] {
-    return try await database.read { db in
-      try await User
+    return try await database.read { (db) throws(ISO_9075.Error) in
+      try User
         .select(\.self)
         .where { user in
           user.id.in(ids)

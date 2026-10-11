@@ -8,8 +8,10 @@ import Hummingbird
 import Images
 import JWTKit
 import Logging
+import NIOPosix
 import OTel
 import OpenAPIHummingbird
+import PostgreSQL
 import PostgresNIO
 import ServiceLifecycle
 import Synchronization
@@ -148,7 +150,7 @@ func buildApplication(
     ),
     services: [
       observability,
-      databaseClient,
+      databaseClient.client,
       cache,
     ],
     logger: logger
@@ -223,7 +225,7 @@ func makeDatabase(
   arguments: some AppArguments,
   config: ConfigReader,
   logger: Logger
-) async throws -> PostgresClient {
+) async throws -> PostgreSQL.Database {
   let postgresTLS: PostgresClient.Configuration.TLS =
     switch arguments.env {
     case .develop:
@@ -249,7 +251,7 @@ func makeDatabase(
     )
   }
 
-  return databaseClient
+  return PostgreSQL.Database(client: databaseClient, threadPool: .singleton, logger: logger)
 }
 
 func makeWebAuth(config: ConfigReader) throws -> WebAuthnManager {

@@ -17,10 +17,13 @@ row decoder from `swift-compositions/swift-postgresql`. Foundation integration
 preserves the existing UUID, Date, and Data model properties. Dependency
 revisions are recorded in `Package.resolved`.
 
-`Sources/App/DatabaseConnection.swift` executes these queries asynchronously
-through PostgresNIO's `PostgresClient`. Transactions use PostgresNIO's transaction
-API. Latest revisions are selected by correlated subqueries ordered by
-`created_at DESC, id DESC`, then joined by their primary key.
+Database operations use the library's `PostgreSQL.Database.read` and `write`
+scopes directly. These scopes lease a PostgresNIO connection and run synchronous
+queries on NIO's shared thread pool; `read` uses a read-only transaction and
+`write` commits or rolls back a transaction. The underlying `PostgresClient`
+is registered with the application's service lifecycle. Latest revisions are
+selected by correlated subqueries ordered by `created_at DESC, id DESC`, then
+joined by their primary key.
 
 ## Database Schema Changes
 

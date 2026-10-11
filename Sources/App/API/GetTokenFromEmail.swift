@@ -2,6 +2,7 @@ import Crypto
 import ExtrasBase64
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
 import ISO_9075_Foundation
 import Logging
 import PostgreSQL
@@ -77,8 +78,8 @@ extension API {
     let userID: UUID?
 
     do {
-      userID = try await database.read { db in
-        try await UserEmail
+      userID = try await database.read { (db) throws(ISO_9075.Error) in
+        try UserEmail
           .where { $0.email.eq(email) }
           .select { ($0.userID) }
           .fetchOne(db)

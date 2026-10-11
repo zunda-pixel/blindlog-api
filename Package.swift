@@ -53,6 +53,7 @@ let package = Package(
         .product(name: "SQL Macros", package: "swift-sql"),
         .product(name: "SQL Foundation Integration", package: "swift-sql"),
         .product(name: "ISO 9075 Foundation", package: "swift-iso-9075"),
+        .product(name: "ISO 9075 Call-Level Interface", package: "swift-iso-9075"),
         .product(name: "Currency", package: "swift-currency"),
         .product(name: "CloudflareEmailService", package: "cloudflare-swift"),
         .product(name: "CloudflareImages", package: "cloudflare-swift"),
