@@ -1,10 +1,14 @@
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
 import OpenAPIRuntime
+import PostgreSQL
 import PostgresNIO
-import Records
+import SQL
 import SQLKit
-import StructuredQueriesPostgres
+import SQL_Foundation_Integration
 import UUIDV7
 import Valkey
 import WebAuthn
@@ -20,7 +24,7 @@ extension API {
       throw HTTPError(.tooManyRequests)
     }
     // 1. Parse request payload
-    guard case .json(let body) = input.body else { return .badRequest }
+    guard case .json(let body) = input.body else { return .badRequest(.invalidRequest) }
     let registrationCredential: RegistrationCredential
     do {
       let bodyData = try JSONEncoder().encode(body)
@@ -35,22 +39,46 @@ extension API {
         metadata: AppLogMetadata.userID(userID),
         error: error
       )
-      return .badRequest
+      return .badRequest(.registrationDecodeFailed)
     }
     // 2. Verify and delete challenge atomically
-    let challengeData = Data(input.query.challenge.data)
+    let challengeData: [UInt8]
     do {
-      let key = ValkeyKey("challenge:\(challengeData.base64EncodedString())")
+      challengeData = try body.challenge.base64URLDecodedBytes()
+    } catch {
+      AppRequestContext.current?.logger.appError(
+        eventName: "auth.passkey.registration_challenge_decode_failed",
+        "Failed to decode registration challenge",
+        metadata: AppLogMetadata.userID(userID),
+        error: error
+      )
+      return .badRequest(.challengeVerifyFailed)
+    }
+
+    do {
+      let key = ValkeyKey("challenge:\(Data(challengeData).base64EncodedString())")
 
       let data = try await cache.getdel(key)
       let challenge = try data.map { try JSONDecoder().decode(Challenge.self, from: Data($0)) }
 
       guard let challenge else {
-        return .badRequest
+        AppRequestContext.current?.logger.appLog(
+          level: .warning,
+          eventName: "auth.passkey.registration_challenge_missing",
+          "Registration challenge was not found",
+          metadata: AppLogMetadata.userID(userID)
+        )
+        return .badRequest(.challengeVerifyFailed)
       }
 
       guard challenge.userID == userID && challenge.purpose == .registration else {
-        return .badRequest
+        AppRequestContext.current?.logger.appLog(
+          level: .warning,
+          eventName: "auth.passkey.registration_challenge_mismatch",
+          "Registration challenge did not match the current user or purpose",
+          metadata: AppLogMetadata.userID(userID)
+        )
+        return .badRequest(.challengeVerifyFailed)
       }
 
     } catch {
@@ -62,29 +90,40 @@ extension API {
         ]) { _, new in new },
         error: error
       )
-      return .badRequest
+      return .badRequest(.challengeVerifyFailed)
     }
 
     // 3. Validate WebAuthn registration data
     let credential: Credential
     do {
       credential = try await webAuthn.finishRegistration(
-        challenge: Array(input.query.challenge.data),
+        challenge: challengeData,
         credentialCreationData: registrationCredential,
         requireUserVerification: false,
         supportedPublicKeyAlgorithms: .supported,
         pemRootCertificatesByFormat: [:],
         confirmCredentialIDNotRegisteredYet: { credentialID in
-          let credential = try await database.read { db in
-            try await PasskeyCredential
+          let credential = try await database.read { (db) throws(ISO_9075.Error) in
+            try PasskeyCredential
               .where { $0.id.eq(credentialID) }
               .select { _ in 1 }
               .fetchOne(db)
           }
 
-          return credential == nil
+          guard credential == nil else {
+            throw PasskeyRegistrationError.credentialIDAlreadyExists
+          }
+          return true
         }
       )
+    } catch PasskeyRegistrationError.credentialIDAlreadyExists {
+      AppRequestContext.current?.logger.appLog(
+        level: .warning,
+        eventName: "auth.passkey.credential_already_exists",
+        "Passkey credential is already registered",
+        metadata: AppLogMetadata.userID(userID)
+      )
+      return .badRequest(.credentialAlreadyExists)
     } catch {
       AppRequestContext.current?.logger.appError(
         eventName: "auth.passkey.registration_validate_failed",
@@ -92,23 +131,23 @@ extension API {
         metadata: AppLogMetadata.userID(userID),
         error: error
       )
-      return .badRequest
+      return .badRequest(.registrationValidateFailed)
     }
     // 4. Persist credential metadata
     do {
-      try await database.write { db in
+      try await database.write { (db) throws(ISO_9075.Error) in
         let passkeyCredential = PasskeyCredential(
           id: registrationCredential.id.asString(),
           userID: userID,
           publicKey: Data(credential.publicKey)
         )
 
-        try await PasskeyCredential.insert {
+        try PasskeyCredential.insert {
           passkeyCredential
         }
         .execute(db)
 
-        try await PasskeyCredentialSignCount.insert {
+        try PasskeyCredentialSignCount.insert {
           PasskeyCredentialSignCount(
             id: UUID(uuidString: UUID.uuidV7String())!,
             passkeyCredentialID: passkeyCredential.id,
@@ -126,9 +165,13 @@ extension API {
         ]) { _, new in new },
         error: error
       )
-      return .badRequest
+      return .badRequest(.persistFailed)
     }
 
     return .ok
   }
+}
+
+private enum PasskeyRegistrationError: Error {
+  case credentialIDAlreadyExists
 }

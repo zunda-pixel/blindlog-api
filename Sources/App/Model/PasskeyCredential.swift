@@ -1,5 +1,8 @@
 import Foundation
-import StructuredQueriesPostgres
+import ISO_9075_Foundation
+import SQL
+import SQL_Foundation_Integration
+import SQL_Macros
 
 @Table("passkey_credentials")
 struct PasskeyCredential {

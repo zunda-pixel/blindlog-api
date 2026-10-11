@@ -1,11 +1,16 @@
 import Currency
 import Foundation
 import Hummingbird
+import ISO_9075_Call_Level_Interface
+import ISO_9075_Foundation
+import Logging
 import OpenAPIRuntime
+import PostgreSQL
 import PostgresNIO
-import Records
-import StructuredQueriesPostgres
+import SQL
+import SQL_Foundation_Integration
 import UUIDV7
+import Valkey
 
 private struct EventSnapshot {
   var event: EventRecord
@@ -57,7 +62,11 @@ extension API {
 
     do {
       let events = try await latestEventsVisible(to: userID)
-      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+      var eventSchemas: [Components.Schemas.Event] = []
+      for event in events {
+        eventSchemas.append(await makeEvent(event))
+      }
+      return .ok(.init(body: .json(eventSchemas)))
     } catch {
       logEventDatabaseError(
         "event.list_failed",
@@ -84,7 +93,11 @@ extension API {
         userID: userID,
         requesterUserID: requesterUserID
       )
-      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+      var eventSchemas: [Components.Schemas.Event] = []
+      for event in events {
+        eventSchemas.append(await makeEvent(event))
+      }
+      return .ok(.init(body: .json(eventSchemas)))
     } catch {
       logEventDatabaseError(
         "event.user_organized_list_failed",
@@ -111,7 +124,11 @@ extension API {
         userID: userID,
         requesterUserID: requesterUserID
       )
-      return .ok(.init(body: .json(events.map(Components.Schemas.Event.init))))
+      var eventSchemas: [Components.Schemas.Event] = []
+      for event in events {
+        eventSchemas.append(await makeEvent(event))
+      }
+      return .ok(.init(body: .json(eventSchemas)))
     } catch {
       logEventDatabaseError(
         "event.user_participating_list_failed",
@@ -147,18 +164,18 @@ extension API {
           return .badRequest
         }
       }
-      try await database.withTransaction { db in
-        try await EventRecord.insert { event }.execute(db)
-        try await EventRevisionRecord.insert { revision }.execute(db)
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try EventRecord.insert { event }.execute(db)
+        try EventRevisionRecord.insert { revision }.execute(db)
         if !regionScoreRules.isEmpty {
-          try await EventRegionScoreRuleRecord.insert { regionScoreRules }.execute(db)
+          try EventRegionScoreRuleRecord.insert { regionScoreRules }.execute(db)
         }
       }
       return .ok(
         .init(
           body: .json(
-            .init(
-              .init(event: event, revision: revision, regionScoreRules: regionScoreRules)
+            await makeEvent(
+              EventSnapshot(event: event, revision: revision, regionScoreRules: regionScoreRules)
             )
           )
         )
@@ -191,7 +208,7 @@ extension API {
       guard try await canViewEvent(event, userID: userID) else {
         return .notFound
       }
-      return .ok(.init(body: .json(.init(event))))
+      return .ok(.init(body: .json(await makeEvent(event))))
     } catch {
       logEventDatabaseError(
         "event.read_failed",
@@ -221,8 +238,8 @@ extension API {
       guard let event = try await latestEventSnapshot(eventID: eventID) else {
         return .notFound
       }
-      let participant = try await database.read { db in
-        try await eventParticipant(eventID: eventID, userID: userID, db: db)
+      let participant = try await database.read { (db) throws(ISO_9075.Error) in
+        try eventParticipant(eventID: eventID, userID: userID, db: db)
       }
       guard let participant,
         participant.status == .registered
@@ -294,15 +311,15 @@ extension API {
           return .badRequest
         }
       }
-      try await database.withTransaction { db in
-        try await EventRevisionRecord.insert { revision }.execute(db)
-        try await replaceEventRegionScoreRules(regionScoreRules, eventID: eventID, db: db)
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try EventRevisionRecord.insert { revision }.execute(db)
+        try replaceEventRegionScoreRules(regionScoreRules, eventID: eventID, db: db)
       }
       return .ok(
         .init(
           body: .json(
-            .init(
-              .init(
+            await makeEvent(
+              EventSnapshot(
                 event: current.event,
                 revision: revision,
                 regionScoreRules: regionScoreRules
@@ -333,40 +350,42 @@ extension API {
     }
 
     do {
-      let participant: EventParticipantRecord? = try await database.withTransaction { db in
-        try await lockEventRegistration(eventID: eventID, db: db)
-        guard let event = try await latestEventSnapshot(eventID: eventID, db: db),
-          canRegisterEvent(event, userID: userID, now: Date())
-        else {
-          return nil
-        }
-        if let participant = try await eventParticipant(eventID: eventID, userID: userID, db: db) {
-          switch participant.status {
-          case .registered, .waitlisted, .attended:
-            return participant
-          case .canceled:
-            throw EventRegistrationError.canceledParticipant
+      let registration: Result<EventParticipantRecord?, EventRegistrationError> =
+        try await database.write { (db) throws(ISO_9075.Error) in
+          try lockEventRegistration(eventID: eventID, db: db)
+          guard let event = try latestEventSnapshot(eventID: eventID, db: db),
+            canRegisterEvent(event, userID: userID, now: Date())
+          else {
+            return .success(nil)
           }
-        }
+          if let participant = try eventParticipant(eventID: eventID, userID: userID, db: db) {
+            switch participant.status {
+            case .registered, .waitlisted, .attended:
+              return .success(participant)
+            case .canceled:
+              return .failure(.canceledParticipant)
+            }
+          }
 
-        let participantStatus: EventParticipantRecord.Status
-        if let capacity = event.revision.capacity {
-          let activeParticipantCount = try await activeParticipantCount(eventID: eventID, db: db)
-          participantStatus = activeParticipantCount < capacity ? .registered : .waitlisted
-        } else {
-          participantStatus = .registered
-        }
+          let participantStatus: EventParticipantRecord.Status
+          if let capacity = event.revision.capacity {
+            let activeParticipantCount = try activeParticipantCount(eventID: eventID, db: db)
+            participantStatus = activeParticipantCount < capacity ? .registered : .waitlisted
+          } else {
+            participantStatus = .registered
+          }
 
-        let participant = EventParticipantRecord(
-          id: UUID(uuidString: UUID.uuidV7String())!,
-          eventID: eventID,
-          userID: userID,
-          status: participantStatus,
-          createdAt: Date()
-        )
-        try await EventParticipantRecord.insert { participant }.execute(db)
-        return participant
-      }
+          let participant = EventParticipantRecord(
+            id: UUID(uuidString: UUID.uuidV7String())!,
+            eventID: eventID,
+            userID: userID,
+            status: participantStatus,
+            createdAt: Date()
+          )
+          try EventParticipantRecord.insert { participant }.execute(db)
+          return .success(participant)
+        }
+      let participant = try registration.get()
       guard let participant
       else {
         return .notFound
@@ -422,11 +441,19 @@ extension API {
         note: body.note,
         createdAt: Date()
       )
-      try await database.withTransaction { db in
-        try await EventQuestionRecord.insert { question }.execute(db)
-        try await EventQuestionRevisionRecord.insert { revision }.execute(db)
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try EventQuestionRecord.insert { question }.execute(db)
+        try EventQuestionRevisionRecord.insert { revision }.execute(db)
       }
-      return .ok(.init(body: .json(.init(.init(question: question, revision: revision)))))
+      return .ok(
+        .init(
+          body: .json(
+            await makeEventQuestion(
+              EventQuestionSnapshot(question: question, revision: revision)
+            )
+          )
+        )
+      )
     } catch {
       logEventDatabaseError(
         "event.question_create_failed",
@@ -477,10 +504,18 @@ extension API {
         note: body.note,
         createdAt: Date()
       )
-      try await database.write { db in
-        try await EventQuestionRevisionRecord.insert { revision }.execute(db)
+      try await database.write { (db) throws(ISO_9075.Error) in
+        try EventQuestionRevisionRecord.insert { revision }.execute(db)
       }
-      return .ok(.init(body: .json(.init(.init(question: question, revision: revision)))))
+      return .ok(
+        .init(
+          body: .json(
+            await makeEventQuestion(
+              EventQuestionSnapshot(question: question, revision: revision)
+            )
+          )
+        )
+      )
     } catch {
       logEventDatabaseError(
         "event.question_update_failed",
@@ -725,6 +760,301 @@ extension API {
       return .badRequest
     }
   }
+
+  func getEventQuestions(
+    _ input: Operations.GetEventQuestions.Input
+  ) async throws -> Operations.GetEventQuestions.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard let eventID = UUID(uuidString: input.path.eventId) else {
+      return .badRequest
+    }
+
+    do {
+      guard let event = try await latestEventSnapshot(eventID: eventID) else {
+        return .notFound
+      }
+      guard try await canViewEvent(event, userID: userID) else {
+        return .notFound
+      }
+      let questions = try await latestEventQuestionSnapshots(eventID: eventID)
+      var questionSchemas: [Components.Schemas.EventQuestion] = []
+      for question in questions {
+        questionSchemas.append(await makeEventQuestion(question))
+      }
+      return .ok(.init(body: .json(questionSchemas)))
+    } catch {
+      logEventDatabaseError(
+        "event.question_list_failed",
+        "Failed to fetch event questions",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getMyEventQuestionResponse(
+    _ input: Operations.GetMyEventQuestionResponse.Input
+  ) async throws -> Operations.GetMyEventQuestionResponse.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      let questionID = UUID(uuidString: input.path.questionId)
+    else {
+      return .badRequest
+    }
+
+    do {
+      guard try await eventQuestionExists(questionID: questionID, eventID: eventID) else {
+        return .notFound
+      }
+      let result = try await database.read {
+        (db) throws(ISO_9075.Error) -> (
+          EventQuestionResponseRecord, EventQuestionResponseRevisionRecord, [UUID]
+        )? in
+        guard
+          let response = try eventQuestionResponse(
+            questionID: questionID,
+            userID: userID,
+            db: db
+          ),
+          let revision = try latestResponseRevision(responseID: response.id, db: db)
+        else {
+          return nil
+        }
+        let varietyIDs = try responseVarietyIDs(revisionID: revision.id, db: db)
+        return (response, revision, varietyIDs)
+      }
+      guard let result else {
+        return .notFound
+      }
+      return .ok(
+        .init(
+          body: .json(
+            .init(response: result.0, revision: result.1, wineVarietyIDs: result.2)
+          )
+        )
+      )
+    } catch {
+      logEventDatabaseError(
+        "event.response_read_failed",
+        "Failed to fetch event response",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getEventQuestionResponses(
+    _ input: Operations.GetEventQuestionResponses.Input
+  ) async throws -> Operations.GetEventQuestionResponses.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      let questionID = UUID(uuidString: input.path.questionId)
+    else {
+      return .badRequest
+    }
+
+    do {
+      guard try await isEventOrganizer(eventID: eventID, userID: userID),
+        try await eventQuestionExists(questionID: questionID, eventID: eventID)
+      else {
+        return .notFound
+      }
+      let results = try await database.read {
+        (db) throws(ISO_9075.Error) -> [(
+          EventQuestionResponseRecord, EventQuestionResponseRevisionRecord, [UUID]
+        )] in
+        let responses =
+          try EventQuestionResponseRecord
+          .where { $0.eventQuestionID.eq(questionID) }
+          .order { ($0.createdAt, $0.id) }
+          .fetchAll(db)
+        var out: [(EventQuestionResponseRecord, EventQuestionResponseRevisionRecord, [UUID])] = []
+        for response in responses {
+          guard let revision = try latestResponseRevision(responseID: response.id, db: db)
+          else {
+            continue
+          }
+          let varietyIDs = try responseVarietyIDs(revisionID: revision.id, db: db)
+          out.append((response, revision, varietyIDs))
+        }
+        return out
+      }
+      return .ok(
+        .init(
+          body: .json(
+            results.map {
+              Components.Schemas.EventQuestionResponse(
+                response: $0.0,
+                revision: $0.1,
+                wineVarietyIDs: $0.2
+              )
+            }
+          )
+        )
+      )
+    } catch {
+      logEventDatabaseError(
+        "event.response_list_failed",
+        "Failed to fetch event responses",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getEventQuestionCorrectAnswer(
+    _ input: Operations.GetEventQuestionCorrectAnswer.Input
+  ) async throws -> Operations.GetEventQuestionCorrectAnswer.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      let questionID = UUID(uuidString: input.path.questionId)
+    else {
+      return .badRequest
+    }
+
+    do {
+      guard let event = try await latestEventSnapshot(eventID: eventID) else {
+        return .notFound
+      }
+      if event.event.organizerUserID != userID {
+        // Participants may only see the correct answer once it has been published.
+        guard try await canViewEvent(event, userID: userID),
+          let answersPublishedAt = event.revision.answersPublishedAt,
+          Date() >= answersPublishedAt
+        else {
+          return .notFound
+        }
+      }
+      guard try await eventQuestionExists(questionID: questionID, eventID: eventID) else {
+        return .notFound
+      }
+      let result = try await database.read {
+        (db) throws(ISO_9075.Error) -> (
+          EventQuestionCorrectAnswerRecord, EventQuestionCorrectAnswerRevisionRecord, [UUID]
+        )? in
+        guard
+          let answer = try correctAnswer(questionID: questionID, db: db),
+          let revision = try latestCorrectAnswerRevision(answerID: answer.id, db: db)
+        else {
+          return nil
+        }
+        let varietyIDs = try correctAnswerVarietyIDs(revisionID: revision.id, db: db)
+        return (answer, revision, varietyIDs)
+      }
+      guard let result else {
+        return .notFound
+      }
+      return .ok(
+        .init(
+          body: .json(
+            .init(answer: result.0, revision: result.1, wineVarietyIDs: result.2)
+          )
+        )
+      )
+    } catch {
+      logEventDatabaseError(
+        "event.correct_answer_read_failed",
+        "Failed to fetch correct answer",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func getEventParticipants(
+    _ input: Operations.GetEventParticipants.Input
+  ) async throws -> Operations.GetEventParticipants.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard let eventID = UUID(uuidString: input.path.eventId) else {
+      return .badRequest
+    }
+
+    do {
+      guard try await isEventOrganizer(eventID: eventID, userID: userID) else {
+        return .notFound
+      }
+      let participants = try await database.read { (db) throws(ISO_9075.Error) in
+        try EventParticipantRecord
+          .where { $0.eventID.eq(eventID) }
+          .order { ($0.createdAt, $0.id) }
+          .fetchAll(db)
+      }
+      return .ok(.init(body: .json(participants.map(Components.Schemas.EventParticipant.init))))
+    } catch {
+      logEventDatabaseError(
+        "event.participant_list_failed",
+        "Failed to fetch event participants",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
+
+  func updateMyEventParticipant(
+    _ input: Operations.UpdateMyEventParticipant.Input
+  ) async throws -> Operations.UpdateMyEventParticipant.Output {
+    guard let userID = UserTokenContext.currentUserID else {
+      return .unauthorized
+    }
+    guard
+      let eventID = UUID(uuidString: input.path.eventId),
+      case .json(let body) = input.body,
+      let newStatus = EventParticipantRecord.Status(rawValue: body.status.rawValue)
+    else {
+      return .badRequest
+    }
+    // Only self-cancellation is permitted through this endpoint. Transitions such
+    // as waitlisted/attended are organizer- or system-driven and handled elsewhere.
+    guard newStatus == .canceled else {
+      return .badRequest
+    }
+
+    do {
+      let participant = try await database.write {
+        (db) throws(ISO_9075.Error) -> EventParticipantRecord? in
+        try lockEventRegistration(eventID: eventID, db: db)
+        guard var participant = try eventParticipant(eventID: eventID, userID: userID, db: db)
+        else {
+          return nil
+        }
+        if participant.status != .canceled {
+          participant.status = .canceled
+          try EventParticipantRecord.update(participant).execute(db)
+        }
+        return participant
+      }
+      guard let participant else {
+        return .notFound
+      }
+      return .ok(.init(body: .json(.init(participant))))
+    } catch {
+      logEventDatabaseError(
+        "event.participant_update_failed",
+        "Failed to update event participant",
+        userID: userID,
+        error: error
+      )
+      return .badRequest
+    }
+  }
 }
 
 extension API {
@@ -733,8 +1063,8 @@ extension API {
   ) async throws -> Operations.GetWineStyles.Output {
     guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
-      let styles = try await database.read { db in
-        try await WineStyleRecord.order { $0.name }.fetchAll(db)
+      let styles = try await database.read { (db) throws(ISO_9075.Error) in
+        try WineStyleRecord.order { $0.name }.fetchAll(db)
       }
       return .ok(.init(body: .json(styles.map(Components.Schemas.WineStyle.init))))
     } catch {
@@ -753,9 +1083,9 @@ extension API {
   ) async throws -> Operations.GetWineVarieties.Output {
     guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
-      let varieties = try await database.read { db in
-        let varieties = try await WineVarietyRecord.order { $0.name }.fetchAll(db)
-        let styleLinks = try await WineVarietyStyleRecord.fetchAll(db)
+      let varieties = try await database.read { (db) throws(ISO_9075.Error) in
+        let varieties = try WineVarietyRecord.order { $0.name }.fetchAll(db)
+        let styleLinks = try WineVarietyStyleRecord.fetchAll(db)
         let styleIDsByVarietyID = Dictionary(grouping: styleLinks, by: \.wineVarietyID)
           .mapValues { links in
             links.map(\.wineStyleID).sorted { $0.uuidString < $1.uuidString }
@@ -789,8 +1119,8 @@ extension API {
   ) async throws -> Operations.GetWineRegionTypes.Output {
     guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
-      let types = try await database.read { db in
-        try await WineRegionTypeRecord.order { $0.name }.fetchAll(db)
+      let types = try await database.read { (db) throws(ISO_9075.Error) in
+        try WineRegionTypeRecord.order { $0.name }.fetchAll(db)
       }
       return .ok(.init(body: .json(types.map(Components.Schemas.WineRegionType.init))))
     } catch {
@@ -809,8 +1139,8 @@ extension API {
   ) async throws -> Operations.GetWineRegions.Output {
     guard let userID = UserTokenContext.currentUserID else { return .unauthorized }
     do {
-      let regions = try await database.read { db in
-        try await WineRegionRecord.order { $0.name }.fetchAll(db)
+      let regions = try await database.read { (db) throws(ISO_9075.Error) in
+        try WineRegionRecord.order { $0.name }.fetchAll(db)
       }
       return .ok(.init(body: .json(regions.map(Components.Schemas.WineRegion.init))))
     } catch {
@@ -927,25 +1257,28 @@ extension API {
   fileprivate func replaceEventRegionScoreRules(
     _ rules: [EventRegionScoreRuleRecord],
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws {
-    let query: QueryFragment =
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) {
+    let query: ISO_9075.Fragment =
       "DELETE FROM public.event_region_score_rules WHERE event_id = \(eventID, as: UUID.self)"
-    try await db.executeFragment(query)
+    _ = try db.execute(query)
     if !rules.isEmpty {
-      try await EventRegionScoreRuleRecord.insert { rules }.execute(db)
+      try EventRegionScoreRuleRecord.insert { rules }.execute(db)
     }
   }
 
   fileprivate func latestEventsVisible(to userID: UUID) async throws -> [EventSnapshot] {
-    try await database.read { db in
+    try await database.read { (db) throws(ISO_9075.Error) in
       let rows =
-        try await EventRecord
-        .joinLateral { event in
-          EventRevisionRecord
-            .where { $0.eventID.eq(event.id) }
-            .order { ($0.createdAt.desc(), $0.id.desc()) }
-            .limit(1)
+        try EventRecord
+        .join(EventRevisionRecord.all) { event, latestRevision in
+          latestRevision.id.eq(
+            EventRevisionRecord
+              .where { $0.eventID.eq(event.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+              .select(\.id)
+          )
         }
         .where { event, revision in
           event.organizerUserID.eq(userID)
@@ -960,7 +1293,7 @@ extension API {
         }
         .selectStar()
         .fetchAll(db)
-      return try await snapshots(from: rows, db: db)
+      return try snapshots(from: rows, db: db)
     }
   }
 
@@ -968,32 +1301,38 @@ extension API {
     userID: UUID,
     requesterUserID: UUID
   ) async throws -> [EventSnapshot] {
-    try await database.read { db in
+    try await database.read { (db) throws(ISO_9075.Error) in
       if userID == requesterUserID {
         let rows =
-          try await EventRecord
+          try EventRecord
           .where { $0.organizerUserID.eq(userID) }
-          .joinLateral { event in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .order { event, revision in
             (revision.startsAt.desc(), event.id.desc())
           }
           .selectStar()
           .fetchAll(db)
-        return try await snapshots(from: rows, db: db)
+        return try snapshots(from: rows, db: db)
       } else {
         let rows =
-          try await EventRecord
+          try EventRecord
           .where { $0.organizerUserID.eq(userID) }
-          .joinLateral { event in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .where { _, revision in
             revision.visibility.eq(EventRecord.Visibility.public)
@@ -1005,7 +1344,7 @@ extension API {
           }
           .selectStar()
           .fetchAll(db)
-        return try await snapshots(from: rows, db: db)
+        return try snapshots(from: rows, db: db)
       }
     }
   }
@@ -1014,18 +1353,21 @@ extension API {
     userID: UUID,
     requesterUserID: UUID
   ) async throws -> [EventSnapshot] {
-    try await database.read { db in
+    try await database.read { (db) throws(ISO_9075.Error) in
       if userID == requesterUserID {
         let rows =
-          try await EventRecord
+          try EventRecord
           .join(EventParticipantRecord.all) { event, participant in
             event.id.eq(participant.eventID)
           }
-          .joinLateral { event, _ in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, _, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .where { _, participant, _ in
             participant.userID.eq(userID)
@@ -1043,18 +1385,21 @@ extension API {
           .selectStar()
           .fetchAll(db)
         let eventRows = rows.map { event, _, revision in (event, revision) }
-        return try await snapshots(from: eventRows, db: db)
+        return try snapshots(from: eventRows, db: db)
       } else {
         let rows =
-          try await EventRecord
+          try EventRecord
           .join(EventParticipantRecord.all) { event, participant in
             event.id.eq(participant.eventID)
           }
-          .joinLateral { event, _ in
-            EventRevisionRecord
-              .where { $0.eventID.eq(event.id) }
-              .order { ($0.createdAt.desc(), $0.id.desc()) }
-              .limit(1)
+          .join(EventRevisionRecord.all) { event, _, latestRevision in
+            latestRevision.id.eq(
+              EventRevisionRecord
+                .where { $0.eventID.eq(event.id) }
+                .order { ($0.createdAt.desc(), $0.id.desc()) }
+                .limit(1)
+                .select(\.id)
+            )
           }
           .where { _, participant, revision in
             participant.userID.eq(userID)
@@ -1075,46 +1420,49 @@ extension API {
           .selectStar()
           .fetchAll(db)
         let eventRows = rows.map { event, _, revision in (event, revision) }
-        return try await snapshots(from: eventRows, db: db)
+        return try snapshots(from: eventRows, db: db)
       }
     }
   }
 
   fileprivate func latestEventSnapshot(eventID: UUID) async throws -> EventSnapshot? {
-    try await database.read { db in
-      try await latestEventSnapshot(eventID: eventID, db: db)
+    try await database.read { (db) throws(ISO_9075.Error) in
+      try latestEventSnapshot(eventID: eventID, db: db)
     }
   }
 
   fileprivate func latestEventSnapshot(
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> EventSnapshot? {
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> EventSnapshot? {
     let row =
-      try await EventRecord
+      try EventRecord
       .where { $0.id.eq(eventID) }
-      .joinLateral { event in
-        EventRevisionRecord
-          .where { $0.eventID.eq(event.id) }
-          .order { ($0.createdAt.desc(), $0.id.desc()) }
-          .limit(1)
+      .join(EventRevisionRecord.all) { event, latestRevision in
+        latestRevision.id.eq(
+          EventRevisionRecord
+            .where { $0.eventID.eq(event.id) }
+            .order { ($0.createdAt.desc(), $0.id.desc()) }
+            .limit(1)
+            .select(\.id)
+        )
       }
       .selectStar()
       .limit(1)
       .fetchAll(db)
       .first
     guard let row else { return nil }
-    return try await snapshots(from: [row], db: db).first
+    return try snapshots(from: [row], db: db).first
   }
 
   fileprivate func snapshots(
     from rows: [(EventRecord, EventRevisionRecord)],
-    db: any Database.Connection.`Protocol`
-  ) async throws -> [EventSnapshot] {
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> [EventSnapshot] {
     let eventIDs = rows.map(\.0.id)
     guard !eventIDs.isEmpty else { return [] }
     let scoreRules =
-      try await EventRegionScoreRuleRecord
+      try EventRegionScoreRuleRecord
       .where { $0.eventID.in(eventIDs) }
       .order { ($0.eventID, $0.wineRegionTypeID) }
       .fetchAll(db)
@@ -1189,9 +1537,9 @@ extension API {
   }
 
   fileprivate func activeParticipantExists(eventID: UUID, userID: UUID) async throws -> Bool {
-    try await database.read { db in
+    try await database.read { (db) throws(ISO_9075.Error) in
       let participant =
-        try await EventParticipantRecord
+        try EventParticipantRecord
         .where {
           $0.eventID.eq(eventID)
             .and($0.userID.eq(userID))
@@ -1206,9 +1554,9 @@ extension API {
   fileprivate func eventParticipant(
     eventID: UUID,
     userID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> EventParticipantRecord? {
-    try await EventParticipantRecord
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> EventParticipantRecord? {
+    try EventParticipantRecord
       .where {
         $0.eventID.eq(eventID)
           .and($0.userID.eq(userID))
@@ -1219,9 +1567,9 @@ extension API {
 
   fileprivate func activeParticipantCount(
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> Int {
-    try await EventParticipantRecord
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> Int {
+    try EventParticipantRecord
       .where {
         $0.eventID.eq(eventID)
           .and($0.status.in([EventParticipantRecord.Status.registered, .attended]))
@@ -1231,29 +1579,29 @@ extension API {
 
   fileprivate func lockEventRegistration(
     eventID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws {
-    let query: QueryFragment =
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) {
+    let query: ISO_9075.Fragment =
       "SELECT id FROM public.events WHERE id = \(eventID, as: UUID.self) FOR UPDATE"
-    try await db.executeFragment(query)
+    _ = try db.execute(query)
   }
 
   fileprivate func lockEventQuestion(
     questionID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws {
-    let query: QueryFragment =
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) {
+    let query: ISO_9075.Fragment =
       "SELECT id FROM public.event_questions WHERE id = \(questionID, as: UUID.self) FOR UPDATE"
-    try await db.executeFragment(query)
+    _ = try db.execute(query)
   }
 
   fileprivate func ownedImageExists(
     imageID: UUID,
     userID: UUID
   ) async throws -> Bool {
-    try await database.read { db in
+    try await database.read { (db) throws(ISO_9075.Error) in
       let image =
-        try await ImageRecord
+        try ImageRecord
         .where {
           $0.id.eq(imageID)
             .and($0.userID.eq(userID))
@@ -1268,9 +1616,9 @@ extension API {
     eventID: UUID,
     userID: UUID
   ) async throws -> Bool {
-    try await database.read { db in
+    try await database.read { (db) throws(ISO_9075.Error) in
       let event =
-        try await EventRecord
+        try EventRecord
         .where {
           $0.id.eq(eventID)
             .and($0.organizerUserID.eq(userID))
@@ -1292,8 +1640,8 @@ extension API {
     questionID: UUID,
     eventID: UUID
   ) async throws -> EventQuestionRecord? {
-    try await database.read { db in
-      try await EventQuestionRecord
+    try await database.read { (db) throws(ISO_9075.Error) in
+      try EventQuestionRecord
         .where {
           $0.id.eq(questionID)
             .and($0.eventID.eq(eventID))
@@ -1303,11 +1651,38 @@ extension API {
     }
   }
 
+  fileprivate func latestEventQuestionSnapshots(
+    eventID: UUID
+  ) async throws -> [EventQuestionSnapshot] {
+    try await database.read { (db) throws(ISO_9075.Error) in
+      let rows =
+        try EventQuestionRecord
+        .where { $0.eventID.eq(eventID) }
+        .join(EventQuestionRevisionRecord.all) { question, latestRevision in
+          latestRevision.id.eq(
+            EventQuestionRevisionRecord
+              .where { $0.eventQuestionID.eq(question.id) }
+              .order { ($0.createdAt.desc(), $0.id.desc()) }
+              .limit(1)
+              .select(\.id)
+          )
+        }
+        .order { question, _ in
+          (question.questionNumber, question.id)
+        }
+        .selectStar()
+        .fetchAll(db)
+      return rows.map { question, revision in
+        EventQuestionSnapshot(question: question, revision: revision)
+      }
+    }
+  }
+
   fileprivate func correctAnswer(
     questionID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> EventQuestionCorrectAnswerRecord? {
-    try await EventQuestionCorrectAnswerRecord
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> EventQuestionCorrectAnswerRecord? {
+    try EventQuestionCorrectAnswerRecord
       .where { $0.eventQuestionID.eq(questionID) }
       .limit(1)
       .fetchOne(db)
@@ -1316,15 +1691,59 @@ extension API {
   fileprivate func eventQuestionResponse(
     questionID: UUID,
     userID: UUID,
-    db: any Database.Connection.`Protocol`
-  ) async throws -> EventQuestionResponseRecord? {
-    try await EventQuestionResponseRecord
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> EventQuestionResponseRecord? {
+    try EventQuestionResponseRecord
       .where {
         $0.eventQuestionID.eq(questionID)
           .and($0.userID.eq(userID))
       }
       .limit(1)
       .fetchOne(db)
+  }
+
+  fileprivate func latestCorrectAnswerRevision(
+    answerID: UUID,
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> EventQuestionCorrectAnswerRevisionRecord? {
+    try EventQuestionCorrectAnswerRevisionRecord
+      .where { $0.eventQuestionCorrectAnswerID.eq(answerID) }
+      .order { ($0.createdAt.desc(), $0.id.desc()) }
+      .limit(1)
+      .fetchOne(db)
+  }
+
+  fileprivate func correctAnswerVarietyIDs(
+    revisionID: UUID,
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> [UUID] {
+    let rows =
+      try EventQuestionCorrectAnswerVarietyRecord
+      .where { $0.eventQuestionCorrectAnswerRevisionID.eq(revisionID) }
+      .fetchAll(db)
+    return rows.map(\.wineVarietyID).sorted { $0.uuidString < $1.uuidString }
+  }
+
+  fileprivate func latestResponseRevision(
+    responseID: UUID,
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> EventQuestionResponseRevisionRecord? {
+    try EventQuestionResponseRevisionRecord
+      .where { $0.eventQuestionResponseID.eq(responseID) }
+      .order { ($0.submittedAt.desc(), $0.id.desc()) }
+      .limit(1)
+      .fetchOne(db)
+  }
+
+  fileprivate func responseVarietyIDs(
+    revisionID: UUID,
+    db: PostgreSQL.Connection
+  ) throws(ISO_9075.Error) -> [UUID] {
+    let rows =
+      try EventQuestionResponseVarietyRecord
+      .where { $0.eventQuestionResponseRevisionID.eq(revisionID) }
+      .fetchAll(db)
+    return rows.map(\.wineVarietyID).sorted { $0.uuidString < $1.uuidString }
   }
 
   fileprivate func insertCorrectAnswer(
@@ -1338,49 +1757,54 @@ extension API {
   ) async throws -> (
     answer: EventQuestionCorrectAnswerRecord, revision: EventQuestionCorrectAnswerRevisionRecord
   ) {
-    try await database.withTransaction { db in
-      if requireNoExistingAnswer || requireExistingAnswer {
-        try await lockEventQuestion(questionID: questionID, db: db)
-      }
-      let existing = try await correctAnswer(questionID: questionID, db: db)
-      if requireNoExistingAnswer, existing != nil {
-        throw EventRevisionMutationError.alreadyExists
-      }
-      if requireExistingAnswer, existing == nil {
-        throw EventRevisionMutationError.missingExistingRevision
-      }
-      let answer: EventQuestionCorrectAnswerRecord
-      if let existing {
-        answer = existing
-      } else {
-        answer = EventQuestionCorrectAnswerRecord(
+    let result:
+      Result<
+        (EventQuestionCorrectAnswerRecord, EventQuestionCorrectAnswerRevisionRecord),
+        EventRevisionMutationError
+      > = try await database.write { (db) throws(ISO_9075.Error) in
+        if requireNoExistingAnswer || requireExistingAnswer {
+          try lockEventQuestion(questionID: questionID, db: db)
+        }
+        let existing = try correctAnswer(questionID: questionID, db: db)
+        if requireNoExistingAnswer, existing != nil {
+          return .failure(.alreadyExists)
+        }
+        if requireExistingAnswer, existing == nil {
+          return .failure(.missingExistingRevision)
+        }
+        let answer: EventQuestionCorrectAnswerRecord
+        if let existing {
+          answer = existing
+        } else {
+          answer = EventQuestionCorrectAnswerRecord(
+            id: UUID(uuidString: UUID.uuidV7String())!,
+            eventQuestionID: questionID,
+            createdAt: Date()
+          )
+          try EventQuestionCorrectAnswerRecord.insert { answer }.execute(db)
+        }
+        let revision = EventQuestionCorrectAnswerRevisionRecord(
           id: UUID(uuidString: UUID.uuidV7String())!,
-          eventQuestionID: questionID,
+          eventQuestionCorrectAnswerID: answer.id,
+          wineRegionID: regionID,
+          vintage: vintage,
+          alcoholByVolume: alcoholByVolume,
           createdAt: Date()
         )
-        try await EventQuestionCorrectAnswerRecord.insert { answer }.execute(db)
+        try EventQuestionCorrectAnswerRevisionRecord.insert { revision }.execute(db)
+        let answerVarieties = varietyIDs.map { varietyID in
+          EventQuestionCorrectAnswerVarietyRecord(
+            eventQuestionCorrectAnswerRevisionID: revision.id,
+            wineVarietyID: varietyID,
+            createdAt: Date()
+          )
+        }
+        if !answerVarieties.isEmpty {
+          try EventQuestionCorrectAnswerVarietyRecord.insert { answerVarieties }.execute(db)
+        }
+        return .success((answer, revision))
       }
-      let revision = EventQuestionCorrectAnswerRevisionRecord(
-        id: UUID(uuidString: UUID.uuidV7String())!,
-        eventQuestionCorrectAnswerID: answer.id,
-        wineRegionID: regionID,
-        vintage: vintage,
-        alcoholByVolume: alcoholByVolume,
-        createdAt: Date()
-      )
-      try await EventQuestionCorrectAnswerRevisionRecord.insert { revision }.execute(db)
-      let answerVarieties = varietyIDs.map { varietyID in
-        EventQuestionCorrectAnswerVarietyRecord(
-          eventQuestionCorrectAnswerRevisionID: revision.id,
-          wineVarietyID: varietyID,
-          createdAt: Date()
-        )
-      }
-      if !answerVarieties.isEmpty {
-        try await EventQuestionCorrectAnswerVarietyRecord.insert { answerVarieties }.execute(db)
-      }
-      return (answer, revision)
-    }
+    return try result.get()
   }
 
   fileprivate func insertQuestionResponse(
@@ -1396,58 +1820,63 @@ extension API {
   ) async throws -> (
     response: EventQuestionResponseRecord, revision: EventQuestionResponseRevisionRecord
   ) {
-    try await database.withTransaction { db in
-      if requireNoExistingResponse || requireExistingResponse {
-        try await lockEventQuestion(questionID: questionID, db: db)
-      }
-      // The aggregate carries the stable id and first-submission time; each
-      // update only appends a new revision, mirroring the events ↔
-      // event_revisions pattern.
-      let existing = try await eventQuestionResponse(
-        questionID: questionID,
-        userID: userID,
-        db: db
-      )
-      if requireNoExistingResponse, existing != nil {
-        throw EventRevisionMutationError.alreadyExists
-      }
-      if requireExistingResponse, existing == nil {
-        throw EventRevisionMutationError.missingExistingRevision
-      }
-      let response: EventQuestionResponseRecord
-      if let existing {
-        response = existing
-      } else {
-        response = EventQuestionResponseRecord(
-          id: UUID(uuidString: UUID.uuidV7String())!,
-          eventQuestionID: questionID,
+    let result:
+      Result<
+        (EventQuestionResponseRecord, EventQuestionResponseRevisionRecord),
+        EventRevisionMutationError
+      > = try await database.write { (db) throws(ISO_9075.Error) in
+        if requireNoExistingResponse || requireExistingResponse {
+          try lockEventQuestion(questionID: questionID, db: db)
+        }
+        // The aggregate carries the stable id and first-submission time; each
+        // update only appends a new revision, mirroring the events ↔
+        // event_revisions pattern.
+        let existing = try eventQuestionResponse(
+          questionID: questionID,
           userID: userID,
-          createdAt: Date()
+          db: db
         )
-        try await EventQuestionResponseRecord.insert { response }.execute(db)
-      }
-      let revision = EventQuestionResponseRevisionRecord(
-        id: UUID(uuidString: UUID.uuidV7String())!,
-        eventQuestionResponseID: response.id,
-        wineRegionID: regionID,
-        vintage: vintage,
-        alcoholByVolume: alcoholByVolume,
-        note: note,
-        submittedAt: Date()
-      )
-      try await EventQuestionResponseRevisionRecord.insert { revision }.execute(db)
-      let responseVarieties = varietyIDs.map { varietyID in
-        EventQuestionResponseVarietyRecord(
-          eventQuestionResponseRevisionID: revision.id,
-          wineVarietyID: varietyID,
-          createdAt: Date()
+        if requireNoExistingResponse, existing != nil {
+          return .failure(.alreadyExists)
+        }
+        if requireExistingResponse, existing == nil {
+          return .failure(.missingExistingRevision)
+        }
+        let response: EventQuestionResponseRecord
+        if let existing {
+          response = existing
+        } else {
+          response = EventQuestionResponseRecord(
+            id: UUID(uuidString: UUID.uuidV7String())!,
+            eventQuestionID: questionID,
+            userID: userID,
+            createdAt: Date()
+          )
+          try EventQuestionResponseRecord.insert { response }.execute(db)
+        }
+        let revision = EventQuestionResponseRevisionRecord(
+          id: UUID(uuidString: UUID.uuidV7String())!,
+          eventQuestionResponseID: response.id,
+          wineRegionID: regionID,
+          vintage: vintage,
+          alcoholByVolume: alcoholByVolume,
+          note: note,
+          submittedAt: Date()
         )
+        try EventQuestionResponseRevisionRecord.insert { revision }.execute(db)
+        let responseVarieties = varietyIDs.map { varietyID in
+          EventQuestionResponseVarietyRecord(
+            eventQuestionResponseRevisionID: revision.id,
+            wineVarietyID: varietyID,
+            createdAt: Date()
+          )
+        }
+        if !responseVarieties.isEmpty {
+          try EventQuestionResponseVarietyRecord.insert { responseVarieties }.execute(db)
+        }
+        return .success((response, revision))
       }
-      if !responseVarieties.isEmpty {
-        try await EventQuestionResponseVarietyRecord.insert { responseVarieties }.execute(db)
-      }
-      return (response, revision)
-    }
+    return try result.get()
   }
 
   fileprivate func parseOptionalUUID(_ string: String?) -> (id: UUID?, isValid: Bool) {
@@ -1499,8 +1928,86 @@ extension API {
   }
 }
 
+extension API {
+  fileprivate func makeEvent(_ snapshot: EventSnapshot) async -> Components.Schemas.Event {
+    let imageURL = await resolveImageURL(imageID: snapshot.revision.imageID)
+    return Components.Schemas.Event(snapshot, imageURL: imageURL)
+  }
+
+  fileprivate func makeEventQuestion(
+    _ snapshot: EventQuestionSnapshot
+  ) async -> Components.Schemas.EventQuestion {
+    let imageURL = await resolveImageURL(imageID: snapshot.revision.imageID)
+    return Components.Schemas.EventQuestion(snapshot, imageURL: imageURL)
+  }
+
+  // Resolves a Cloudflare Images delivery URL for an image owned by its uploader.
+  // Best-effort: image display must never break an event read, so any failure
+  // (missing record, Cloudflare error, cache error) resolves to nil.
+  fileprivate func resolveImageURL(imageID: UUID?) async -> String? {
+    guard let imageID else { return nil }
+    do {
+      guard let image = try await imageRecord(imageID: imageID) else { return nil }
+      return try await eventImageURL(
+        cloudflareImageID: image.cloudflareImageID,
+        ownerUserID: image.userID
+      )
+    } catch {
+      AppRequestContext.current?.logger.appLog(
+        level: .warning,
+        eventName: "event.image_url_read_failed",
+        "Failed to resolve event image URL",
+        metadata: [
+          "image.uuid": .string(imageID.uuidString),
+          "cloudflare.operation": .string("images.image"),
+        ],
+        error: error
+      )
+      return nil
+    }
+  }
+
+  fileprivate func imageRecord(imageID: UUID) async throws -> ImageRecord? {
+    if let cached = try? await cachedImage(id: imageID) {
+      return cached
+    }
+    let image = try await database.read { (db) throws(ISO_9075.Error) in
+      try ImageRecord
+        .where { $0.id.eq(imageID) }
+        .limit(1)
+        .fetchOne(db)
+    }
+    if let image {
+      try? await cacheImage(image)
+    }
+    return image
+  }
+
+  // Reuses the same cache namespace as user profile image URLs; the key is keyed
+  // by the image owner and Cloudflare image id, which uniquely identify the URL.
+  fileprivate func eventImageURL(
+    cloudflareImageID: String,
+    ownerUserID: UUID
+  ) async throws -> String {
+    let key = ValkeyKey("image_url:\(ownerUserID.uuidString):\(cloudflareImageID)")
+    if let cached = try? await cache.getex(key, expiration: .seconds(60 * 10)) {
+      return String(decoding: Data(cached), as: UTF8.self)
+    }
+    let imageURL = try await cloudflareImagesClient.imageURL(
+      id: cloudflareImageID,
+      userID: ownerUserID
+    ).absoluteString
+    try? await cache.set(
+      key,
+      value: Data(imageURL.utf8),
+      expiration: .seconds(60 * 10)
+    )
+    return imageURL
+  }
+}
+
 extension Components.Schemas.Event {
-  fileprivate init(_ snapshot: EventSnapshot) {
+  fileprivate init(_ snapshot: EventSnapshot, imageURL: String?) {
     let event = snapshot.event
     let revision = snapshot.revision
     let venueAddress = Components.Schemas.PostalAddress(
@@ -1543,6 +2050,7 @@ extension Components.Schemas.Event {
       title: revision.title,
       body: revision.body,
       imageID: revision.imageID?.uuidString,
+      imageURL: imageURL,
       venueName: revision.venueName,
       venueAddress: venueAddress,
       venueCoordinate: venueCoordinate,
@@ -1585,7 +2093,7 @@ extension Components.Schemas.EventParticipant {
 }
 
 extension Components.Schemas.EventQuestion {
-  fileprivate init(_ snapshot: EventQuestionSnapshot) {
+  fileprivate init(_ snapshot: EventQuestionSnapshot, imageURL: String?) {
     let question = snapshot.question
     let revision = snapshot.revision
     self.init(
@@ -1593,6 +2101,7 @@ extension Components.Schemas.EventQuestion {
       eventID: question.eventID.uuidString,
       questionNumber: Int32(question.questionNumber),
       imageID: revision.imageID?.uuidString,
+      imageURL: imageURL,
       note: revision.note,
       createdAt: question.createdAt.timeIntervalSinceReferenceDate
     )

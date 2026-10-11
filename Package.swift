@@ -1,13 +1,10 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.4
 
 import PackageDescription
 
 let package = Package(
   name: "App",
-  platforms: [
-    .macOS(.v15),
-    .iOS(.v18),
-  ],
+  platforms: [.macOS(.v27)],
   products: [
     .executable(
       name: "App",
@@ -22,18 +19,21 @@ let package = Package(
     .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.4.0"),
+    .package(url: "https://github.com/zunda-pixel/cloudflare-swift.git", from: "0.8.2"),
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
-    .package(url: "https://github.com/zunda-pixel/cloudflare-swift.git", from: "0.8.2"),
-    .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),
     .package(
-      url: "https://github.com/swift-otel/swift-otel.git",
-      from: "1.0.0",
-      traits: ["OTLPHTTP"]
-    ),
-    .package(url: "https://github.com/zunda-pixel/swift-records.git", branch: "fix-build-error"),
+      url: "https://github.com/zunda-pixel/swift-postgresql.git",
+      branch: "fix-postgresql-closure-lifetime",
+      traits: ["PostgresNIO"]),
+    .package(url: "https://github.com/swift-compositions/swift-sql.git", branch: "main"),
+    .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),
     .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "add-init"),
     .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
+    .package(
+      url: "https://github.com/swift-otel/swift-otel.git",
+      from: "1.0.0"
+    ),
     .package(
       url: "https://github.com/zunda-pixel/pass-builder.git",
       branch: "fix-dependencies-version"
@@ -52,7 +52,9 @@ let package = Package(
         .product(name: "WebAuthn", package: "swift-webauthn"),
         .product(name: "OpenAPIHummingbird", package: "swift-openapi-hummingbird"),
         .product(name: "JWTKit", package: "jwt-kit"),
-        .product(name: "Records", package: "swift-records"),
+        .product(name: "PostgreSQL", package: "swift-postgresql"),
+        .product(name: "SQL Macros", package: "swift-sql"),
+        .product(name: "SQL Foundation Integration", package: "swift-sql"),
         .product(name: "Currency", package: "swift-currency"),
         .product(name: "CloudflareEmailService", package: "cloudflare-swift"),
         .product(name: "CloudflareImages", package: "cloudflare-swift"),

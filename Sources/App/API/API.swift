@@ -1,12 +1,12 @@
 import Crypto
 import Foundation
 import JWTKit
-import PostgresNIO
+import PostgreSQL
 import Valkey
 
 struct API: APIProtocol {
   var cache: ValkeyClient
-  var database: PostgresClient
+  var database: PostgreSQL.Database
   var cloudflareImagesClient: any CloudflareImagesClientProtocol
   var jwtKeyCollection: JWTKeyCollection
   var jwtConfiguration: JWTConfiguration
