@@ -104,6 +104,8 @@ extension API {
   fileprivate func getUsersFromDatabase(
     ids: [User.ID]
   ) async throws -> [User] {
+    guard !ids.isEmpty else { return [] }
+
     return try await database.read { (db) throws(ISO_9075.Error) in
       try User
         .select(\.self)
