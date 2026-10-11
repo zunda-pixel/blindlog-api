@@ -1,5 +1,5 @@
 {
-  "originHash" : "4483179e12fdfd477d63450797e4c47fd011bba7403a3a4a7d07374a7dd73633",
+  "originHash" : "5032767816c2d46f38ff91532edb076badfb1165bb05a16ad551d004a0e4b952",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -121,10 +121,10 @@
     {
       "identity" : "pass-builder",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zunda-pixel/pass-builder.git",
+      "location" : "https://github.com/apple/pass-builder.git",
       "state" : {
-        "branch" : "fix-dependencies-version",
-        "revision" : "b8de3db04eeb3e80ad90a3253d335084ef526e43"
+        "branch" : "main",
+        "revision" : "8908b955a42da8294ce7506719aa1f186d096c02"
       }
     },
     {

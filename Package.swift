@@ -34,10 +34,7 @@ let package = Package(
       url: "https://github.com/swift-otel/swift-otel.git",
       from: "1.0.0"
     ),
-    .package(
-      url: "https://github.com/zunda-pixel/pass-builder.git",
-      branch: "fix-dependencies-version"
-    ),
+    .package(url: "https://github.com/apple/pass-builder.git", branch: "main"),
   ],
   targets: [
     .executableTarget(
