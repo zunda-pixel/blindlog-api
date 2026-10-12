@@ -18,7 +18,6 @@ struct ScoringTests {
     let correct = ScoringAnswerPayload(
       wineRegionID: nil,
       producerWineRegionID: nil,
-      feature: nil,
       vintage: nil,
       alcoholByVolume: 13.0,
       wineVarietyIDs: []
@@ -29,7 +28,6 @@ struct ScoringTests {
       response: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: 13.0,
         wineVarietyIDs: []
@@ -46,7 +44,6 @@ struct ScoringTests {
       response: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: 13.0 + 1e-12,
         wineVarietyIDs: []
@@ -63,7 +60,6 @@ struct ScoringTests {
       response: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: 13.4,
         wineVarietyIDs: []
@@ -80,7 +76,6 @@ struct ScoringTests {
       response: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: 14.0,
         wineVarietyIDs: []
@@ -120,7 +115,6 @@ struct ScoringTests {
     let empty = ScoringAnswerPayload(
       wineRegionID: nil,
       producerWineRegionID: nil,
-      feature: nil,
       vintage: nil,
       alcoholByVolume: nil,
       wineVarietyIDs: []
@@ -165,7 +159,6 @@ struct ScoringTests {
     let correct = ScoringAnswerPayload(
       wineRegionID: nil,
       producerWineRegionID: nil,
-      feature: nil,
       vintage: nil,
       alcoholByVolume: nil,
       wineVarietyIDs: [a, b]
@@ -175,7 +168,6 @@ struct ScoringTests {
       response: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: nil,
         wineVarietyIDs: [b, a]
@@ -191,7 +183,6 @@ struct ScoringTests {
       correct: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: nil,
         wineVarietyIDs: []
@@ -199,7 +190,6 @@ struct ScoringTests {
       response: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: nil,
         wineVarietyIDs: []
@@ -216,7 +206,6 @@ struct ScoringTests {
       response: ScoringAnswerPayload(
         wineRegionID: nil,
         producerWineRegionID: nil,
-        feature: nil,
         vintage: nil,
         alcoholByVolume: nil,
         wineVarietyIDs: [a]
@@ -230,113 +219,47 @@ struct ScoringTests {
   }
 
   @Test
-  func producerBlankIsZeroAndFeaturePartialDoesNotDoubleCount() {
+  func producerScoresOnlyExactMatch() {
     let producerID = UUID()
     let producerRule = EventQuestionScoreComponentRuleRecord(
       eventQuestionID: UUID(),
       component: .producer,
       points: 4,
-      partialPoints: 2,
-      alcoholTolerance: nil,
-      createdAt: Date()
-    )
-    let featureRule = EventQuestionScoreComponentRuleRecord(
-      eventQuestionID: UUID(),
-      component: .feature,
-      points: 2,
       partialPoints: nil,
       alcoholTolerance: nil,
       createdAt: Date()
     )
-    let correct = ScoringAnswerPayload(
+    let blank = ScoringAnswerPayload(
       wineRegionID: nil,
-      producerWineRegionID: producerID,
-      feature: "Granite",
+      producerWineRegionID: nil,
       vintage: nil,
       alcoholByVolume: nil,
       wineVarietyIDs: []
     )
+    let correct = ScoringAnswerPayload(
+      wineRegionID: nil,
+      producerWineRegionID: producerID,
+      vintage: nil,
+      alcoholByVolume: nil,
+      wineVarietyIDs: []
+    )
+    func score(correct: ScoringAnswerPayload, response: ScoringAnswerPayload) -> Int {
+      QuestionScorer.score(
+        correct: correct,
+        response: response,
+        regionRules: [],
+        componentRules: [producerRule],
+        correctRegionAncestors: [],
+        responseRegionAncestors: []
+      ).earnedPoints
+    }
 
-    let blankBlank = QuestionScorer.score(
-      correct: ScoringAnswerPayload(
-        wineRegionID: nil,
-        producerWineRegionID: nil,
-        feature: nil,
-        vintage: nil,
-        alcoholByVolume: nil,
-        wineVarietyIDs: []
-      ),
-      response: ScoringAnswerPayload(
-        wineRegionID: nil,
-        producerWineRegionID: nil,
-        feature: nil,
-        vintage: nil,
-        alcoholByVolume: nil,
-        wineVarietyIDs: []
-      ),
-      regionRules: [],
-      componentRules: [producerRule],
-      correctRegionAncestors: [],
-      responseRegionAncestors: []
-    )
-    #expect(blankBlank.earnedPoints == 0)
-
-    let anonymous = QuestionScorer.score(
-      correct: correct,
-      response: ScoringAnswerPayload(
-        wineRegionID: nil,
-        producerWineRegionID: nil,
-        feature: nil,
-        vintage: nil,
-        alcoholByVolume: nil,
-        wineVarietyIDs: []
-      ),
-      regionRules: [],
-      componentRules: [producerRule],
-      correctRegionAncestors: [],
-      responseRegionAncestors: []
-    )
-    #expect(anonymous.earnedPoints == 0)
-
-    let featurePartialWithoutSeparateRule = QuestionScorer.score(
-      correct: correct,
-      response: ScoringAnswerPayload(
-        wineRegionID: nil,
-        producerWineRegionID: UUID(),
-        feature: "granite",
-        vintage: nil,
-        alcoholByVolume: nil,
-        wineVarietyIDs: []
-      ),
-      regionRules: [],
-      componentRules: [producerRule],
-      correctRegionAncestors: [],
-      responseRegionAncestors: []
-    )
-    #expect(featurePartialWithoutSeparateRule.earnedPoints == 2)
-
-    let withSeparateFeatureRule = QuestionScorer.score(
-      correct: correct,
-      response: ScoringAnswerPayload(
-        wineRegionID: nil,
-        producerWineRegionID: UUID(),
-        feature: "granite",
-        vintage: nil,
-        alcoholByVolume: nil,
-        wineVarietyIDs: []
-      ),
-      regionRules: [],
-      componentRules: [producerRule, featureRule],
-      correctRegionAncestors: [],
-      responseRegionAncestors: []
-    )
-    #expect(withSeparateFeatureRule.earnedPoints == 2)
-    #expect(
-      withSeparateFeatureRule.components.first { $0.component == .producer }?.earnedPoints == 0
-    )
-    #expect(
-      withSeparateFeatureRule.components.first { $0.component == .feature }?.earnedPoints == 2
-    )
+    #expect(score(correct: blank, response: blank) == 0)
+    #expect(score(correct: correct, response: blank) == 0)
+    var otherProducer = correct
+    otherProducer.producerWineRegionID = UUID()
+    #expect(score(correct: correct, response: otherProducer) == 0)
+    #expect(score(correct: correct, response: correct) == 4)
   }
 
   @Test

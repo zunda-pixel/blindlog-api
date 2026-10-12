@@ -97,7 +97,6 @@ struct EventQuestionScoreComponentRuleRecord: Codable, Hashable {
     case vintage
     case alcohol
     case producer
-    case feature
   }
 
   @Column("event_question_id") var eventQuestionID: UUID

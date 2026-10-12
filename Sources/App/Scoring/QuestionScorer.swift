@@ -6,7 +6,6 @@ enum ScoreComponentKind: String, Sendable, Hashable {
   case vintage
   case alcohol
   case producer
-  case feature
 }
 
 struct ScoreComponentResult: Sendable, Hashable {
@@ -29,7 +28,6 @@ struct QuestionScoreResult: Sendable, Hashable {
 struct ScoringAnswerPayload: Sendable, Hashable {
   var wineRegionID: UUID?
   var producerWineRegionID: UUID?
-  var feature: String?
   var vintage: Int?
   var alcoholByVolume: Double?
   var wineVarietyIDs: Set<UUID>
@@ -43,12 +41,6 @@ struct RegionAncestor: Sendable, Hashable {
 enum QuestionScorer {
   static let alcoholExactEpsilon = 1e-9
 
-  static func normalizeFeature(_ value: String?) -> String? {
-    guard let value else { return nil }
-    let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    return normalized.isEmpty ? nil : normalized
-  }
-
   static func score(
     correct: ScoringAnswerPayload,
     response: ScoringAnswerPayload,
@@ -58,7 +50,6 @@ enum QuestionScorer {
     responseRegionAncestors: [RegionAncestor]
   ) -> QuestionScoreResult {
     var components: [ScoreComponentResult] = []
-    let hasFeatureRule = componentRules.contains { $0.component == .feature }
 
     if !regionRules.isEmpty {
       let maxPoints = regionRules.map(\.points).max() ?? 0
@@ -112,25 +103,11 @@ enum QuestionScorer {
           maxPoints: rule.points
         )
       case .producer:
-        let earned = producerPoints(
-          correct: correct,
-          response: response,
-          points: rule.points,
-          partialPoints: rule.partialPoints,
-          allowFeaturePartial: !hasFeatureRule
-        )
+        let earned =
+          correct.producerWineRegionID != nil
+            && correct.producerWineRegionID == response.producerWineRegionID ? rule.points : 0
         result = ScoreComponentResult(
           component: .producer,
-          earnedPoints: earned,
-          maxPoints: rule.points
-        )
-      case .feature:
-        let correctFeature = normalizeFeature(correct.feature)
-        let responseFeature = normalizeFeature(response.feature)
-        let earned =
-          correctFeature != nil && correctFeature == responseFeature ? rule.points : 0
-        result = ScoreComponentResult(
-          component: .feature,
           earnedPoints: earned,
           maxPoints: rule.points
         )
@@ -159,29 +136,6 @@ enum QuestionScorer {
     if delta <= alcoholExactEpsilon { return points }
     if let tolerance, delta <= tolerance {
       return partialPoints ?? 0
-    }
-    return 0
-  }
-
-  /// Full points for matching producer IDs.
-  /// Partial points only when there is no separate feature rule and features match.
-  /// A blank producer response scores zero (no anonymous partial credit).
-  private static func producerPoints(
-    correct: ScoringAnswerPayload,
-    response: ScoringAnswerPayload,
-    points: Int,
-    partialPoints: Int?,
-    allowFeaturePartial: Bool
-  ) -> Int {
-    guard let correctProducer = correct.producerWineRegionID else { return 0 }
-    if response.producerWineRegionID == correctProducer {
-      return points
-    }
-    guard let partialPoints, allowFeaturePartial else { return 0 }
-    let correctFeature = normalizeFeature(correct.feature)
-    let responseFeature = normalizeFeature(response.feature)
-    if correctFeature != nil, correctFeature == responseFeature {
-      return partialPoints
     }
     return 0
   }

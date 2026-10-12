@@ -346,10 +346,11 @@ CREATE TABLE public.event_question_score_component_rules (
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT event_question_score_component_rules_pk PRIMARY KEY (event_question_id, component),
   CONSTRAINT event_question_score_component_rules_question_fk FOREIGN KEY (event_question_id) REFERENCES public.event_questions (id) ON DELETE RESTRICT,
-  CONSTRAINT event_question_score_component_rules_component_valid CHECK (component IN ('variety', 'vintage', 'alcohol', 'producer', 'feature')),
+  CONSTRAINT event_question_score_component_rules_component_valid CHECK (component IN ('variety', 'vintage', 'alcohol', 'producer')),
   CONSTRAINT event_question_score_component_rules_points_non_negative CHECK (points >= 0),
   CONSTRAINT event_question_score_component_rules_partial_points_non_negative CHECK (partial_points IS NULL OR partial_points >= 0),
   CONSTRAINT event_question_score_component_rules_partial_lte_points CHECK (partial_points IS NULL OR partial_points <= points),
+  CONSTRAINT event_question_score_component_rules_partial_points_only_for_alcohol CHECK (partial_points IS NULL OR component = 'alcohol'),
   CONSTRAINT event_question_score_component_rules_alcohol_tolerance_non_negative CHECK (alcohol_tolerance IS NULL OR alcohol_tolerance >= 0),
   CONSTRAINT event_question_score_component_rules_alcohol_tolerance_only_for_alcohol CHECK (alcohol_tolerance IS NULL OR component = 'alcohol')
 );

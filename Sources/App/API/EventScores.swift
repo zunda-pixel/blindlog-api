@@ -279,7 +279,6 @@ extension API {
     let correctPayload = ScoringAnswerPayload(
       wineRegionID: correctRevision.wineRegionID,
       producerWineRegionID: correctRevision.producerWineRegionID,
-      feature: correctRevision.feature,
       vintage: correctRevision.vintage,
       alcoholByVolume: correctRevision.alcoholByVolume,
       wineVarietyIDs: Set(correctVarieties)
@@ -351,7 +350,6 @@ extension API {
       let responsePayload = ScoringAnswerPayload(
         wineRegionID: revision.wineRegionID,
         producerWineRegionID: revision.producerWineRegionID,
-        feature: revision.feature,
         vintage: revision.vintage,
         alcoholByVolume: revision.alcoholByVolume,
         wineVarietyIDs: Set(varieties)

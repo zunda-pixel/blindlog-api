@@ -1258,7 +1258,7 @@ extension API {
       guard rule.points >= 0 else { return nil }
       if let partialPoints = rule.partialPoints {
         guard partialPoints >= 0, partialPoints <= rule.points else { return nil }
-        guard component == .alcohol || component == .producer else { return nil }
+        guard component == .alcohol else { return nil }
       }
       if component == .alcohol {
         if let alcoholTolerance = rule.alcoholTolerance, alcoholTolerance < 0 {
