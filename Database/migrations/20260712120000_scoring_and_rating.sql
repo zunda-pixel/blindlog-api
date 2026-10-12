@@ -67,10 +67,10 @@ CREATE TABLE public.event_question_score_component_rules (
     CHECK (alcohol_tolerance IS NULL OR component = 'alcohol')
 );
 
--- Producer and feature (a free-form note, not scored) fields on answers
+-- Producer on answers, and a note on correct answers
 ALTER TABLE public.event_question_correct_answer_revisions
   ADD COLUMN producer_wine_region_id uuid,
-  ADD COLUMN feature text,
+  ADD COLUMN note text,
   ADD CONSTRAINT event_question_correct_answer_revisions_producer_wine_region_fk
     FOREIGN KEY (producer_wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT;
 
@@ -79,7 +79,6 @@ CREATE INDEX event_question_correct_answer_revisions_producer_wine_region_id_idx
 
 ALTER TABLE public.event_question_response_revisions
   ADD COLUMN producer_wine_region_id uuid,
-  ADD COLUMN feature text,
   ADD CONSTRAINT event_question_response_revisions_producer_wine_region_fk
     FOREIGN KEY (producer_wine_region_id) REFERENCES public.wine_regions (id) ON DELETE RESTRICT;
 

@@ -159,7 +159,7 @@ struct EventQuestionCorrectAnswerRevisionRecord: Codable, Identifiable, Hashable
   @Column("event_question_correct_answer_id") var eventQuestionCorrectAnswerID: UUID
   @Column("wine_region_id") var wineRegionID: UUID?
   @Column("producer_wine_region_id") var producerWineRegionID: UUID?
-  var feature: String?
+  var note: String?
   var vintage: Int?
   @Column("alcohol_by_volume") var alcoholByVolume: Double?
   @Column("created_at") var createdAt: Date
@@ -187,7 +187,6 @@ struct EventQuestionResponseRevisionRecord: Codable, Identifiable, Hashable {
   @Column("event_question_response_id") var eventQuestionResponseID: UUID
   @Column("wine_region_id") var wineRegionID: UUID?
   @Column("producer_wine_region_id") var producerWineRegionID: UUID?
-  var feature: String?
   var vintage: Int?
   @Column("alcohol_by_volume") var alcoholByVolume: Double?
   var note: String?

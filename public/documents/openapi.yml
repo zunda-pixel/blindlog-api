@@ -2458,9 +2458,9 @@ components:
           format: double
           minimum: 0
           maximum: 100
-        feature:
+        note:
           type: string
-          description: A free-form note about the wine. Not used for scoring.
+          description: A free-form note about the correct answer, visible once answers are published.
         wineVarietyIDs:
           type: array
           uniqueItems: true
@@ -2494,9 +2494,9 @@ components:
           format: double
           minimum: 0
           maximum: 100
-        feature:
+        note:
           type: string
-          description: A free-form note about the wine. Not used for scoring.
+          description: A free-form note about the correct answer, visible once answers are published.
         wineVarietyIDs:
           type: array
           uniqueItems: true
@@ -2530,9 +2530,6 @@ components:
           format: double
           minimum: 0
           maximum: 100
-        feature:
-          type: string
-          description: A free-form note about the wine. Not used for scoring.
         note:
           type: string
         wineVarietyIDs:
@@ -2571,9 +2568,6 @@ components:
           format: double
           minimum: 0
           maximum: 100
-        feature:
-          type: string
-          description: A free-form note about the wine. Not used for scoring.
         note:
           type: string
         wineVarietyIDs:
