@@ -138,7 +138,7 @@ extension EventPassTests {
       RFC5280Policy()
     }
     guard case .success = verification else {
-      Issue.record("CMS detached signature verification failed: \\(verification)")
+      Issue.record("CMS detached signature verification failed: \(verification)")
       return
     }
     // A DER certificate has no private key, so signing must fail even though parsing succeeds.
