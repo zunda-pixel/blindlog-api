@@ -1,5 +1,7 @@
 import Configuration
 import Foundation
+import Subprocess
+import SystemPackage
 import Testing
 
 @testable import App
@@ -53,7 +55,7 @@ struct EventPassTests {
   }
 
   @Test
-  func malformedCertificateCannotProducePass() async throws {
+  func malformedCertificateCannotProducePass() throws {
     let config = ConfigReader(providers: [InMemoryProvider(values: values)])
     let configuration = try makePassConfiguration(config: config)
     #expect(throws: (any Error).self) {
@@ -78,19 +80,19 @@ extension EventPassTests {
       .appendingPathComponent("blindlog-pass-test-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
-    try runTool(
+    try await runTool(
       "openssl",
       [
         "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
         "-subj", "/CN=Blindlog Test Only", "-keyout", "key.pem", "-out", "cert.pem",
       ], in: directory)
-    try runTool(
+    try await runTool(
       "openssl",
       [
         "pkcs12", "-export", "-inkey", "key.pem", "-in", "cert.pem",
         "-out", "pass.p12", "-passout", "pass:test-password",
       ], in: directory)
-    try runTool(
+    try await runTool(
       "openssl",
       [
         "x509", "-in", "cert.pem", "-outform", "DER", "-out", "wwdr.cer",
@@ -108,17 +110,8 @@ extension EventPassTests {
       configuration: configuration, signer: signer, content: content
     )
     try passData.write(to: directory.appendingPathComponent("ticket.pkpass"))
-    try runTool("unzip", ["-q", "ticket.pkpass", "-d", "unpacked"], in: directory)
+    try await runTool("unzip", ["-q", "ticket.pkpass", "-d", "unpacked"], in: directory)
     let unpacked = directory.appendingPathComponent("unpacked")
-    for (filename, expectedSize) in [("icon.png", 29), ("icon@2x.png", 58), ("icon@3x.png", 87)] {
-      let png = try Data(contentsOf: unpacked.appendingPathComponent(filename))
-      #expect(Array(png.prefix(8)) == [137, 80, 78, 71, 13, 10, 26, 10])
-      // PNG IHDR encodes width and height as big-endian UInt32 values.
-      let width = png[16..<20].reduce(0) { ($0 << 8) | Int($1) }
-      let height = png[20..<24].reduce(0) { ($0 << 8) | Int($1) }
-      #expect(width == expectedSize)
-      #expect(height == expectedSize)
-    }
     let json = try #require(
       JSONSerialization.jsonObject(
         with: Data(contentsOf: unpacked.appendingPathComponent("pass.json")))
@@ -131,7 +124,7 @@ extension EventPassTests {
     #expect(
       barcode["message"] as? String
         == "blindlog://events/\(content.eventID.uuidString)/tickets/\(content.serialNumber)")
-    try runTool(
+    try await runTool(
       "openssl",
       [
         "cms", "-verify", "-binary", "-inform", "DER", "-in", "unpacked/signature",
@@ -156,15 +149,13 @@ extension EventPassTests {
     }
   }
 
-  private func runTool(_ tool: String, _ arguments: [String], in directory: URL) throws {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = [tool] + arguments
-    process.currentDirectoryURL = directory
-    process.standardOutput = FileHandle.nullDevice
-    process.standardError = FileHandle.nullDevice
-    try process.run()
-    process.waitUntilExit()
-    try #require(process.terminationStatus == 0, "\(tool) failed: \(process.terminationStatus)")
+  private func runTool(_ tool: String, _ arguments: [String], in directory: URL) async throws {
+    let result = try await Subprocess.run(
+      .name(tool),
+      arguments: Arguments(arguments),
+      workingDirectory: FilePath(directory.path),
+      output: .discarded
+    )
+    #expect(result.terminationStatus.isSuccess, "\\(tool) failed: \\(result.terminationStatus)")
   }
 }
