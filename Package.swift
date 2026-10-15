@@ -24,7 +24,6 @@ let package = Package(
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(url: "https://github.com/swift-otel/swift-otel.git", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-certificates.git", from: "1.19.1"),
-    .package(url: "https://github.com/swiftlang/swift-subprocess.git", from: "0.4.0"),
     .package(url: "https://github.com/adam-fowler/swift-zip-archive.git", from: "0.7.0"),
     .package(
       url: "https://github.com/zunda-pixel/pass-builder.git",
@@ -87,7 +86,6 @@ let package = Package(
         .product(name: "OTel", package: "swift-otel"),
         .product(name: "X509", package: "swift-certificates"),
         .product(name: "ZipArchive", package: "swift-zip-archive"),
-        .product(name: "Subprocess", package: "swift-subprocess"),
       ]
     ),
   ]
