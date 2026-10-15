@@ -46,6 +46,7 @@ struct EventPassContent {
 /// Builds and signs an Apple Wallet event ticket, returning the `.pkpass` bytes.
 func makeEventPassData(
   configuration: PassConfiguration,
+  signer: PassSigner,
   content: EventPassContent
 ) async throws -> Data {
   var package = PassPackage()
@@ -100,16 +101,6 @@ func makeEventPassData(
   icon.times2 = try passIconFile(named: "icon@2x")
   icon.times3 = try passIconFile(named: "icon@3x")
   package.icon = icon
-
-  let passCertificate = try PassCertificate(
-    data: configuration.passCertificateData,
-    password: configuration.passCertificatePassword
-  )
-  let wwdrCertificate = try PassCertificate(data: configuration.wwdrCertificateData)
-  let signer = PassSigner(
-    passCertificate: passCertificate,
-    wwdrCertificate: wwdrCertificate
-  )
 
   // `signPass` writes to disk, so use a unique temporary directory and read the
   // resulting `.pkpass` back into memory.
