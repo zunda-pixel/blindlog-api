@@ -1,6 +1,5 @@
 import Configuration
 import Foundation
-import PassBuilder
 import Testing
 
 @testable import App
@@ -106,7 +105,8 @@ extension EventPassTests {
     let content = testContent
     let signer = try makePassSigner(configuration: configuration)
     let passData = try await makeEventPassData(
-      configuration: configuration, signer: signer, content: content) 
+      configuration: configuration, signer: signer, content: content
+    )
     try passData.write(to: directory.appendingPathComponent("ticket.pkpass"))
     try runTool("unzip", ["-q", "ticket.pkpass", "-d", "unpacked"], in: directory)
     let unpacked = directory.appendingPathComponent("unpacked")
