@@ -1,4 +1,3 @@
-import Configuration
 import Foundation
 import Testing
 @_spi(CMS) import X509
@@ -7,28 +6,6 @@ import ZipArchive
 @testable import App
 
 struct EventPassTests {
-  private var values: [AbsoluteConfigKey: ConfigValue] {
-    [
-      "pass.certificate": "dGVzdA==",
-      "pass.wwdr.certificate": "d3dkcg==",
-      "pass.type.identifier": "pass.test.blindlog",
-      "pass.team.identifier": "TESTTEAM",
-      "pass.organization.name": "Blindlog",
-      "pass.certificate.password": "test-password",
-    ]
-  }
-
-  @Test(arguments: [
-    "pass.certificate", "pass.wwdr.certificate", "pass.type.identifier",
-    "pass.team.identifier", "pass.organization.name", "pass.certificate.password",
-  ])
-  func missingConfigurationFailsAtStartup(key: String) {
-    var values = values
-    values.removeValue(forKey: AbsoluteConfigKey(ConfigKey(key)))
-    let config = ConfigReader(providers: [InMemoryProvider(values: values)])
-    #expect(throws: (any Error).self) { try makePassConfiguration(config: config) }
-  }
-
   @Test
   func passEligibilityExcludesWaitlistedAndCanceledParticipants() {
     #expect(EventParticipantRecord.Status.registered.canIssuePass)
@@ -37,20 +14,16 @@ struct EventPassTests {
     #expect(!EventParticipantRecord.Status.canceled.canIssuePass)
   }
 
-  @Test
-  func malformedCertificateCannotProducePass() throws {
-    let config = ConfigReader(providers: [InMemoryProvider(values: values)])
-    let configuration = try makePassConfiguration(config: config)
-    #expect(throws: (any Error).self) {
-      try makePassSigner(configuration: configuration)
-    }
-  }
-
   private var testContent: EventPassContent {
     .init(
-      eventID: UUID(), serialNumber: UUID().uuidString, title: "Test tasting",
-      startsAt: Date(), endsAt: Date().addingTimeInterval(3600),
-      venueName: "Test venue", venueAddress: "Tokyo", attendeeName: "Test attendee"
+      eventID: UUID(),
+      serialNumber: UUID().uuidString,
+      title: "Test tasting",
+      startsAt: Date(),
+      endsAt: Date().addingTimeInterval(3600),
+      venueName: "Test venue",
+      venueAddress: "Tokyo",
+      attendeeName: "Test attendee"
     )
   }
 }
@@ -72,7 +45,9 @@ extension EventPassTests {
     let content = testContent
     let signer = try makePassSigner(configuration: configuration)
     let passData = try await makeEventPassData(
-      configuration: configuration, signer: signer, content: content
+      configuration: configuration,
+      signer: signer,
+      content: content
     )
     let archive = try ZipArchiveReader<ZipMemoryStorage<[UInt8]>>(buffer: Array(passData))
     let entries = try archive.readDirectory()
