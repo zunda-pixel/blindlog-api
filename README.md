@@ -96,7 +96,7 @@ Pass signing requires `PASS_CERTIFICATE` (Base64 PKCS#12),
 application startup. For Cloud Run, upload certificate/password versions to the
 corresponding Secret Manager secrets and set the three identifier/name values in
 `app_env` before deploying. Certificate bytes remain in memory; only the signed pass
-bundle is written to a unique temporary directory, removed after each request.
+bundle is assembled and signed entirely in memory with no temporary pass files.
 
 Only registered and attended participants can download a pass. Waitlisted and
 canceled participants cannot. Passes already installed in Wallet remain on the
@@ -111,6 +111,8 @@ A dedicated QR verification API is not included in this release.
 The forked PassBuilder `main` declares `PassCertificate` and `PassSigner` as
 `Sendable`. Both certificates are parsed and the signer is created once during
 application startup; invalid certificate material therefore fails startup.
-The immutable signer is reused across requests, while each signature uses a
-unique temporary output directory to avoid concurrent file collisions.
+The immutable signer is reused across requests. `signPassData` creates a new
+memory-backed ZIP archive for each request, avoiding temporary files and
+concurrent output-path collisions. This currently depends on the draft
+[PassBuilder in-memory signing PR](https://github.com/zunda-pixel/pass-builder/pull/4).
 Production load measurements have not yet been performed.
