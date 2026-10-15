@@ -28,15 +28,32 @@ jobs:
       OTP_SECRET_KEY: 14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE=
       JWT_ISSUER: blindlog-api
       JWT_AUDIENCE: blindlog-app
-      PASS_CERTIFICATE: dGVzdA==
       PASS_CERTIFICATE_PASSWORD: test-password
-      PASS_WWDR_CERTIFICATE: d3dkcg==
       PASS_TYPE_IDENTIFIER: pass.test.blindlog
       PASS_TEAM_IDENTIFIER: TESTTEAM
       PASS_ORGANIZATION_NAME: Blindlog
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
+      - name: Load test-only Wallet signing certificate
+        # Use the same committed self-signed fixture as EventPassTests.
+        # The private key is public test material; never use it for production signing.
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+
+          source = pathlib.Path("Tests/AppTests/EventPassTests.swift").read_text()
+          with open(pathlib.Path(__import__("os").environ["GITHUB_ENV"]), "a") as env:
+              for key, swift_name in (
+                  ("PASS_CERTIFICATE", "testPKCS12"),
+                  ("PASS_WWDR_CERTIFICATE", "testCertificateDER"),
+              ):
+                  match = re.search(r'private static let ' + swift_name + r'\s*=\s*"([A-Za-z0-9+/=]+)"', source)
+                  if match is None:
+                      raise RuntimeError(f"Missing {swift_name} test fixture")
+                  env.write(f"{key}={match.group(1)}\n")
+          PY
       - name: Start DB, Cache & OTel Collector (wait for health)
         run: docker compose up -d --wait postgres valkey otel-collector
       - name: Cache SwiftPM build artifacts
