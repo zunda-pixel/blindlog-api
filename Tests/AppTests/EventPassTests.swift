@@ -138,6 +138,6 @@ extension EventPassTests {
       workingDirectory: .init(stringLiteral: directory.path),
       output: .discarded
     )
-    #expect(result.terminationStatus.isSuccess, "\\(tool) failed: \\(result.terminationStatus)")
+    #expect(result.terminationStatus.isSuccess, "\(tool) failed: \(result.terminationStatus)")
   }
 }
