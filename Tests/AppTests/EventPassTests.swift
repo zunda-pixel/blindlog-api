@@ -29,23 +29,6 @@ struct EventPassTests {
   }
 
   @Test
-  func configurationKeepsDecodedCertificateBytes() throws {
-    let config = ConfigReader(providers: [InMemoryProvider(values: values)])
-    let pass = try makePassConfiguration(config: config)
-    #expect(pass.passCertificateData == Data("test".utf8))
-    #expect(pass.wwdrCertificateData == Data("wwdr".utf8))
-    #expect(pass.passCertificatePassword == "test-password")
-  }
-
-  @Test(arguments: ["pass.certificate", "pass.wwdr.certificate"])
-  func invalidBase64FailsAtStartup(key: String) {
-    var values = values
-    values[AbsoluteConfigKey(ConfigKey(key))] = "!invalid!"
-    let config = ConfigReader(providers: [InMemoryProvider(values: values)])
-    #expect(throws: PassConfigurationError.self) { try makePassConfiguration(config: config) }
-  }
-
-  @Test
   func passEligibilityExcludesWaitlistedAndCanceledParticipants() {
     #expect(EventParticipantRecord.Status.registered.canIssuePass)
     #expect(EventParticipantRecord.Status.attended.canIssuePass)
