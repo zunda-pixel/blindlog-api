@@ -2,6 +2,7 @@ import Crypto
 import Foundation
 import JWTKit
 import PostgreSQL
+import PassBuilder
 import Valkey
 
 struct API: APIProtocol {
@@ -15,4 +16,5 @@ struct API: APIProtocol {
   var emailService: any EmailServiceProtocol
   var otpSecretKey: SymmetricKey
   var passConfiguration: PassConfiguration
+  var passSigner: PassSigner
 }
