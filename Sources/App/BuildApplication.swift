@@ -11,8 +11,8 @@ import Logging
 import NIOPosix
 import OTel
 import OpenAPIHummingbird
-import PostgreSQL
 import PassBuilder
+import PostgreSQL
 import PostgresNIO
 import ServiceLifecycle
 import Synchronization
