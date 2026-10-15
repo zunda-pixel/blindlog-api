@@ -1,5 +1,6 @@
 import Configuration
 import Foundation
+import PassBuilder
 import Testing
 
 @testable import App
@@ -56,8 +57,8 @@ struct EventPassTests {
   func malformedCertificateCannotProducePass() async throws {
     let config = ConfigReader(providers: [InMemoryProvider(values: values)])
     let configuration = try makePassConfiguration(config: config)
-    await #expect(throws: (any Error).self) {
-      try await makeEventPassData(configuration: configuration, content: testContent)
+    #expect(throws: (any Error).self) {
+      try makePassSigner(configuration: configuration)
     }
   }
 
@@ -103,7 +104,9 @@ extension EventPassTests {
       organizationName: "Blindlog"
     )
     let content = testContent
-    let passData = try await makeEventPassData(configuration: configuration, content: content)
+    let signer = try makePassSigner(configuration: configuration)
+    let passData = try await makeEventPassData(
+      configuration: configuration, signer: signer, content: content) 
     try passData.write(to: directory.appendingPathComponent("ticket.pkpass"))
     try runTool("unzip", ["-q", "ticket.pkpass", "-d", "unpacked"], in: directory)
     let unpacked = directory.appendingPathComponent("unpacked")
@@ -142,8 +145,14 @@ extension EventPassTests {
     configuration.passCertificateData = configuration.wwdrCertificateData
     configuration.passCertificatePassword = nil
     let invalidSigningConfiguration = configuration
-    await #expect(throws: (any Error).self) {
-      try await makeEventPassData(configuration: invalidSigningConfiguration, content: content)
+    do {
+      let invalidSigner = try makePassSigner(configuration: invalidSigningConfiguration)
+      await #expect(throws: (any Error).self) {
+        try await makeEventPassData(
+          configuration: invalidSigningConfiguration, signer: invalidSigner, content: content)
+      }
+    } catch {
+      // Invalid signing material may be rejected during signer initialization.
     }
   }
 
