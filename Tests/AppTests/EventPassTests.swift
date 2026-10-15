@@ -2,6 +2,7 @@ import Configuration
 import Foundation
 import Subprocess
 import Testing
+import ZipArchive
 
 @testable import App
 
@@ -91,31 +92,52 @@ extension EventPassTests {
     let passData = try await makeEventPassData(
       configuration: configuration, signer: signer, content: content
     )
-    try passData.write(to: directory.appendingPathComponent("ticket.pkpass"))
-    try await runTool("unzip", ["-q", "ticket.pkpass", "-d", "unpacked"], in: directory)
-    let unpacked = directory.appendingPathComponent("unpacked")
-    let json = try #require(
-      JSONSerialization.jsonObject(
-        with: Data(contentsOf: unpacked.appendingPathComponent("pass.json")))
-        as? [String: Any]
-    )
-    #expect(json["serialNumber"] as? String == content.serialNumber)
-    #expect(json["passTypeIdentifier"] as? String == configuration.passTypeIdentifier)
-    #expect(json["eventTicket"] != nil)
-    let barcode = try #require((json["barcodes"] as? [[String: Any]])?.first)
-    #expect(
-      barcode["message"] as? String
-        == "blindlog://events/\(content.eventID.uuidString)/tickets/\(content.serialNumber)")
+    let archive = try ZipArchiveReader<ZipMemoryStorage<[UInt8]>>(buffer: Array(passData))
+    let entries = try archive.readDirectory()
+
+    func fileData(_ filename: String) throws -> Data {
+      let entry = try #require(entries.first { $0.filename.string == filename })
+      return Data(try archive.readFile(entry))
+    }
+
+    struct PassJSON: Decodable {
+      struct Barcode: Decodable {
+        let message: String
+      }
+      let serialNumber: String
+      let passTypeIdentifier: String
+      let eventTicket: EventTicket
+
+      struct EventTicket: Decodable {}
+      let barcodes: [Barcode]
+    }
+
+    let passJSON = try JSONDecoder().decode(PassJSON.self, from: fileData("pass.json"))
+    let expectedSerialNumber = content.serialNumber
+    let actualSerialNumber = passJSON.serialNumber
+    #expect(actualSerialNumber == expectedSerialNumber)
+    let expectedPassTypeIdentifier = configuration.passTypeIdentifier
+    let actualPassTypeIdentifier = passJSON.passTypeIdentifier
+    #expect(actualPassTypeIdentifier == expectedPassTypeIdentifier)
+    let barcode = try #require(passJSON.barcodes.first)
+    let expectedBarcode = "blindlog://events/\\(content.eventID.uuidString)/tickets/\\(content.serialNumber)"
+    let actualBarcode = barcode.message
+    #expect(actualBarcode == expectedBarcode)
+
+    let manifest = try fileData("manifest.json")
+    let signature = try fileData("signature")
+    try manifest.write(to: directory.appendingPathComponent("manifest.json"))
+    try signature.write(to: directory.appendingPathComponent("signature"))
     try await runTool(
       "openssl",
       [
-        "cms", "-verify", "-binary", "-inform", "DER", "-in", "unpacked/signature",
-        "-content", "unpacked/manifest.json", "-noverify", "-out", "verified-manifest.json",
+        "cms", "-verify", "-binary", "-inform", "DER", "-in", "signature",
+        "-content", "manifest.json", "-noverify", "-out", "verified-manifest.json",
       ], in: directory)
-    #expect(
-      try Data(contentsOf: directory.appendingPathComponent("verified-manifest.json"))
-        == Data(contentsOf: unpacked.appendingPathComponent("manifest.json"))
+    let verifiedManifest = try Data(
+      contentsOf: directory.appendingPathComponent("verified-manifest.json")
     )
+    #expect(verifiedManifest == manifest)
     // A DER certificate has no private key, so signing must fail even though parsing succeeds.
     configuration.passCertificateData = configuration.wwdrCertificateData
     configuration.passCertificatePassword = nil
