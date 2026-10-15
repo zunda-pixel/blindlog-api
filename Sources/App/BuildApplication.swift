@@ -12,6 +12,7 @@ import NIOPosix
 import OTel
 import OpenAPIHummingbird
 import PostgreSQL
+import PassBuilder
 import PostgresNIO
 import ServiceLifecycle
 import Synchronization
@@ -95,6 +96,9 @@ func buildApplication(
   await jwtKeyCollection.add(eddsa: privateKey)
   let jwtConfiguration = try makeJWTConfiguration(config: config)
 
+  let passConfiguration = try makePassConfiguration(config: config)
+  let passSigner = try makePassSigner(configuration: passConfiguration)
+
   let api = try API(
     cache: cache,
     database: databaseClient,
@@ -105,7 +109,8 @@ func buildApplication(
     appleAppSiteAssociation: makeAppleAppSiteAssociation(config: config),
     emailService: emailService ?? makeCloudflareEmailService(config: config),
     otpSecretKey: makeOTPSecretKey(config: config),
-    passConfiguration: makePassConfiguration(config: config)
+    passConfiguration: passConfiguration,
+    passSigner: passSigner
   )
 
   router.add(
@@ -281,6 +286,15 @@ func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
     throw OTPSecretKeyConfigurationError()
   }
   return SymmetricKey(data: secretKeyData)
+}
+
+func makePassSigner(configuration: PassConfiguration) throws -> PassSigner {
+  let passCertificate = try PassCertificate(
+    data: configuration.passCertificateData,
+    password: configuration.passCertificatePassword
+  )
+  let wwdrCertificate = try PassCertificate(data: configuration.wwdrCertificateData)
+  return PassSigner(passCertificate: passCertificate, wwdrCertificate: wwdrCertificate)
 }
 
 func makePassConfiguration(config: ConfigReader) throws -> PassConfiguration {
