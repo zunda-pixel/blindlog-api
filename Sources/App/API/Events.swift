@@ -256,6 +256,7 @@ extension API {
       )
       let passData = try await makeEventPassData(
         configuration: passConfiguration,
+        signer: passSigner,
         content: content
       )
       return .ok(.init(body: .applicationVnd_apple_pkpass(.init(passData))))
