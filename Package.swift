@@ -13,6 +13,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-subprocess.git", from: "0.3.0"),
     .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
     .package(url: "https://github.com/hummingbird-project/hummingbird-auth.git", from: "2.0.0"),
     .package(url: "https://github.com/vapor/postgres-kit.git", from: "2.0.0"),
@@ -78,6 +79,7 @@ let package = Package(
       dependencies: [
         .target(name: "App"),
         .product(name: "HummingbirdTesting", package: "hummingbird"),
+        .product(name: "Subprocess", package: "swift-subprocess"),
         .product(name: "OTel", package: "swift-otel"),
       ]
     ),
