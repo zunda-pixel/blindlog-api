@@ -108,7 +108,9 @@ The scanner must validate the event/participant association and current status
 with the server before admitting an attendee; the QR alone is not authorization.
 A dedicated QR verification API is not included in this release.
 
-`PassCertificate` and `PassSigner` do not declare `Sendable` in the current
-PassBuilder dependency. Each request creates its own instances rather than
-sharing them concurrently. Certificate parsing and signing costs still apply;
-production load measurements are needed before selecting a caching strategy.
+The forked PassBuilder `main` declares `PassCertificate` and `PassSigner` as
+`Sendable`. Both certificates are parsed and the signer is created once during
+application startup; invalid certificate material therefore fails startup.
+The immutable signer is reused across requests, while each signature uses a
+unique temporary output directory to avoid concurrent file collisions.
+Production load measurements have not yet been performed.
