@@ -1,5 +1,5 @@
 {
-  "originHash" : "44d419ec9f3aee727edfd08a18f7b183edcd0d41010d92394496ffe923024d01",
+  "originHash" : "425ba27f5a769ec1869b9da106f342878da810efb5c3fb18f138e7232d23d288",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/zunda-pixel/pass-builder.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "58caa885c8792df7c320cdf0159a5e5fc710eb0f"
+        "branch" : "feat/in-memory-signed-pass",
+        "revision" : "31122688e6fa4006f8f10ba876897f3fc9da6d5e"
       }
     },
     {
@@ -1151,6 +1151,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "cd4a55d564186a2124d0aa5818fa31a550f6b373"
+      }
+    },
+    {
+      "identity" : "swift-zip-archive",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adam-fowler/swift-zip-archive",
+      "state" : {
+        "revision" : "e3f1bc1f816fdfa103ea391b99b792f7e8968bf2",
+        "version" : "0.9.0"
       }
     },
     {
