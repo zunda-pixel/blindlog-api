@@ -1,6 +1,5 @@
 import Foundation
 import PassBuilder
-import UUIDV7
 
 /// Configuration required to build and sign Apple Wallet passes for events.
 ///
@@ -102,23 +101,7 @@ func makeEventPassData(
   icon.times3 = try passIconFile(named: "icon@3x")
   package.icon = icon
 
-  // `signPass` writes to disk, so use a unique temporary directory and read the
-  // resulting `.pkpass` back into memory.
-  let workingDirectory = FileManager.default.temporaryDirectory
-    .appendingPathComponent("blindlog-pass-\(UUID.uuidV7String())", isDirectory: true)
-  try FileManager.default.createDirectory(
-    at: workingDirectory,
-    withIntermediateDirectories: true
-  )
-  defer { try? FileManager.default.removeItem(at: workingDirectory) }
-
-  let destination = workingDirectory.appendingPathComponent("\(content.serialNumber).pkpass")
-  let signedURL = try await signer.signPass(
-    package,
-    destination: destination,
-    options: [.zipOutput, .overwriteExisting]
-  )
-  return try Data(contentsOf: signedURL)
+  return try await signer.signPassData(package)
 }
 
 private func passIconFile(named name: String) throws -> PassImageFile {
