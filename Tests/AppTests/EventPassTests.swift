@@ -3,6 +3,7 @@ import Foundation
 import Subprocess
 import Testing
 import ZipArchive
+@_spi(CMS) import X509
 
 @testable import App
 
@@ -126,18 +127,20 @@ extension EventPassTests {
 
     let manifest = try fileData("manifest.json")
     let signature = try fileData("signature")
-    try manifest.write(to: directory.appendingPathComponent("manifest.json"))
-    try signature.write(to: directory.appendingPathComponent("signature"))
-    try await runTool(
-      "openssl",
-      [
-        "cms", "-verify", "-binary", "-inform", "DER", "-in", "signature",
-        "-content", "manifest.json", "-noverify", "-out", "verified-manifest.json",
-      ], in: directory)
-    let verifiedManifest = try Data(
-      contentsOf: directory.appendingPathComponent("verified-manifest.json")
+    let testCertificate = try Certificate(
+      derEncoded: Array(configuration.wwdrCertificateData)
     )
-    #expect(verifiedManifest == manifest)
+    let verification = await CMS.isValidSignature(
+      dataBytes: manifest,
+      signatureBytes: signature,
+      trustRoots: CertificateStore([testCertificate])
+    ) {
+      RFC5280Policy()
+    }
+    guard case .success = verification else {
+      Issue.record("CMS detached signature verification failed: \\(verification)")
+      return
+    }
     // A DER certificate has no private key, so signing must fail even though parsing succeeds.
     configuration.passCertificateData = configuration.wwdrCertificateData
     configuration.passCertificatePassword = nil
