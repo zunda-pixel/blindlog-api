@@ -1,7 +1,6 @@
 import Configuration
 import Foundation
 import Subprocess
-import SystemPackage
 import Testing
 
 @testable import App
@@ -153,7 +152,7 @@ extension EventPassTests {
     let result = try await Subprocess.run(
       .name(tool),
       arguments: Arguments(arguments),
-      workingDirectory: FilePath(directory.path),
+      workingDirectory: .init(stringLiteral: directory.path),
       output: .discarded
     )
     #expect(result.terminationStatus.isSuccess, "\\(tool) failed: \\(result.terminationStatus)")
