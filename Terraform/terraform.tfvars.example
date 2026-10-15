@@ -33,7 +33,8 @@ image_tag = "bootstrap"
 
 # Non-sensitive environment variables.
 # Sensitive values (POSTGRES_PASSWORD, VALKEY_PASSWORD, EDDSA_PRIVATE_KEY,
-# CLOUDFLARE_API_TOKEN, OTP_SECRET_KEY) are managed via Secret Manager —
+# CLOUDFLARE_API_TOKEN, OTP_SECRET_KEY, PASS_CERTIFICATE,
+# PASS_CERTIFICATE_PASSWORD, PASS_WWDR_CERTIFICATE) are managed via Secret Manager —
 # upload versions with `gcloud secrets versions add <id> --data-file=-`.
 #
 # CLOUD_RUN_REGION is auto-injected from `region` above; do NOT set it here.
@@ -43,6 +44,9 @@ image_tag = "bootstrap"
 # RELYING_PARTY_ORIGIN should be the public-facing origin (custom domain or
 # Cloud Run URL), NOT a placeholder.
 app_env = {
+  PASS_TYPE_IDENTIFIER          = "pass.com.example.event"
+  PASS_TEAM_IDENTIFIER          = "XXXXXXXXXX"
+  PASS_ORGANIZATION_NAME        = "Blindlog"
   APPLE_APP_ID                   = "XXXXXXXX.com.example.app"
   RELYING_PARTY_ID               = "example.com"
   RELYING_PARTY_NAME             = "Example"

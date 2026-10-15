@@ -24,6 +24,10 @@ let package = Package(
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(url: "https://github.com/swift-otel/swift-otel.git", from: "1.0.0"),
     .package(
+      url: "https://github.com/zunda-pixel/pass-builder.git",
+      branch: "feat/in-memory-signed-pass"
+    ),
+    .package(
       url: "https://github.com/zunda-pixel/swift-postgresql.git",
       branch: "fix-postgresql-closure-lifetime",
       traits: ["PostgresNIO"]
@@ -54,7 +58,9 @@ let package = Package(
         .product(name: "CloudflareImages", package: "cloudflare-swift"),
         .product(name: "UUIDV7", package: "UUIDV7"),
         .product(name: "OTel", package: "swift-otel"),
+        .product(name: "PassBuilder", package: "pass-builder"),
       ],
+      resources: [.copy("Resources/PassIcon")],
       swiftSettings: [
         .enableUpcomingFeature("ExistentialAny"),
         .enableUpcomingFeature("InternalImportsByDefault"),
