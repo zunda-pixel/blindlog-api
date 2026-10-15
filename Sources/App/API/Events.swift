@@ -243,7 +243,7 @@ extension API {
         return .notFound
       }
 
-      let attendeeName = (try? await getProfile(userID: userID))?.name
+      let attendeeName = try await getProfile(userID: userID)?.name
       let content = EventPassContent(
         eventID: eventID,
         serialNumber: participant.id.uuidString,
