@@ -48,14 +48,20 @@ func makeEventPassData(
   signer: PassSigner,
   content: EventPassContent
 ) async throws -> Data {
-  var package = PassPackage()
-  package.pass.passTypeIdentifier = configuration.passTypeIdentifier
-  package.pass.teamIdentifier = configuration.teamIdentifier
-  package.pass.organizationName = configuration.organizationName
-  package.pass.serialNumber = content.serialNumber
-  package.pass.description = content.title
-  package.pass.logoText = content.title
-  package.pass.relevantDate = content.startsAt
+  let package = try PassPackage(configuration: configuration, content: content)
+  return try await signer.signPassData(package)
+}
+
+extension PassPackage {
+  init(configuration: PassConfiguration, content: EventPassContent) throws {
+  self.init()
+  pass.passTypeIdentifier = configuration.passTypeIdentifier
+  pass.teamIdentifier = configuration.teamIdentifier
+  pass.organizationName = configuration.organizationName
+  pass.serialNumber = content.serialNumber
+  pass.description = content.title
+  pass.logoText = content.title
+  pass.relevantDate = content.startsAt
 
   var fields = Pass.Fields()
   fields.primaryFields = [
@@ -85,7 +91,7 @@ func makeEventPassData(
     endsField,
   ]
 
-  package.pass.eventTicket = fields
+  pass.eventTicket = fields
 
   var barcode = Pass.Barcode()
   barcode.format = .qr
@@ -93,15 +99,15 @@ func makeEventPassData(
     "blindlog://events/\(content.eventID.uuidString)/tickets/\(content.serialNumber)"
   barcode.messageEncoding = "iso-8859-1"
   barcode.altText = content.serialNumber
-  package.pass.barcodes = [barcode]
+  pass.barcodes = [barcode]
 
   var icon = PassImage()
   icon.times1 = try passIconFile(named: "icon")
   icon.times2 = try passIconFile(named: "icon@2x")
   icon.times3 = try passIconFile(named: "icon@3x")
-  package.icon = icon
+  self.icon = icon
 
-  return try await signer.signPassData(package)
+  }
 }
 
 private func passIconFile(named name: String) throws -> PassImageFile {
