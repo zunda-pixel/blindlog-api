@@ -1,5 +1,5 @@
 {
-  "originHash" : "08f3d50b22302fcd3cf8c7bebe1d5aa5c9c95e653e9cf578aabce24fa37753ea",
+  "originHash" : "44d419ec9f3aee727edfd08a18f7b183edcd0d41010d92394496ffe923024d01",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/zunda-pixel/pass-builder.git",
       "state" : {
-        "branch" : "codex/issue-9-in-memory-certificates",
-        "revision" : "81cad9908d07b122b277d41962fe577d3e7ae938"
+        "branch" : "main",
+        "revision" : "58caa885c8792df7c320cdf0159a5e5fc710eb0f"
       }
     },
     {
