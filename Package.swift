@@ -25,7 +25,7 @@ let package = Package(
     .package(url: "https://github.com/swift-otel/swift-otel.git", from: "1.0.0"),
     .package(
       url: "https://github.com/zunda-pixel/pass-builder.git",
-      branch: "codex/issue-9-in-memory-certificates"),
+      branch: "main"),
     .package(
       url: "https://github.com/zunda-pixel/swift-postgresql.git",
       branch: "fix-postgresql-closure-lifetime",
