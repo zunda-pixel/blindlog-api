@@ -14,5 +14,5 @@ struct API: APIProtocol {
   var appleAppSiteAssociation: AppleAppSiteAssociation
   var emailService: any EmailServiceProtocol
   var otpSecretKey: SymmetricKey
-  var passConfiguration: PassConfiguration?
+  var passConfiguration: PassConfiguration
 }

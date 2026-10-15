@@ -229,10 +229,6 @@ extension API {
     guard let eventID = UUID(uuidString: input.path.eventId) else {
       return .badRequest
     }
-    guard let passConfiguration else {
-      // Pass signing isn't configured for this deployment.
-      return .badRequest
-    }
 
     do {
       guard let event = try await latestEventSnapshot(eventID: eventID) else {
@@ -242,9 +238,7 @@ extension API {
         try eventParticipant(eventID: eventID, userID: userID, db: db)
       }
       guard let participant,
-        participant.status == .registered
-          || participant.status == .waitlisted
-          || participant.status == .attended
+        participant.status.canIssuePass
       else {
         return .notFound
       }

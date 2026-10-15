@@ -71,7 +71,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get -q dist-upgrade -y \
     && apt-get -q install -y \
       ca-certificates \
-      tzdata
+      tzdata \
+      zip
 
 # Create a hummingbird user and group with /app as its home directory
 RUN useradd --user-group --create-home --system --skel /dev/null --home-dir /app hummingbird

@@ -86,3 +86,29 @@ container run --rm \
   -v "$PWD/Deploy/local/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml" \
   ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.144.0
 ```
+
+### Event Wallet passes
+
+Pass signing requires `PASS_CERTIFICATE` (Base64 PKCS#12),
+`PASS_CERTIFICATE_PASSWORD` (use an empty string for an unprotected bundle),
+`PASS_WWDR_CERTIFICATE` (Base64 DER), `PASS_TYPE_IDENTIFIER`,
+`PASS_TEAM_IDENTIFIER`, and `PASS_ORGANIZATION_NAME`. Missing settings fail
+application startup. For Cloud Run, upload certificate/password versions to the
+corresponding Secret Manager secrets and set the three identifier/name values in
+`app_env` before deploying. Certificate bytes remain in memory; only the signed pass
+bundle is written to a unique temporary directory, removed after each request.
+
+Only registered and attended participants can download a pass. Waitlisted and
+canceled participants cannot. Passes already installed in Wallet remain on the
+device after cancellation and do not receive event changes automatically
+([update service follow-up](https://github.com/zunda-pixel/blindlog-api/issues/391)).
+The QR uses `blindlog://events/{eventID}/tickets/{participantID}` for the planned
+[Blindlog app scanner](https://github.com/zunda-pixel/blindlog-app/issues/6).
+The scanner must validate the event/participant association and current status
+with the server before admitting an attendee; the QR alone is not authorization.
+A dedicated QR verification API is not included in this release.
+
+`PassCertificate` and `PassSigner` do not declare `Sendable` in the current
+PassBuilder dependency. Each request creates its own instances rather than
+sharing them concurrently. Certificate parsing and signing costs still apply;
+production load measurements are needed before selecting a caching strategy.

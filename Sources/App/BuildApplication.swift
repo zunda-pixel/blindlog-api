@@ -283,18 +283,14 @@ func makeOTPSecretKey(config: ConfigReader) throws -> SymmetricKey {
   return SymmetricKey(data: secretKeyData)
 }
 
-func makePassConfiguration(config: ConfigReader) throws -> PassConfiguration? {
+func makePassConfiguration(config: ConfigReader) throws -> PassConfiguration {
   let config = config.scoped(to: "pass")
-  guard
-    let certificateBase64 = config.string(forKey: "certificate"),
-    let wwdrBase64 = config.string(forKey: "wwdr.certificate"),
-    let passTypeIdentifier = config.string(forKey: "type.identifier"),
-    let teamIdentifier = config.string(forKey: "team.identifier"),
-    let organizationName = config.string(forKey: "organization.name")
-  else {
-    // Pass signing is optional; without certificates the endpoint is disabled.
-    return nil
-  }
+  let certificateBase64 = try config.requiredString(forKey: "certificate")
+  let wwdrBase64 = try config.requiredString(forKey: "wwdr.certificate")
+  let passTypeIdentifier = try config.requiredString(forKey: "type.identifier")
+  let teamIdentifier = try config.requiredString(forKey: "team.identifier")
+  let organizationName = try config.requiredString(forKey: "organization.name")
+  let certificatePassword = try config.requiredString(forKey: "certificate.password")
   guard
     let certificateData = Data(base64Encoded: certificateBase64),
     let wwdrData = Data(base64Encoded: wwdrBase64)
@@ -302,18 +298,10 @@ func makePassConfiguration(config: ConfigReader) throws -> PassConfiguration? {
     throw PassConfigurationError.invalidCertificate
   }
 
-  let directory = FileManager.default.temporaryDirectory
-    .appendingPathComponent("blindlog-pass-certificates", isDirectory: true)
-  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-  let passCertificateURL = directory.appendingPathComponent("pass.p12")
-  let wwdrCertificateURL = directory.appendingPathComponent("wwdr.cer")
-  try certificateData.write(to: passCertificateURL)
-  try wwdrData.write(to: wwdrCertificateURL)
-
   return PassConfiguration(
-    passCertificateURL: passCertificateURL,
-    passCertificatePassword: config.string(forKey: "certificate.password"),
-    wwdrCertificateURL: wwdrCertificateURL,
+    passCertificateData: certificateData,
+    passCertificatePassword: certificatePassword,
+    wwdrCertificateData: wwdrData,
     passTypeIdentifier: passTypeIdentifier,
     teamIdentifier: teamIdentifier,
     organizationName: organizationName

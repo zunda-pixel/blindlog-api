@@ -28,6 +28,12 @@ jobs:
       OTP_SECRET_KEY: 14nGf8gj0cPsgfZaoKKGBlmKz7kpcfgvYIGt0WH8BvE=
       JWT_ISSUER: blindlog-api
       JWT_AUDIENCE: blindlog-app
+      PASS_CERTIFICATE: dGVzdA==
+      PASS_CERTIFICATE_PASSWORD: test-password
+      PASS_WWDR_CERTIFICATE: d3dkcg==
+      PASS_TYPE_IDENTIFIER: pass.test.blindlog
+      PASS_TEAM_IDENTIFIER: TESTTEAM
+      PASS_ORGANIZATION_NAME: Blindlog
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -41,7 +47,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-swift-6.4.0-
       - name: Run tests (Swift in Docker)
-        run: docker compose run --rm swift bash -lc "apt-get update && apt-get install -y libssl-dev && swift test --parallel"
+        run: docker compose run --rm swift bash -lc "apt-get update && apt-get install -y libssl-dev zip unzip openssl && swift test --parallel"
       - name: Shutdown
         run: docker compose down -v
   docker-build:

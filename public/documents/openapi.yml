@@ -861,7 +861,10 @@ paths:
       description: >-
         Returns a signed Apple Wallet pass (.pkpass) event ticket for the
         authenticated user. The user must be an active participant
-        (registered, waitlisted, or attended) of the event.
+        (registered or attended) of the event. Waitlisted and canceled participants
+        cannot obtain a pass. Issued passes do not update automatically; see
+        blindlog-api#391. The QR is intended for blindlog-app (blindlog-app#6);
+        check-in must validate the event, participant, and current status on the server.
       security:
         - bearerAuth: []
       parameters:

@@ -741,6 +741,31 @@ struct RouterTests {
         #expect(response.status == .ok)
       }
 
+      let unauthenticatedPass = try await client.execute(
+        uri: "/events/\(publicEvent.id)/pass",
+        method: .get,
+        headers: [.cfConnectingIP: ipAddress]
+      )
+      #expect(unauthenticatedPass.status == .unauthorized)
+      let missingEventPass = try await client.execute(
+        uri: "/events/\(UUID().uuidString)/pass",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(participant.token)",
+        ]
+      )
+      #expect(missingEventPass.status == .notFound)
+      let nonParticipantPass = try await client.execute(
+        uri: "/events/\(publicEvent.id)/pass",
+        method: .get,
+        headers: [
+          .cfConnectingIP: ipAddress,
+          .authorization: "Bearer \(viewer.token)",
+        ]
+      )
+      #expect(nonParticipantPass.status == .notFound)
+
       let organizerOwnEvents = try await getEvents(
         uri: "/users/\(organizer.userID)/organized_events",
         token: organizer.token

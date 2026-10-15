@@ -4,15 +4,14 @@ import UUIDV7
 
 /// Configuration required to build and sign Apple Wallet passes for events.
 ///
-/// The certificates are decoded from configuration at startup and written to
-/// temporary files, because `PassCertificate` loads certificates from file URLs.
+/// Certificate bytes stay in memory and are never written to temporary files.
 struct PassConfiguration: Sendable {
-  /// File URL of the Pass Type ID signing certificate (PKCS#12 / `.p12`).
-  var passCertificateURL: URL
+  /// Pass Type ID signing certificate (PKCS#12 / `.p12`).
+  var passCertificateData: Data
   /// Password protecting the `.p12` bundle, if any.
   var passCertificatePassword: String?
-  /// File URL of the Apple WWDR intermediate certificate (DER / `.cer`).
-  var wwdrCertificateURL: URL
+  /// Apple WWDR intermediate certificate (DER / `.cer`).
+  var wwdrCertificateData: Data
   /// The pass type identifier registered with Apple, e.g. `pass.com.example.event`.
   var passTypeIdentifier: String
   /// The Apple Developer Team identifier.
@@ -109,10 +108,10 @@ func makeEventPassData(
   }
 
   let passCertificate = try PassCertificate(
-    url: configuration.passCertificateURL,
+    data: configuration.passCertificateData,
     password: configuration.passCertificatePassword
   )
-  let wwdrCertificate = try PassCertificate(url: configuration.wwdrCertificateURL)
+  let wwdrCertificate = try PassCertificate(data: configuration.wwdrCertificateData)
   let signer = PassSigner(
     passCertificate: passCertificate,
     wwdrCertificate: wwdrCertificate
