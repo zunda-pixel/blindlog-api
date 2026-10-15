@@ -17,24 +17,22 @@ let package = Package(
     .package(url: "https://github.com/hummingbird-project/hummingbird-auth.git", from: "2.0.0"),
     .package(url: "https://github.com/vapor/postgres-kit.git", from: "2.0.0"),
     .package(url: "https://github.com/swift-server/swift-openapi-hummingbird.git", from: "2.0.0"),
-    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.10.0"),
+    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.14.1"),
     .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.4.0"),
     .package(url: "https://github.com/zunda-pixel/cloudflare-swift.git", from: "0.8.2"),
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
+    .package(url: "https://github.com/swift-otel/swift-otel.git", from: "1.0.0"),
+    .package(url: "https://github.com/apple/pass-builder.git", branch: "main"),
     .package(
       url: "https://github.com/zunda-pixel/swift-postgresql.git",
       branch: "fix-postgresql-closure-lifetime",
-      traits: ["PostgresNIO"]),
+      traits: ["PostgresNIO"]
+    ),
     .package(url: "https://github.com/swift-compositions/swift-sql.git", branch: "main"),
     .package(url: "https://github.com/zunda-pixel/swift-currency.git", from: "0.0.1"),
     .package(url: "https://github.com/zunda-pixel/swift-webauthn.git", branch: "add-init"),
     .package(url: "https://github.com/zunda-pixel/UUIDV7.git", branch: "replace-to-swift-testing"),
-    .package(
-      url: "https://github.com/swift-otel/swift-otel.git",
-      from: "1.0.0"
-    ),
-    .package(url: "https://github.com/apple/pass-builder.git", branch: "main"),
   ],
   targets: [
     .executableTarget(
@@ -68,6 +66,7 @@ let package = Package(
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .defaultIsolation(nil),
         .strictMemorySafety(),
+        .treatAllWarnings(as: .error),
       ],
       plugins: [
         .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
