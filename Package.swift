@@ -23,7 +23,9 @@ let package = Package(
     .package(url: "https://github.com/hummingbird-project/hummingbird-postgres.git", from: "1.0.0"),
     .package(url: "https://github.com/valkey-io/valkey-swift.git", from: "1.3.0"),
     .package(url: "https://github.com/swift-otel/swift-otel.git", from: "1.0.0"),
-    .package(url: "https://github.com/zunda-pixel/pass-builder.git", branch: "codex/issue-9-in-memory-certificates"),
+    .package(
+      url: "https://github.com/zunda-pixel/pass-builder.git",
+      branch: "codex/issue-9-in-memory-certificates"),
     .package(
       url: "https://github.com/zunda-pixel/swift-postgresql.git",
       branch: "fix-postgresql-closure-lifetime",
@@ -57,6 +59,7 @@ let package = Package(
         .product(name: "OTel", package: "swift-otel"),
         .product(name: "PassBuilder", package: "pass-builder"),
       ],
+      resources: [.copy("Resources/PassIcon")],
       swiftSettings: [
         .enableUpcomingFeature("ExistentialAny"),
         .enableUpcomingFeature("InternalImportsByDefault"),

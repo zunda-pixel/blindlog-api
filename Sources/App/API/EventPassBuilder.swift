@@ -95,17 +95,11 @@ func makeEventPassData(
   barcode.altText = content.serialNumber
   package.pass.barcodes = [barcode]
 
-  // Apple Wallet requires an icon. Bundle a small default icon and reuse it for
-  // every scale variant.
-  if let iconData = Data(base64Encoded: defaultPassIconPNGBase64) {
-    let iconFile = PassImageFile(data: iconData, fileType: .png)
-    var icon = PassImage()
-    icon.times1 = iconFile
-    icon.times2 = iconFile
-    icon.times3 = iconFile
-    package.icon = icon
-    package.logo = icon
-  }
+  var icon = PassImage()
+  icon.times1 = try passIconFile(named: "icon")
+  icon.times2 = try passIconFile(named: "icon@2x")
+  icon.times3 = try passIconFile(named: "icon@3x")
+  package.icon = icon
 
   let passCertificate = try PassCertificate(
     data: configuration.passCertificateData,
@@ -136,6 +130,13 @@ func makeEventPassData(
   return try Data(contentsOf: signedURL)
 }
 
-/// A 38×38 solid-color PNG used as the default pass icon.
-private let defaultPassIconPNGBase64 =
-  "iVBORw0KGgoAAAANSUhEUgAAACYAAAAmCAYAAACoPemuAAAANklEQVR42u3OMQkAAAgAMBt52sv+oDUEd+xfdNZcFGJiYmJiYmJiYmJiYmJiYmJiYmJiYv9iC7XCYVOA07SRAAAAAElFTkSuQmCC"
+private func passIconFile(named name: String) throws -> PassImageFile {
+  guard
+    let url = Bundle.module.url(
+      forResource: name, withExtension: "png", subdirectory: "PassIcon"
+    )
+  else {
+    throw CocoaError(.fileNoSuchFile)
+  }
+  return try PassImageFile(data: Data(contentsOf: url), fileType: .png)
+}

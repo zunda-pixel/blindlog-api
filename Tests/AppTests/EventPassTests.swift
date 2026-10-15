@@ -107,6 +107,15 @@ extension EventPassTests {
     try passData.write(to: directory.appendingPathComponent("ticket.pkpass"))
     try runTool("unzip", ["-q", "ticket.pkpass", "-d", "unpacked"], in: directory)
     let unpacked = directory.appendingPathComponent("unpacked")
+    for (filename, expectedSize) in [("icon.png", 29), ("icon@2x.png", 58), ("icon@3x.png", 87)] {
+      let png = try Data(contentsOf: unpacked.appendingPathComponent(filename))
+      #expect(Array(png.prefix(8)) == [137, 80, 78, 71, 13, 10, 26, 10])
+      // PNG IHDR encodes width and height as big-endian UInt32 values.
+      let width = png[16..<20].reduce(0) { ($0 << 8) | Int($1) }
+      let height = png[20..<24].reduce(0) { ($0 << 8) | Int($1) }
+      #expect(width == expectedSize)
+      #expect(height == expectedSize)
+    }
     let json = try #require(
       JSONSerialization.jsonObject(
         with: Data(contentsOf: unpacked.appendingPathComponent("pass.json")))
