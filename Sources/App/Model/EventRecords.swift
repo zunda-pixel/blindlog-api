@@ -55,6 +55,10 @@ struct EventParticipantRecord: Codable, Identifiable, Hashable {
     case waitlisted
     case canceled
     case attended
+
+    var canIssuePass: Bool {
+      self == .registered || self == .attended
+    }
   }
 
   var id: UUID
