@@ -279,9 +279,16 @@
 
         <div class="grid-2">
           <div class="field">
-            <label for="event-answer-published-at">正解公開日時 (任意)</label>
-            <input id="event-answer-published-at" type="datetime-local">
+            <label for="event-responses-due-at">回答期限 *</label>
+            <input id="event-responses-due-at" type="datetime-local" required>
           </div>
+          <div class="field">
+            <label for="event-answer-published-at">正解公開日時 *</label>
+            <input id="event-answer-published-at" type="datetime-local" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
           <div class="field">
             <label for="event-capacity">定員 (任意, 1以上)</label>
             <input id="event-capacity" type="number" min="1" step="1">
