@@ -1,6 +1,7 @@
 import Crypto
 import Foundation
 import JWTKit
+import PassBuilder
 import PostgreSQL
 import Valkey
 
@@ -14,4 +15,6 @@ struct API: APIProtocol {
   var appleAppSiteAssociation: AppleAppSiteAssociation
   var emailService: any EmailServiceProtocol
   var otpSecretKey: SymmetricKey
+  var passConfiguration: PassConfiguration
+  var passSigner: PassSigner
 }

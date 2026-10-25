@@ -11,6 +11,30 @@
   "defaultOptions" : {
     "environmentVariableEntries" : [
       {
+        "key" : "PASS_CERTIFICATE",
+        "value" : "dGVzdA=="
+      },
+      {
+        "key" : "PASS_CERTIFICATE_PASSWORD",
+        "value" : "test-password"
+      },
+      {
+        "key" : "PASS_WWDR_CERTIFICATE",
+        "value" : "d3dkcg=="
+      },
+      {
+        "key" : "PASS_TYPE_IDENTIFIER",
+        "value" : "pass.test.blindlog"
+      },
+      {
+        "key" : "PASS_TEAM_IDENTIFIER",
+        "value" : "TESTTEAM"
+      },
+      {
+        "key" : "PASS_ORGANIZATION_NAME",
+        "value" : "Blindlog"
+      },
+      {
         "key" : "VALKEY_HOSTNAME",
         "value" : "localhost"
       },
