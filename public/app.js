@@ -593,6 +593,8 @@
         startsAt: referenceSecondsFromInput(val('event-period-start')),
         endsAt: referenceSecondsFromInput(val('event-period-end')),
       };
+      body.responsesDueAt = referenceSecondsFromInput(val('event-responses-due-at'));
+      body.answersPublishedAt = referenceSecondsFromInput(val('event-answer-published-at'));
 
       const registrationStart = referenceSecondsFromInput(val('event-registration-start'));
       const registrationEnd = referenceSecondsFromInput(val('event-registration-end'));
@@ -600,7 +602,6 @@
         body.registrationPeriod = { startsAt: registrationStart, endsAt: registrationEnd };
       }
 
-      assignIfPresent(body, 'answersPublishedAt', referenceSecondsFromInput(val('event-answer-published-at')));
       const capacity = readNumber(val('event-capacity'));
       assignIfPresent(body, 'capacity', capacity === null ? null : Math.round(capacity));
 
@@ -622,6 +623,18 @@
         { predicate: () => body.venueAddress.countryCode.length > 0, message: '国コードを入力してください。' },
         { predicate: () => body.eventPeriod.startsAt !== null, message: '開催開始日時を入力してください。' },
         { predicate: () => body.eventPeriod.endsAt !== null, message: '開催終了日時を入力してください。' },
+        { predicate: () => body.responsesDueAt !== null, message: '回答期限を入力してください。' },
+        { predicate: () => body.answersPublishedAt !== null, message: '正解公開日時を入力してください。' },
+        {
+          predicate: () => body.responsesDueAt === null || body.eventPeriod.startsAt === null
+            || body.eventPeriod.startsAt <= body.responsesDueAt,
+          message: '回答期限は開催開始以降にしてください。',
+        },
+        {
+          predicate: () => body.answersPublishedAt === null || body.responsesDueAt === null
+            || body.responsesDueAt <= body.answersPublishedAt,
+          message: '正解公開は回答期限以降にしてください。',
+        },
       ]);
     }
 
@@ -993,6 +1006,7 @@
       const dl = document.createElement('dl');
       dl.className = 'event-meta';
       appendMetaRow(dl, '開催', formatPeriod(event?.eventPeriod));
+      appendMetaRow(dl, '回答期限', formatDateTime(event?.responsesDueAt));
       const venue = [event?.venueName, formatAddress(event?.venueAddress)].filter(Boolean).join(' / ');
       appendMetaRow(dl, '会場', venue || null);
       appendMetaRow(dl, '受付', formatPeriod(event?.registrationPeriod));
@@ -1088,7 +1102,8 @@
         'event-address-line1', 'event-address-line2', 'event-locality',
         'event-administrative-area', 'event-postal-code', 'event-country-code',
         'event-latitude', 'event-longitude', 'event-period-start', 'event-period-end',
-        'event-registration-start', 'event-registration-end', 'event-answer-published-at',
+        'event-registration-start', 'event-registration-end', 'event-responses-due-at',
+        'event-answer-published-at',
         'event-capacity', 'event-fee-amount', 'event-fee-currency', 'event-id',
       ]) setVal(id, '');
       setVal('event-visibility', 'private');
@@ -1114,6 +1129,7 @@
       setVal('event-period-end', inputFromReferenceSeconds(event?.eventPeriod?.endsAt));
       setVal('event-registration-start', inputFromReferenceSeconds(event?.registrationPeriod?.startsAt));
       setVal('event-registration-end', inputFromReferenceSeconds(event?.registrationPeriod?.endsAt));
+      setVal('event-responses-due-at', inputFromReferenceSeconds(event?.responsesDueAt));
       setVal('event-answer-published-at', inputFromReferenceSeconds(event?.answersPublishedAt));
       setVal('event-capacity', event?.capacity ?? '');
       setVal('event-fee-amount', event?.entryFee?.minorAmount ?? '');
